@@ -1,6 +1,6 @@
 {-------------------------------------------------------------------------------
  
- Copyright (c) 1999-2017 Ralf Junker, Yunqa
+ Copyright (c) 1999-2021 Ralf Junker, Yunqa
  Internet: https://www.yunqa.de
  E-Mail:   delphi@yunqa.de
 
@@ -25,15 +25,7 @@ uses
   Windows;
 {$ENDIF COMPILER_6_UP}
 
-{$IFNDEF COMPILER_3_UP}
-
-type
-
-  PByte = ^Byte;
-
-  {$ENDIF ~COMPILER_3_UP}
-
-  {$IFNDEF COMPILER_4_UP}
+{$IFNDEF COMPILER_4_UP}
 
 type
 
@@ -59,6 +51,7 @@ type
   end;
 
   PBoolean = ^Boolean;
+  PByte = ^Byte;
   PCardinal = ^Cardinal;
   PDouble = ^Double;
   PInteger = Windows.PInteger;
@@ -88,6 +81,7 @@ function UnicodeToUtf8(
   Dest: PAnsiChar;
   Source: PWideChar;
   MaxBytes: Integer): Integer; overload; {$IFDEF SUPPORTS_DEPRECATED}deprecated; {$ENDIF}
+
 function UnicodeToUtf8(
   Dest: PAnsiChar;
   MaxDestBytes: Cardinal;
@@ -96,6 +90,7 @@ function UnicodeToUtf8(
 
 function Utf8Decode(
   const s: Utf8String): WideString; {$IFDEF SUPPORTS_DEPRECATED}deprecated; {$ENDIF}
+
 function Utf8Encode(
   const WS: WideString): Utf8String;
 
@@ -103,6 +98,7 @@ function Utf8ToUnicode(
   Dest: PWideChar;
   Source: PChar;
   MaxChars: Integer): Integer; overload; {$IFDEF SUPPORTS_DEPRECATED}deprecated; {$ENDIF}
+
 function Utf8ToUnicode(
   Dest: PWideChar;
   MaxDestChars: Cardinal;
@@ -141,6 +137,10 @@ const
 
   faNormal = $00000080{$IFDEF SUPPORTS_PLATFORM}platform{$ENDIF};
 
+  {$IFDEF MSWINDOWS}
+  MB_ERR_INVALID_CHARS = 8;
+  {$ENDIF MSWINDOWS}
+
 type
 
   NativeInt = Integer;
@@ -151,8 +151,7 @@ type
   UnicodeString = WideString;
   PUnicodeString = ^UnicodeString;
 
-function StringRefCount(const s: RawByteString): Integer; overload; {$IFDEF SUPPORTS_INLINE}inline; {$ENDIF}
-function StringRefCount(const s: UnicodeString): Integer; overload; {$IFDEF SUPPORTS_INLINE}inline; {$ENDIF}
+function StringRefCount(const s: RawByteString): Integer; {$IFDEF SUPPORTS_INLINE}inline; {$ENDIF}
 
 function Utf8ToString(const s: RawByteString): UnicodeString; {$IFDEF SUPPORTS_INLINE}inline; {$ENDIF}overload;
 function Utf8ToString(const s: PAnsiChar): UnicodeString; {$IFDEF SUPPORTS_INLINE}inline; {$ENDIF}overload;
@@ -208,6 +207,9 @@ function IsRelativePathW(
 
 {$IFNDEF COMPILER_17_UP}
 
+{$UNDEF AtomicNativeInt}
+{$IFDEF COMPILER_12_UP}{$DEFINE AtomicNativeInt}{$ENDIF}
+
 type
 
   MarshaledAString = PAnsiChar;
@@ -216,29 +218,41 @@ function AtomicIncrement(
   var Target: Cardinal): Cardinal; overload;
 
 function AtomicIncrement(
-  var Target: Integer): Integer; overload;
+  var Target: Cardinal;
+  const Increment: Cardinal): Cardinal; overload;
 
 function AtomicIncrement(
-  var Target: Cardinal;
-  Increment: Cardinal): Cardinal; overload;
+  var Target: Integer): Integer; overload;
 
 function AtomicIncrement(
   var Target: Integer;
-  Increment: Integer): Integer; overload;
+  const Increment: Integer): Integer; overload;
+
+{$IFDEF AtomicNativeInt}
+
+function AtomicIncrement(
+  var Target: NativeInt): NativeInt; overload;
+{$ENDIF AtomicNativeInt}
 
 function AtomicDecrement(
   var Target: Integer): Integer; overload;
-
-function AtomicDecrement(
-  var Target: Cardinal): Cardinal; overload;
 
 function AtomicDecrement(
   var Target: Integer;
   Decrement: Integer): Integer; overload;
 
 function AtomicDecrement(
+  var Target: Cardinal): Cardinal; overload;
+
+function AtomicDecrement(
   var Target: Cardinal;
   Decrement: Cardinal): Cardinal; overload;
+
+{$IFDEF AtomicNativeInt}
+
+function AtomicDecrement(
+  var Target: NativeInt): NativeInt; overload;
+{$ENDIF AtomicNativeInt}
 
 {$ENDIF ~COMPILER_17_UP}
 
@@ -292,7 +306,7 @@ end;
 function UnicodeToUtf8(Dest: PAnsiChar; MaxDestBytes: Cardinal; Source: PWideChar; SourceChars: Cardinal): Cardinal;
 var
   i, Count: Cardinal;
-  c: Cardinal;
+  c: Word;
 begin
   Result := 0;
   if Source = nil then Exit;
@@ -302,7 +316,7 @@ begin
     begin
       while (i < SourceChars) and (Count < MaxDestBytes) do
         begin
-          c := Cardinal(Source[i]);
+          c := Ord(Source[i]);
           Inc(i);
           if c <= $7F then
             begin
@@ -334,7 +348,7 @@ begin
     begin
       while i < SourceChars do
         begin
-          c := Integer(Source[i]);
+          c := Ord(Source[i]);
           Inc(i);
           if c > $7F then
             begin
@@ -397,7 +411,7 @@ function Utf8ToUnicode(Dest: PWideChar; MaxDestChars: Cardinal; Source: PChar; S
 var
   i, Count: Cardinal;
   c: Byte;
-  wc: Cardinal;
+  WC: Cardinal;
 begin
   if Source = nil then
     begin
@@ -411,28 +425,28 @@ begin
     begin
       while (i < SourceBytes) and (Count < MaxDestChars) do
         begin
-          wc := Cardinal(Source[i]);
+          WC := Cardinal(Source[i]);
           Inc(i);
-          if (wc and $80) <> 0 then
+          if (WC and $80) <> 0 then
             begin
               if i >= SourceBytes then Exit;
-              wc := wc and $3F;
-              if (wc and $20) <> 0 then
+              WC := WC and $3F;
+              if (WC and $20) <> 0 then
                 begin
                   c := Byte(Source[i]);
                   Inc(i);
                   if (c and $C0) <> $80 then Exit;
                   if i >= SourceBytes then Exit;
-                  wc := (wc shl 6) or (c and $3F);
+                  WC := (WC shl 6) or (c and $3F);
                 end;
               c := Byte(Source[i]);
               Inc(i);
               if (c and $C0) <> $80 then Exit;
 
-              Dest[Count] := WideChar((wc shl 6) or (c and $3F));
+              Dest[Count] := WideChar((WC shl 6) or (c and $3F));
             end
           else
-            Dest[Count] := WideChar(wc);
+            Dest[Count] := WideChar(WC);
           Inc(Count);
         end;
       if Count >= MaxDestChars then Count := MaxDestChars - 1;
@@ -471,16 +485,10 @@ end;
 
 function StringRefCount(const s: RawByteString): Integer;
 begin
-  Result := Integer(s);
-  if Result <> 0 then
-    Result := PInteger(Result - 8)^;
-end;
-
-function StringRefCount(const s: UnicodeString): Integer;
-begin
-  Result := Integer(s);
-  if Result <> 0 then
-    Result := PInteger(Result - 8)^;
+  if Assigned(Pointer(s)) then
+    Result := PInteger(PAnsiChar(Pointer(s)) - 2 * SizeOf(Integer))^
+  else
+    Result := 0;
 end;
 
 function Utf8ToString(const s: RawByteString): UnicodeString;
@@ -601,152 +609,176 @@ end;
 {$IFNDEF COMPILER_17_UP}
 
 function AtomicIncrement(var Target: Cardinal): Cardinal; overload;
-{$IFDEF CPUX86}
 asm
+  {$IFDEF CPUX86}
   MOV ECX, EAX
   MOV EAX, 1
   LOCK XADD [ECX], EAX
   INC EAX
-end;
-{$ELSE CPUX86}
-{$IFDEF CPUX64}
-asm
+  {$ENDIF CPUX86}
+
+  {$IFDEF CPUX64}
   MOV EAX, 1
   LOCK XADD [RCX], EAX
   INC EAX
+  {$ENDIF CPUX64}
 end;
-{$ENDIF CPUX64}
-{$ENDIF CPUX86}
+
+function AtomicIncrement(var Target: Cardinal; const Increment: Cardinal): Cardinal; overload;
+asm
+  {$IFDEF CPUX86}
+  MOV ECX, EAX
+  MOV EAX, EDX
+  LOCK XADD [ECX], EAX
+  ADD EAX, EDX
+  {$ENDIF CPUX86}
+
+  {$IFDEF CPUX64}
+  MOV EAX, EDX
+  LOCK XADD [RCX], EAX
+  ADD EAX, EDX
+  {$ENDIF CPUX64}
+end;
 
 function AtomicIncrement(var Target: Integer): Integer; overload;
-{$IFDEF CPUX86}
 asm
+  {$IFDEF CPUX86}
   MOV ECX, EAX
   MOV EAX, 1
   LOCK XADD [ECX], EAX
   INC EAX
-end;
-{$ELSE CPUX86}
-{$IFDEF CPUX64}
-asm
+  {$ENDIF CPUX86}
+
+  {$IFDEF CPUX64}
   MOV  EAX, 1
   LOCK XADD [RCX], EAX
   INC EAX
+  {$ENDIF CPUX64}
 end;
-{$ENDIF CPUX64}
-{$ENDIF CPUX86}
 
-function AtomicIncrement(var Target: Cardinal; Increment: Cardinal): Cardinal; overload;
-{$IFDEF CPUX86}
+function AtomicIncrement(var Target: Integer; const Increment: Integer): Integer; overload;
 asm
+  {$IFDEF CPUX86}
   MOV ECX, EAX
   MOV EAX, EDX
   LOCK XADD [ECX], EAX
   ADD EAX, EDX
-end;
-{$ELSE CPUX86}
-{$IFDEF CPUX64}
-asm
+  {$ENDIF CPUX86}
+
+  {$IFDEF CPUX64}
   MOV EAX, EDX
   LOCK XADD [RCX], EAX
   ADD EAX, EDX
+  {$ENDIF CPUX64}
 end;
-{$ENDIF CPUX64}
-{$ENDIF CPUX86}
 
-function AtomicIncrement(var Target: Integer; Increment: Integer): Integer; overload;
-{$IFDEF CPUX86}
+{$IFDEF AtomicNativeInt}
+
+function AtomicIncrement(var Target: NativeInt): NativeInt;
 asm
+  {$IFDEF CPUX86}
   MOV ECX, EAX
-  MOV EAX, EDX
+  MOV EAX, 1
   LOCK XADD [ECX], EAX
   ADD EAX, EDX
+  {$ENDIF CPUX86}
+
+  {$IFDEF CPUX64}
+  MOV RAX, 1
+  LOCK XADD [RCX], RAX
+  INC RAX
+  {$ENDIF CPUX64}
 end;
-{$ELSE CPUX86}
-{$IFDEF CPUX64}
-asm
-  MOV EAX, EDX
-  LOCK XADD [RCX], EAX
-  ADD EAX, EDX
-end;
-{$ENDIF CPUX64}
-{$ENDIF CPUX86}
+
+{$ENDIF AtomicNativeInt}
 
 function AtomicDecrement(var Target: Integer): Integer; overload;
-{$IFDEF CPUX86}
 asm
+  {$IFDEF CPUX86}
   MOV ECX, EAX
   MOV EAX, -1
   LOCK XADD [ECX], EAX
   DEC EAX
-end;
-{$ELSE CPUX86}
-{$IFDEF CPUX64}
-asm
-  MOV EAX, -1
-  LOCK XADD [RCX], EAX
-  DEC EAX
-end;
-{$ENDIF CPUX64}
-{$ENDIF CPUX86}
+  {$ENDIF CPUX86}
 
-function AtomicDecrement(var Target: Cardinal): Cardinal; overload;
-{$IFDEF CPUX86}
-asm
-  MOV ECX, EAX
-  MOV EAX, -1
-  LOCK XADD [ECX], EAX
-  DEC EAX
-end;
-{$ELSE CPUX86}
-{$IFDEF CPUX64}
-asm
+  {$IFDEF CPUX64}
   MOV EAX, -1
   LOCK XADD [RCX], EAX
   DEC EAX
+  {$ENDIF CPUX64}
 end;
-{$ENDIF CPUX64}
-{$ENDIF CPUX86}
 
 function AtomicDecrement(var Target: Integer; Decrement: Integer): Integer; overload;
-{$IFDEF CPUX86}
 asm
+  {$IFDEF CPUX86}
   MOV ECX, EAX
   NEG EDX
   MOV EAX, EDX
   LOCK XADD [ECX], EAX
   ADD EAX, EDX
-end;
-{$ELSE CPUX86}
-{$IFDEF CPUX64}
-asm
+  {$ENDIF CPUX86}
+
+  {$IFDEF CPUX64}
   NEG EDX
   MOV EAX, EDX
   LOCK XADD [RCX], EAX
   ADD EAX, EDX
+  {$ENDIF CPUX64}
 end;
-{$ENDIF CPUX64}
-{$ENDIF CPUX86}
+
+function AtomicDecrement(var Target: Cardinal): Cardinal; overload;
+asm
+  {$IFDEF CPUX86}
+  MOV ECX, EAX
+  MOV EAX, -1
+  LOCK XADD [ECX], EAX
+  DEC EAX
+  {$ENDIF CPUX86}
+
+  {$IFDEF CPUX64}
+  MOV EAX, -1
+  LOCK XADD [RCX], EAX
+  DEC EAX
+  {$ENDIF CPUX64}
+end;
 
 function AtomicDecrement(var Target: Cardinal; Decrement: Cardinal): Cardinal; overload;
-{$IFDEF CPUX86}
 asm
+  {$IFDEF CPUX86}
   MOV ECX, EAX
   NEG EDX
   MOV EAX, EDX
   LOCK XADD [ECX], EAX
   ADD EAX, EDX
-end;
-{$ELSE CPUX86}
-{$IFDEF CPUX64}
-asm
+  {$ENDIF CPUX86}
+
+  {$IFDEF CPUX64}
   NEG EDX
   MOV EAX, EDX
   LOCK XADD [RCX], EAX
   ADD EAX, EDX
+  {$ENDIF CPUX64}
 end;
-{$ENDIF CPUX64}
-{$ENDIF CPUX86}
+
+{$IFDEF AtomicNativeInt}
+
+function AtomicDecrement(var Target: NativeInt): NativeInt;
+asm
+  {$IFDEF CPUX86}
+  MOV ECX, EAX
+  MOV EAX, -1
+  LOCK XADD [ECX], EAX
+  ADD EAX, EDX
+  {$ENDIF CPUX86}
+
+  {$IFDEF CPUX64}
+  MOV RAX, -1
+  LOCK XADD [RCX], RAX
+  INC RAX
+  {$ENDIF CPUX64}
+end;
+
+{$ENDIF AtomicNativeInt}
 
 {$ENDIF ~COMPILER_17_UP}
 
