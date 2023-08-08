@@ -61,8 +61,7 @@ incompatible format.
 
 ## Building PetzA from sourcecode
 
-PetzA was originally developed way back in 2005 using Delphi 5 (wow, time flies!). I've upgraded the 
-codebase so that it is now compatible with the 18-year newer [Embarcadero Delphi 10.2 (Tokyo) Community Edition](https://www.embarcadero.com/delphi-xe8-starter-edition).
+PetzA was originally developed way back in 2005 using Delphi 5 (wow, time flies!). It is now upgraded to be compatible with Delphi 11 [Embarcadero Delphi 11 Community Edition](https://www.embarcadero.com/products/delphi/starter).
 
 Building the help manual requires Help'n'Doc 5 or newer: https://www.helpndoc.com/
 
@@ -71,7 +70,7 @@ Building the installer requires:
 - InnoTools Downloader: https://github.com/thenickdude/InnoTools-Downloader
 
 Building PetzA requires:
-- The madCollection, including madExcept 4 (Delphi plugin): http://www.madshi.net/
+- The madCollection, including madExcept 5 (Delphi plugin): http://www.madshi.net/
 
 Fetch the PetzA sourecode along with its libraries like so:
 
