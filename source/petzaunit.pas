@@ -806,7 +806,7 @@ begin
   result := copy(s, 1, length(s) - length(ExtractFileExt(s)));
 end;
 
-function mypicgetsavefilename(var opfn: topenfilename): bool; stdcall;
+function mypicgetsavefilename(var opfn: topenfilenamea): bool; stdcall;
 var s: string;
 begin
   case petza.CameraFormat of
@@ -825,10 +825,10 @@ begin
   end;
 
   s := stripfileext(opfn.lpstrFile);
-  StrCopy(opfn.lpstrFile, pchar(s)); //has to go into the buffer that the caller supplied
+  StrCopy(opfn.lpstrFile, pansichar(s)); //has to go into the buffer that the caller supplied
 
   opfn.lpstrFilter := 'GIF Image'#0'*.gif'#0'Windows Bitmap'#0'*.bmp'#0'PNG Image'#0'*.png'#0; // ie. terminated by 2 nulls}
-  result := GetSaveFileName(opfn);
+  result := GetSaveFileNamea(opfn);
 end;
 
 procedure TPetzA.setcameraformat(value: TCameraFormat);
