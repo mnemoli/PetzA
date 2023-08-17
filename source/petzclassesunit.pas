@@ -265,41 +265,41 @@ end;
 
 
 function tpetzancestryinfo.getname: string;
-var p: pchar;
+var p: PAnsiChar;
 begin
-  p := pchar(ptr(integer(self) + $8)^);
+  p := PAnsiChar(ptr(integer(self) + $8)^);
   result := p;
 end;
 
 procedure tpetzancestryinfo.setname(value: string);
 begin
-  thiscall(self, rimports.ancestryinfo_setname, [cardinal(pchar(value))]);
+  thiscall(self, rimports.ancestryinfo_setname, [cardinal(PAnsiChar(value))]);
 end;
 
 
 function tpetzancestryinfo.getbreed: string;
-var p: pchar;
+var p: PAnsiChar;
 begin
-  p := pchar(ptr(integer(self) + $C)^);
+  p := PAnsiChar(ptr(integer(self) + $C)^);
   result := p;
 end;
 
 procedure tpetzancestryinfo.setbreed(value: string);
 begin
-  thiscall(self, rimports.ancestryinfo_setbreed, [cardinal(pchar(value))]);
+  thiscall(self, rimports.ancestryinfo_setbreed, [cardinal(PAnsiChar(value))]);
 end;
 
 
 function tpetzancestryinfo.getadopter: string;
-var p: pchar;
+var p: PAnsiChar;
 begin
-  p := pchar(ptr(integer(self) + $10)^);
+  p := PAnsiChar(ptr(integer(self) + $10)^);
   result := p;
 end;
 
 procedure tpetzancestryinfo.setadopter(value: string);
 begin
-  thiscall(self, rimports.ancestryinfo_setadopter, [cardinal(pchar(value))]);
+  thiscall(self, rimports.ancestryinfo_setadopter, [cardinal(PAnsiChar(value))]);
 end;
 
 
@@ -626,10 +626,10 @@ begin
   r.bottom := y + 50;
 
 
-  thiscall(xdrawport, rimports.xdrawport_xdrawtext, [cardinal(pchar(text)), cardinal(@r), 0, cardinal(-1), 0, cardinal(size), 0]);
+  thiscall(xdrawport, rimports.xdrawport_xdrawtext, [cardinal(PAnsiChar(text)), cardinal(@r), 0, cardinal(-1), 0, cardinal(size), 0]);
   r.left := r.left - 1;
   r.top := r.top - 1;
-  thiscall(xdrawport, rimports.xdrawport_xdrawtext, [cardinal(pchar(text)), cardinal(@r), 255, cardinal(-1), 0, cardinal(size), 0]);
+  thiscall(xdrawport, rimports.xdrawport_xdrawtext, [cardinal(PAnsiChar(text)), cardinal(@r), 255, cardinal(-1), 0, cardinal(size), 0]);
   thiscall(xstage, rimports.xstage_setdirty, [cardinal(@r), cardinal(false)]);
 end;
 
@@ -733,7 +733,7 @@ begin
         displayport(getxscreen,'c:\dumpscreen.raw');
         notagain:=true;
         end;}
-         //thiscall(xtileport,rimports.xdrawport_xdrawtext, [cardinal(pchar('Hello')),cardinal(@r),0,cardinal(-1),0,cardinal(-24),0]);
+         //thiscall(xtileport,rimports.xdrawport_xdrawtext, [cardinal(PAnsiChar('Hello')),cardinal(@r),0,cardinal(-1),0,cardinal(-24),0]);
 
          //thiscall(xscreen, rimports.xdrawport_xfillrect, [cardinal(@r), 00000000]);
          //thiscall(xstage, rimports.xstage_copytileport, [cardinal(xscreen), cardinal(@r)]);
@@ -1032,7 +1032,7 @@ var s: string;
 begin
   case cpetzver of
     pvpetz5: begin
-        s := pchar(ptr(integer(self) + $3439));
+        s := PAnsiChar(ptr(integer(self) + $3439));
         if pos(' ', s) > 0 then begin
           for t1 := length(s) downto 1 do
             if s[t1] = ' ' then break;
@@ -1040,13 +1040,15 @@ begin
         end else
           result := s;
       end;
-    pvpetz4: result := pchar(ptr(integer(self) + $369A));
-    pvpetz3, pvpetz3german: result := pchar(ptr(integer(self) + $3686));
-    pvpetz2: result := pchar(ptr(integer(self) + $15A));
-    pvbabyz: result := pchar(ptr(integer(self) + $3E12));
+    pvpetz4: result := PAnsiChar(ptr(integer(self) + $369A));
+    pvpetz3, pvpetz3german: result := PAnsiChar(ptr(integer(self) + $3686));
+    pvpetz2: result := PAnsiChar(ptr(integer(self) + $15A));
+    pvbabyz: result := PAnsiChar(ptr(integer(self) + $3E12));
   else begin
       result := '<not implemented>';
     end;
+
+    result := UnicodeString(result);
   end;
 
 end;

@@ -96,7 +96,7 @@ type
   TPetzaPlaymode = (pmStandard, pmServer, pmClient);
   TPetza = class(TObject)
   private
-    fautopicsavepath: string[255];
+    fautopicsavepath: ShortString;
     fCameraFormat: TCameraFormat;
     foldwndproc: pointer;
     fgamespeed: integer;
@@ -801,7 +801,7 @@ begin
   end;
 end;
 
-function stripfileext(const s: string): string;
+function stripfileext(const s: ansistring): ansistring;
 begin
   result := copy(s, 1, length(s) - length(ExtractFileExt(s)));
 end;
@@ -825,7 +825,7 @@ begin
   end;
 
   s := stripfileext(opfn.lpstrFile);
-  StrCopy(opfn.lpstrFile, pansichar(s)); //has to go into the buffer that the caller supplied
+  StrPCopy(opfn.lpstrFile, s); //has to go into the buffer that the caller supplied
 
   opfn.lpstrFilter := 'GIF Image'#0'*.gif'#0'Windows Bitmap'#0'*.bmp'#0'PNG Image'#0'*.png'#0; // ie. terminated by 2 nulls}
   result := GetSaveFileNamea(opfn);
