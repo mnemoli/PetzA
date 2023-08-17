@@ -1371,6 +1371,15 @@ begin
       end;
   end;
 
+  // Disable neglect accumulating from not taking pets out
+  case cpetzver of
+    pvpetz4: begin
+       p := ptr($4d4c65);
+       VirtualProtect(p, 1, PAGE_EXECUTE_READWRITE, oldprotect);
+       p^ := $EB; // replace with uncontrolled jump to skip neglect
+    end;
+  end;
+
   installdispatchhook;
 
   patchcamera;
