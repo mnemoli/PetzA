@@ -202,6 +202,7 @@ var t1, t2: integer;
   desc: string;
   list: tstringlist;
 begin
+  inherited;
   if enabled then
     buffer.Clear(clwhite32) else
     buffer.Clear(gray32(240));
