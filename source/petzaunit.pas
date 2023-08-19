@@ -735,7 +735,7 @@ begin
   refreshadptpet(nil);
 end;
 
-function mywritedib(filename: PChar; dib: HGlobal): longword; cdecl;
+function mywritedib(filename: PAnsiChar; dib: HGlobal): longword; cdecl;
 var stream: TMemoryStream;
   p: pointer;
   bitmap: TNakedBitmapLoader;
