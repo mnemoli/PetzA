@@ -72,6 +72,7 @@ v2.2.5 - Remove resolution check (Petz 5 only) to run on smaller screens like la
          PENDING::More keyboard shortcuts in menus
          PENDING::Unlimited camera photos
          PENDING::"Bring adopt pet back out" shouldn't work on non-adopt screen
+v3.0.0 -
 
 OUTSTANDING BUGS
  - More than 4 Babyz out doesn't work properly
@@ -104,6 +105,8 @@ type
     fshowheart, fnavvisible, fshownavigation: boolean;
     fnodiaperchanges, fbrainslidersontop, pendingrefresh: boolean;
     lastadoptpet, lastadoptpetslot: integer;
+    fbatchbreedcountdefault: integer;
+    fbreedingtimer: uint;
 
     procedure patchnodiaper;
     procedure patchnavigation;
@@ -120,6 +123,9 @@ type
     procedure setgamespeed(value: integer);
     procedure doenumtreebreeder(node: tpetzancestryinfo; list: tstringlist);
     procedure PatchResolutionCheck;
+    function getbatchbreedcountdefault: integer;
+    procedure setbatchbreedcountdefault(const Value: integer);
+
   public
     brains: TObjectList;
     actionlist: Tactionlist;
@@ -144,6 +150,7 @@ type
     property brainslidersontop: boolean read fbrainslidersontop write setbrainslidersontop;
     property gamespeed: integer read fgamespeed write setgamespeed;
     property nodiaperchanges: boolean read fnodiaperchanges write setnodiaperchanges;
+    property batchbreedcountdefault: integer read getbatchbreedcountdefault write setbatchbreedcountdefault;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -156,10 +163,11 @@ procedure dolog(const message: string);
 implementation
 
 uses setchildrenunit, mymessageunit, debugunit, gamespeedunit, typinfo, frmsettingsunit,
-  nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit;
+  nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit, controls;
 
 {$WARN SYMBOL_PLATFORM OFF}
 {$WARN UNIT_PLATFORM OFF}
+
 
 procedure dolog(const message: string);
 const eol: Word = $0A0D;
@@ -373,6 +381,11 @@ begin
   end;
 end;
 
+procedure TPetza.setbatchbreedcountdefault(const Value: integer);
+begin
+  fbatchbreedcountdefault := value;
+end;
+
 procedure tpetza.setbrainslidersontop(value: Boolean);
 var t1: integer;
 begin
@@ -382,18 +395,6 @@ begin
       if value then
         tfrmsliderbrain(brains[t1]).FormStyle := fsStayOnTop else
         tfrmsliderbrain(brains[t1]).FormStyle := fsNormal;
-  end;
-end;
-
-procedure tpetza.setgamespeed(value: integer);
-begin
-  case cpetzver of
-    pvpetz3, pvpetz3german, pvpetz4, pvpetz5, pvbabyz, pvpetz2: begin
-        if not KillTimer(petzshlglobals.mainwindow, 1003) then showmessage('Uh oh');
-        settimer(petzshlglobals.mainwindow, 1003, value, nil);
-        fgamespeed := value;
-      end;
-  else showmessage('TPetzA:SetGameSpeed - Unsupported!');
   end;
 end;
 
@@ -419,6 +420,8 @@ begin
         showheart := reg.readbool('ShowHeart');
       if reg.ValueExists('NoDiaperChanges') then
         nodiaperchanges := reg.ReadBool('NoDiaperChanges');
+      if reg.ValueExists('BatchBreedCountDefault') then
+        batchbreedcountdefault := reg.ReadInteger('BatchBreedCountDefault');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -451,6 +454,7 @@ begin
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
       reg.writeinteger(pre + '-GameSpeed', fgamespeed);
       reg.writebool(pre + '-UseProfiles', profilemanager.useprofiles);
+      reg.WriteInteger('BatchBreedCountDefault', fbatchbreedcountdefault);
     end;
   finally
     reg.free;
@@ -851,6 +855,18 @@ begin
   end;
 end;
 
+procedure TPetza.setgamespeed(value: integer);
+begin
+  case cpetzver of
+    pvpetz3, pvpetz3german, pvpetz4, pvpetz5, pvbabyz, pvpetz2: begin
+        if not KillTimer(petzshlglobals.mainwindow, 1003) then showmessage('Uh oh');
+        settimer(petzshlglobals.mainwindow, 1003, value, nil);
+       fgamespeed := value;
+      end;
+  else showmessage('TPetzA:SetGameSpeed - Unsupported!');
+  end;
+end;
+
 {Remove the check for minimum width and height screen resolutions. Widescreen
 laptops can't play Petz otherwise!}
 
@@ -1199,6 +1215,11 @@ begin
   end;
 end;
 
+function TPetza.getbatchbreedcountdefault: integer;
+begin
+  result := fbatchbreedcountdefault;
+end;
+
 procedure mysetdiaperstatus(return, instance: pointer; status: Integer); stdcall;
 begin
   thiscall(instance, rimports.scriptsprite_setdiaperstatus, [0]);
@@ -1344,7 +1365,8 @@ begin
   end;
 
   if cpetzver = pvpetz2 then
-    patchgeneric(ptr($47B5AA), ptr($47B615), petz2windowcreate) else
+    patchgeneric(ptr($47B5AA), ptr($47B615), petz2windowcreate)
+  else
     hpetzwindowcreate := patchthiscall(rimports.petzapp_createmainwindow, @petzwindowcreate);
 
  // ReplaceCDECL(ptr($4098F0),@myloadtoyz);
@@ -1392,12 +1414,17 @@ begin
   brainslidersontop := true;
   fgamespeed := defaultgamespeed;
   appliedspeed := false;
+  batchbreedcountdefault := 10;
 
   fshowheart := true; //by default, heart still shows
 
   fnavvisible := true; //The game is showing the navigation
   shownavigation := true; //Show it by default
   fnodiaperchanges := False; //by default, diapers get soiled just like normal :)
+
+  // breeding settings
+  fbreedingtimer := 0;
+  fbatchbreedcountdefault := 10;
 
   loadsettings; //pretty late in the peace so all objects are created
 
@@ -1642,6 +1669,47 @@ begin
           if not petza.appliedspeed then begin
             petza.appliedspeed := true;
             petza.gamespeed := petza.fgamespeed;
+          end;
+
+          // Handle async batch breeding
+          if waitingforpettocomeout = true then begin
+            if petza.fbreedingtimer = 10 then begin
+             // We've waited long enough for the last offspring to come out, so
+             // call the next one out
+             var buttonindex := pinteger(classprop(petzcase, $3d2c));
+             waitingforpettocomeout := false;
+             buttonindex^ := 0;
+             thiscall(petzcase, rimports.case_loadpetz, [cardinal(lastmotherid), 1, 1, 1]);
+             batchbreedcount := batchbreedcount - 1;
+             petza.fbreedingtimer := 0;
+
+             // If we still have more offspring to make, re-mate
+             if batchbreedcount > 0 then begin
+               var female := petza.findpet(lastmotherid);
+               frmmateunit.matebystateconceive(female, lastfather);
+               frmmateunit.deliveroffspring(female);
+               waitingforpettocomeout := true;
+             end
+             else begin
+                // If we have no more offspring to make,
+                // find the breeding popup and close it
+                var popupform: TForm;
+                for var I := 0 to Screen.FormCount-1 do begin
+                  var frm := screen.Forms[i];
+                  if fsModal in Frm.FormState then begin
+                    if frm is tfrmmymessage then
+                      frm.ModalResult := Controls.mrOk;
+                  end;
+                end;
+                lastmotherid := 0;
+                lastfather := nil;
+                petmate(nil);
+                petza.showheart	:= oldshowheart;
+                unpatchbreedingcalls;
+             end;
+            end
+          else
+            petza.fbreedingtimer := petza.fbreedingtimer + 1;
           end;
         except
           HandleException;

@@ -3,30 +3,28 @@ object frmAbout: TfrmAbout
   Top = 350
   BorderStyle = bsDialog
   Caption = 'About Petz 5a...'
-  ClientHeight = 85
-  ClientWidth = 354
+  ClientHeight = 100
+  ClientWidth = 359
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
-  OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
   OnCreate = FormCreate
-  PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
     Left = 8
     Top = 8
-    Width = 254
+    Width = 297
     Height = 13
-    Caption = 'Petz 5a (V1.4.3) was developed by Nicholas Sherlock'
+    Caption = 'Petz 5a (V1.4.3) was originally developed by Nicholas Sherlock'
   end
   object Label2: TLabel
     Left = 8
-    Top = 56
+    Top = 79
     Width = 246
     Height = 13
     Caption = 'Copyright (C) Sherlock Software 2006-2018'
@@ -39,14 +37,14 @@ object frmAbout: TfrmAbout
   end
   object Label3: TLabel
     Left = 8
-    Top = 24
+    Top = 47
     Width = 91
     Height = 13
     Caption = 'Email the author at:'
   end
   object Label4: TLabel
-    Left = 104
-    Top = 24
+    Left = 105
+    Top = 46
     Width = 107
     Height = 13
     Cursor = crHandPoint
@@ -61,14 +59,14 @@ object frmAbout: TfrmAbout
   end
   object Label5: TLabel
     Left = 8
-    Top = 40
+    Top = 63
     Width = 79
     Height = 13
     Caption = 'Visit the website:'
   end
   object Label6: TLabel
-    Left = 104
-    Top = 40
+    Left = 105
+    Top = 63
     Width = 125
     Height = 13
     Cursor = crHandPoint
@@ -81,9 +79,16 @@ object frmAbout: TfrmAbout
     ParentFont = False
     OnClick = Label6Click
   end
+  object Label7: TLabel
+    Left = 8
+    Top = 27
+    Width = 227
+    Height = 13
+    Caption = 'PetzA originally developed by Nicholas Sherlock'
+  end
   object Button1: TButton
-    Left = 272
-    Top = 56
+    Left = 276
+    Top = 74
     Width = 75
     Height = 25
     Cancel = True
@@ -93,8 +98,8 @@ object frmAbout: TfrmAbout
     OnClick = Button1Click
   end
   object Memo1: TMemo
-    Left = 248
-    Top = 17
+    Left = 320
+    Top = 8
     Width = 89
     Height = 33
     Lines.Strings = (
@@ -108,7 +113,7 @@ object frmAbout: TfrmAbout
     Visible = False
   end
   object XMLDocument1: TXMLDocument
-    Left = 136
-    Top = 32
+    Left = 344
+    Top = 40
   end
 end

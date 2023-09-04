@@ -11,11 +11,9 @@ object frmMate: TfrmMate
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
-  OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
   OnShow = FormShow
-  PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
     Left = 8
@@ -94,5 +92,25 @@ object frmMate: TfrmMate
     Caption = 'Help'
     TabOrder = 4
     OnClick = btnHelpClick
+  end
+  object btnBatch: TButton
+    Left = 47
+    Top = 216
+    Width = 59
+    Height = 25
+    Caption = 'Batch'
+    Default = True
+    TabOrder = 5
+    OnClick = btnBatchClick
+  end
+  object batchCount: TEdit
+    Left = 8
+    Top = 218
+    Width = 33
+    Height = 21
+    NumbersOnly = True
+    TabOrder = 6
+    Text = '10'
+    StyleName = 'Windows'
   end
 end

@@ -23,16 +23,17 @@ type
     class function getmessageroot: string;
     class procedure setmessageroot(const value: string);
     property hidden: Boolean read gethidden write sethidden;
-    constructor create(const msg: string; const name: string = ''); reintroduce;
+    constructor create(const msg: string; const name: string = ''; const modal: boolean = false); reintroduce;
   end;
 
 procedure nonmodalmessage(const msg: string; const name: string = '');
+procedure modalmessage(const msg: string);
 
 implementation
 
 {$R *.DFM}
 
-uses petzaunit;
+uses petzaunit, petzcommon1;
 
 var messageroot: string;
 
@@ -44,7 +45,16 @@ var box: TfrmMyMessage;
 begin
   box := tfrmmymessage.create(msg, name);
   if not box.hidden then
-    box.show else
+    box.Show else
+    box.free;
+end;
+
+procedure modalmessage(const msg: string);
+var box: TfrmMyMessage;
+begin
+  box := tfrmmymessage.create(msg, '', true);
+  if not box.hidden then
+    box.showmodal else
     box.free;
 end;
 
@@ -96,7 +106,7 @@ begin
   messageroot := value;
 end;
 
-constructor tfrmmymessage.create(const msg: string; const name: string = '');
+constructor tfrmmymessage.create(const msg: string; const name: string = ''; const modal: boolean = false);
 begin
   inherited create(nil);
   fname := name;
@@ -116,6 +126,7 @@ begin
    clientwidth:=max(clientwidth, chkdontshowagain.left + chkdontshowagain.width + 8);
   clientheight := btnokay.top + btnokay.height + 8;
   btnokay.left := (clientwidth - btnokay.width) div 2;
+  btnokay.Visible	:= not modal;
 end;
 
 procedure TfrmMyMessage.FormClose(Sender: TObject;

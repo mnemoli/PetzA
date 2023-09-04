@@ -1,10 +1,11 @@
 object frmMyMessage: TfrmMyMessage
   Left = 219
   Top = 164
+  BorderIcons = [biMinimize, biMaximize]
   BorderStyle = bsDialog
   Caption = 'Message'
-  ClientHeight = 79
-  ClientWidth = 360
+  ClientHeight = 78
+  ClientWidth = 356
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -12,10 +13,8 @@ object frmMyMessage: TfrmMyMessage
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   FormStyle = fsStayOnTop
-  OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
-  PixelsPerInch = 96
   TextHeight = 13
   object lblmain: TLabel
     Left = 8

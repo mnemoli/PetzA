@@ -111,6 +111,15 @@ type
     property petslot: integer read getpetslot write setpetslot;
   end;
 
+  TPetzLoadInfo = class
+    private
+      function getsessionid: ushort;
+      function getname: ansistring;
+    public
+      property sessionid: ushort read getsessionid;
+      property name: ansistring read getname;
+  end;
+
   TPetzPetSprite = class(tpetzalposprite)
   private
     function getid: smallint;
@@ -118,6 +127,10 @@ type
     procedure setinteracting(value: TPetzPetSprite);
     procedure setstateflag(value: longword);
     function getstateflag: longword;
+    function getshoulddraw: boolean;
+    procedure setshoulddraw(value: boolean);
+    function getloadinfo: tpetzloadinfo;
+    function getsessionid: ushort;
   public
     function scriptstack: pointer;
     function isdependent: boolean;
@@ -131,6 +144,8 @@ type
     property interactingpet: TPetzPetsprite read getinteracting write setinteracting;
     property stateflag: longword read getstateflag write setstateflag;
     property id: smallint read getid;
+    property shoulddraw: boolean read getshoulddraw write setshoulddraw;
+    property sessionid: ushort read getsessionid;
   end;
 
   TPetzClassHook = class
@@ -163,6 +178,11 @@ type
     property onClassChange: tonclasschangeevent read fonclasschange write fonclasschange;
   end;
 
+  TPetzCase = class
+    public
+      procedure loadpetz(sessionid: ushort);
+  end;
+
 (*procedure mypetzapp_dodrawframe(ecx: pointer); stdcall;*)
 procedure createmainwindow(return, instance: pointer); stdcall;
 procedure mypetzapp_dodrawframe(return, instance: pointer); stdcall;
@@ -173,6 +193,7 @@ function petzdlgglobals: Tpetzdlgglobals;
 function petzshlglobals: tpetzshlglobals;
 function petzcurrentarea: pointer;
 function petzoberon: pointer;
+function petzcase: pointer;
 function petzapp: TPetzPetzApp;
 function getxscreen: pointer;
 function getxstage: pointer;
@@ -594,12 +615,18 @@ function petzoberon: pointer;
 begin
   case cpetzver of
     pvPetz5: result := ptr($66A810);
+    pvPetz4: result := ptr($638fd0);
     pvBabyz: result := ptr($7C7410);
   else begin
       showmessage('PetzOberon: Not supported!');
       result := nil;
     end;
   end;
+end;
+
+function petzcase: pointer;
+begin
+  result := ppointer(ptr($0063930c))^;
 end;
 
 function petzcurrentarea: pointer;
@@ -984,6 +1011,29 @@ begin
   end;
 end;
 
+function TPetzPetSprite.getsessionid: ushort;
+begin
+  result := self.getloadinfo.sessionid;
+end;
+
+function tpetzpetsprite.getshoulddraw: boolean;
+begin
+//  result := bool(classprop(self, $491C));
+end;
+
+procedure tpetzpetsprite.setshoulddraw(value: boolean);
+begin
+  pboolean(classprop(self, $491C))^ := value;
+end;
+
+function tpetzpetsprite.getloadinfo: TPetzLoadInfo;
+begin
+  var internals := classprop(self, $3E08); // pointer to internals;
+  var loadinfo := tpetzloadinfo(ppointer(classprop(internals, $12))^);
+  var peep := loadinfo.getname;
+  result := loadinfo;
+end;
+
 function tpetzpetsprite.getinteracting: TPetzPetsprite;
 begin
   case cpetzver of
@@ -1286,7 +1336,25 @@ begin
   fhooks.free;
 end;
 
-initialization
-  notagain := true;
-end.
+{ TPetzLoadInfo }
 
+function TPetzLoadInfo.getname: ansistring;
+begin
+  var str: ansistring;
+  setstring(str, pansichar(classprop(self, $2)), 256);
+  result := str;
+end;
+
+function TPetzLoadInfo.getsessionid: ushort;
+begin
+  result := ushort(classprop(self, $0)^);
+end;
+
+{ TPetzCase }
+
+procedure TPetzCase.loadpetz(sessionid: ushort);
+begin
+  thiscall(self, rimports.case_loadpetz, [sessionid, 1, 1, 1]);
+end;
+
+end.
