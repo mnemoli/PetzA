@@ -12,13 +12,11 @@ object frmSettings: TfrmSettings
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
-  OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
   DesignSize = (
     396
     183)
-  PixelsPerInch = 96
   TextHeight = 13
   object Bevel1: TBevel
     Left = 0
@@ -36,7 +34,7 @@ object frmSettings: TfrmSettings
     Caption = 'Camera picture format:'
   end
   object btnCancel: TButton
-    Left = 254
+    Left = 238
     Top = 150
     Width = 67
     Height = 25
@@ -45,9 +43,11 @@ object frmSettings: TfrmSettings
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 7
+    ExplicitLeft = 234
+    ExplicitTop = 149
   end
   object btnOk: TButton
-    Left = 182
+    Left = 166
     Top = 150
     Width = 68
     Height = 25
@@ -57,6 +57,8 @@ object frmSettings: TfrmSettings
     ModalResult = 1
     TabOrder = 6
     OnClick = btnOkClick
+    ExplicitLeft = 162
+    ExplicitTop = 149
   end
   object chkBrainSliders: TCheckBox
     Left = 8
@@ -69,7 +71,7 @@ object frmSettings: TfrmSettings
     TabOrder = 0
   end
   object Button3: TButton
-    Left = 6
+    Left = -10
     Top = 150
     Width = 169
     Height = 25
@@ -77,6 +79,8 @@ object frmSettings: TfrmSettings
     Caption = 'Reset hidden warning messages'
     TabOrder = 9
     OnClick = Button3Click
+    ExplicitLeft = -14
+    ExplicitTop = 149
   end
   object chkNameTags: TCheckBox
     Left = 8
@@ -87,7 +91,7 @@ object frmSettings: TfrmSettings
     TabOrder = 1
   end
   object btnHelp: TButton
-    Left = 326
+    Left = 310
     Top = 150
     Width = 68
     Height = 25
@@ -95,6 +99,8 @@ object frmSettings: TfrmSettings
     Caption = 'Help'
     TabOrder = 8
     OnClick = btnHelpClick
+    ExplicitLeft = 306
+    ExplicitTop = 149
   end
   object chkHideNavigation: TCheckBox
     Left = 8
@@ -147,6 +153,16 @@ object frmSettings: TfrmSettings
     Height = 17
     Caption = 'Diapers can'#39't be soiled'
     Enabled = False
+    TabOrder = 10
+  end
+  object chkReactToCamera: TCheckBox
+    Left = 232
+    Top = 51
+    Width = 201
+    Height = 17
+    Caption = 'Petz react to camera'
+    Checked = True
+    State = cbChecked
     TabOrder = 3
   end
 end

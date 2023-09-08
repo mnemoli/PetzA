@@ -103,18 +103,20 @@ type
     fgamespeed: integer;
     appliedspeed: boolean;
     fshowheart, fnavvisible, fshownavigation: boolean;
-    fnodiaperchanges, fbrainslidersontop, pendingrefresh: boolean;
+    fnodiaperchanges, fbrainslidersontop, pendingrefresh, freacttocamera: boolean;
     lastadoptpet, lastadoptpetslot: integer;
     fbatchbreedcountdefault: integer;
     fbreedingtimer: uint;
 
     procedure patchnodiaper;
+    procedure patchreacttocamera(value: bool);
     procedure patchnavigation;
     procedure installclasscreationhooks;
     procedure installdispatchhook;
     procedure setcameraformat(value: TCameraFormat);
     procedure setshowheart(value: boolean);
     procedure setnodiaperchanges(value: Boolean);
+    procedure setreacttocamera(value: Boolean);
     procedure setbrainslidersontop(value: Boolean);
     procedure refreshadptpetwrap(sender: tobject);
     function findpet(id: integer): tpetzpetsprite;
@@ -151,12 +153,13 @@ type
     property gamespeed: integer read fgamespeed write setgamespeed;
     property nodiaperchanges: boolean read fnodiaperchanges write setnodiaperchanges;
     property batchbreedcountdefault: integer read getbatchbreedcountdefault write setbatchbreedcountdefault;
+    property reacttocamera: boolean read freacttocamera write setreacttocamera;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
 procedure petzwindowcreate(return, instance: pointer); stdcall;
 var petza: tpetza;
-  hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation, hresetstack: TPatchThiscall;
+  hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation, hresetstack, reacttocamerapatch: TPatchThiscall;
   logging: Boolean;
 procedure dolog(const message: string);
 
@@ -334,6 +337,17 @@ begin
   end;
 end;
 
+procedure tpetza.setreacttocamera(value: Boolean);
+begin
+  if freacttocamera <> value then begin
+
+    if cpetzver = pvpetz4 then
+      patchreacttocamera(value);
+
+    freacttocamera := value;
+  end;
+end;
+
 procedure tpetza.setshowheart(value: boolean);
 var data: array[0..2] of byte;
 begin
@@ -422,6 +436,8 @@ begin
         nodiaperchanges := reg.ReadBool('NoDiaperChanges');
       if reg.ValueExists('BatchBreedCountDefault') then
         batchbreedcountdefault := reg.ReadInteger('BatchBreedCountDefault');
+      if reg.ValueExists('ReactToCamera') then
+        reacttocamera := reg.ReadBool('ReactToCamera');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -451,6 +467,7 @@ begin
       reg.WriteBool('ShowNavigation', shownavigation);
       reg.writebool('ShowHeart', showheart);
       reg.WriteBool('NoDiaperChanges', nodiaperchanges);
+      reg.WriteBool('ReactToCamera', reacttocamera);
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
       reg.writeinteger(pre + '-GameSpeed', fgamespeed);
       reg.writebool(pre + '-UseProfiles', profilemanager.useprofiles);
@@ -1233,6 +1250,35 @@ begin
   patchthiscall(ptr($590B8B), @mysetdiaperstatus);
 end;
 
+procedure tpetza.patchreacttocamera(value: bool);
+var data: array[0..6] of byte;
+var data2: array[0..2] of byte;
+begin
+  if value = false then begin
+      data[4] := $00;
+      data[3] := $00;
+      data[2] := $01;
+      data[1] := $5d;
+      data[0] := $e9;
+      patchcodebuf(ptr($4faee0), 5, 6, data[0]);
+      var d := nop;
+      patchcodebuf(ptr($4faedc), sizeof(nop), 2, d);
+    end
+  else begin
+      data[5] := $00;
+      data[4] := $00;
+      data[3] := $01;
+      data[2] := $5c;
+      data[1] := $84;
+      data[0] := $0f;
+      data2[1] := $1c;
+      data2[0] := $75;
+      patchcodebuf(ptr($4faee0), 6, 6, data[0]);
+      patchcodebuf(ptr($4faedc), 2, 2, data2[0]);
+  end;
+
+end;
+
 constructor tpetza.create;
 type ppointer = ^pointer;
 var oldprotect: cardinal;
@@ -1421,6 +1467,7 @@ begin
   fnavvisible := true; //The game is showing the navigation
   shownavigation := true; //Show it by default
   fnodiaperchanges := False; //by default, diapers get soiled just like normal :)
+  freacttocamera := true;
 
   // breeding settings
   fbreedingtimer := 0;
