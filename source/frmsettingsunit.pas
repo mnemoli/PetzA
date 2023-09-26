@@ -22,6 +22,7 @@ type
     lblCameraFormat: TLabel;
     cmbCameraFormat: TComboBox;
     chkNoDiapers: TCheckBox;
+    chkReactToCamera: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -61,6 +62,7 @@ begin
   petza.showheart := chkshowheart.checked;
   petza.instantbirth := chkInstantBirth.checked;
   petza.shownametags := chkNameTags.checked;
+  petza.reacttocamera := chkReactToCamera.checked;
   if (not chkNoDiapers.checked) and petza.nodiaperchanges then
    showmessage('You must restart Babyz for diaper changing to return to normal');
   petza.nodiaperchanges:=chkNoDiapers.checked;
@@ -83,6 +85,7 @@ begin
   cmbCameraFormat.itemindex := integer(petza.CameraFormat);
   chkHideNavigation.Checked := not petza.shownavigation;
   chkshowheart.checked := petza.showheart;
+  chkReactToCamera.Checked := petza.reacttocamera;
 
   chkshowheart.enabled := cpetzver in verBreeding;
   chkHideNavigation.Enabled := cpetzver = pvBabyz;
@@ -91,6 +94,7 @@ begin
   chkInstantBirth.Enabled := assigned(rimports.petsprite_isoffspringdue);
   lblCameraFormat.enabled := cpetzver in verCamera;
   cmbCameraFormat.enabled := cpetzver in verCamera;
+  chkReactToCamera.Enabled := cpetzver = pvpetz4;
 end;
 
 end.

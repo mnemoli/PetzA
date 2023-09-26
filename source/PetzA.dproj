@@ -96,6 +96,9 @@
         <DCC_ImportedDataReferences>false</DCC_ImportedDataReferences>
         <DCC_DebugInfoInExe>false</DCC_DebugInfoInExe>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
+        <VerInfo_MajorVer>3</VerInfo_MajorVer>
+        <VerInfo_MinorVer>1</VerInfo_MinorVer>
+        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=3.1.0.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_ExeOutput>E:\Program Files (x86)\Petz\Petz 4 (Vanilla)\Resource\Toyz\</DCC_ExeOutput>

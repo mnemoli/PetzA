@@ -34,7 +34,7 @@ object frmSettings: TfrmSettings
     Caption = 'Camera picture format:'
   end
   object btnCancel: TButton
-    Left = 250
+    Left = 238
     Top = 150
     Width = 67
     Height = 25
@@ -43,11 +43,11 @@ object frmSettings: TfrmSettings
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 7
-    ExplicitLeft = 246
+    ExplicitLeft = 234
     ExplicitTop = 149
   end
   object btnOk: TButton
-    Left = 178
+    Left = 166
     Top = 150
     Width = 68
     Height = 25
@@ -57,7 +57,7 @@ object frmSettings: TfrmSettings
     ModalResult = 1
     TabOrder = 6
     OnClick = btnOkClick
-    ExplicitLeft = 174
+    ExplicitLeft = 162
     ExplicitTop = 149
   end
   object chkBrainSliders: TCheckBox
@@ -71,7 +71,7 @@ object frmSettings: TfrmSettings
     TabOrder = 0
   end
   object Button3: TButton
-    Left = 2
+    Left = -10
     Top = 150
     Width = 169
     Height = 25
@@ -79,7 +79,7 @@ object frmSettings: TfrmSettings
     Caption = 'Reset hidden warning messages'
     TabOrder = 9
     OnClick = Button3Click
-    ExplicitLeft = -2
+    ExplicitLeft = -14
     ExplicitTop = 149
   end
   object chkNameTags: TCheckBox
@@ -91,7 +91,7 @@ object frmSettings: TfrmSettings
     TabOrder = 1
   end
   object btnHelp: TButton
-    Left = 322
+    Left = 310
     Top = 150
     Width = 68
     Height = 25
@@ -99,7 +99,7 @@ object frmSettings: TfrmSettings
     Caption = 'Help'
     TabOrder = 8
     OnClick = btnHelpClick
-    ExplicitLeft = 318
+    ExplicitLeft = 306
     ExplicitTop = 149
   end
   object chkHideNavigation: TCheckBox
@@ -153,6 +153,16 @@ object frmSettings: TfrmSettings
     Height = 17
     Caption = 'Diapers can'#39't be soiled'
     Enabled = False
+    TabOrder = 10
+  end
+  object chkReactToCamera: TCheckBox
+    Left = 232
+    Top = 51
+    Width = 201
+    Height = 17
+    Caption = 'Petz react to camera'
+    Checked = True
+    State = cbChecked
     TabOrder = 3
   end
 end
