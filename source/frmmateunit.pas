@@ -18,6 +18,7 @@ type
     btnHelp: TButton;
     btnBatch: TButton;
     batchCount: TEdit;
+    btnCustom: TButton;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure Button1Click(Sender: TObject);
     procedure btnMateClick(Sender: TObject);
@@ -25,6 +26,7 @@ type
     procedure FormShow(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
     function validate(out female, male: TPetzPetSprite): boolean;
+    procedure btnCustomClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -45,7 +47,7 @@ procedure deliveroffspring(female: TPetzPetSprite);
 procedure unpatchbreedingcalls;
 
 implementation
-uses bndpetz, mymessageunit, dllpatchunit, petzaunit;
+uses bndpetz, mymessageunit, dllpatchunit, petzaunit, pickgenomeunit;
 {$R *.DFM}
 
 procedure TfrmMate.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -130,6 +132,8 @@ begin
     motherid := female.id;
     // Age up offspring
     offspring.setbiorhythm(8, 100);
+    thiscall(offspring.petinfo.ancestryinfo, rimports.ancestryinfo_setadopter, [cardinal(petzshlglobals.adoptername)]);
+    thiscall(pointer(classprop(offspring.petinfo, $5bba8)^), rimports.textinfo_adopttext, [cardinal(petzshlglobals.adoptername), cardinal(-1)]);
     // Delete mother and offspring
     thiscall(female, rimports.petsprite_setshouldibedeleted, [1]);
     thiscall(offspring, rimports.petsprite_setshouldibedeleted, [1]);
@@ -227,6 +231,16 @@ begin
       nonmodalmessage('Couldn''t mate. Perhaps one pet is too young, or another problem occured');
   end;
 
+end;
+
+procedure TfrmMate.btnCustomClick(Sender: TObject);
+  var female, male: TPetzPetSprite;
+begin
+  if validate(female, male) then begin
+    var frm := TfrmPickGenome.Create(self, female, male);
+    if frm.ShowModal = mrOK then
+      close;
+  end;
 end;
 
 procedure TfrmMate.btnHelpClick(Sender: TObject);

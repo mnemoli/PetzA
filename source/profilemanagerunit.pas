@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  contnrs, StdCtrls,ExtCtrls, profilelistdisplay, helpunit;
+  contnrs, StdCtrls,ExtCtrls, profilelistdisplay, helpunit, GR32_Image;
 
 type
   TfrmProfileManager = class(TForm)

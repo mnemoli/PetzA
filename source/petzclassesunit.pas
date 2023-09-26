@@ -69,6 +69,34 @@ type
     class function create: tpetzancestryinfo;
   end;
 
+  TPetzAllele = class
+  private
+    function getcenter: cardinal;
+    procedure setcenter(Value: cardinal);
+    function getrange: cardinal;
+    procedure setrange(Value: cardinal);
+  public
+    property center: cardinal read getcenter write setcenter;
+    property range: cardinal read getrange write setrange;
+  end;
+
+  TPetzChromosome = class
+  private
+    function getallele(index: integer): TPetzAllele;
+  public
+    property alleles[index: integer]: TPetzAllele read getallele;
+    type TLookAlleleIndex = (scale = 2, ears, head, whiskers, feet, legs, tail, body, coat, tongue, eyecolor, lidcolor, coatcolor1, coatcolor2, coatcolor3, coatcolor4, coatcolor5, markingfactor2, markingfactor1, marking1, marking2, legext, bodyext);
+  end;
+
+  TPetzGenome = class
+  private
+    function getchrom1(index: integer): TPetzChromosome;
+    function getchrom2(index: integer): TPetzChromosome;
+  public
+    property chromosomes1[index: integer]: TPetzChromosome read getchrom1;
+    property chromosomes2[index: integer]: TPetzChromosome read getchrom2;
+  end;
+
   TPetzPetinfo = class
   private
     function getneutered: boolean;
@@ -77,12 +105,14 @@ type
     function getfemale: boolean;
     function getancestryinfo: tpetzancestryinfo;
     procedure setancestryinfo(value: tpetzancestryinfo);
+    function getgenome: TPetzGenome;
   public
     function pregnant: boolean;
     function conceivetime: longword;
     property ancestryinfo: TPetzAncestryInfo read getancestryinfo write setancestryinfo;
     property isfemale: boolean read getfemale write setfemale;
     property neutered: boolean read getneutered write setneutered;
+    property genome: TPetzGenome read getgenome;
   end;
 
   TPetzDLGGlobals = class
@@ -94,8 +124,11 @@ type
   end;
 
   TPetzSHLGlobals = class
+  private
+    function getadoptername: ansistring;
   public
     function mainwindow: hwnd;
+    property adoptername: ansistring read getadoptername;
   end;
 
   TPetzAlposprite = class
@@ -115,9 +148,11 @@ type
     private
       function getsessionid: ushort;
       function getname: ansistring;
+      function getbreed: ansistring;
     public
       property sessionid: ushort read getsessionid;
       property name: ansistring read getname;
+      property breed: ansistring read getbreed;
   end;
 
   TPetzPetSprite = class(tpetzalposprite)
@@ -567,6 +602,11 @@ begin
   end;
 end;
 
+function TPetzSHLGlobals.getadoptername: ansistring;
+begin
+  result := pansichar(classprop(self, $240));
+end;
+
 function tpetzshlglobals.mainwindow: hwnd;
 type phwnd = ^hwnd;
 begin
@@ -905,6 +945,11 @@ begin
       result := false;
     end;
   end;
+end;
+
+function TPetzPetinfo.getgenome: TPetzGenome;
+begin
+  result := ppointer(classprop(self, $5bb88))^;
 end;
 
 function tpetzpetinfo.conceivetime: longword;
@@ -1338,6 +1383,13 @@ end;
 
 { TPetzLoadInfo }
 
+function TPetzLoadInfo.getbreed: ansistring;
+begin
+  var str: ansistring;
+  setstring(str, pansichar(classprop(self, $102)), 256);
+  result := str;
+end;
+
 function TPetzLoadInfo.getname: ansistring;
 begin
   var str: ansistring;
@@ -1355,6 +1407,57 @@ end;
 procedure TPetzCase.loadpetz(sessionid: ushort);
 begin
   thiscall(self, rimports.case_loadpetz, [sessionid, 1, 1, 1]);
+end;
+
+{ TPetzGenome }
+
+{ TPetzAllele }
+
+function TPetzAllele.getcenter: cardinal;
+begin
+  result := pcardinal(classprop(self, $4))^;
+end;
+
+function TPetzAllele.getrange: cardinal;
+begin
+  result := pcardinal(classprop(self, $8))^;
+end;
+
+procedure TPetzAllele.setcenter(Value: cardinal);
+begin
+  pcardinal(classprop(self, $4))^ := value;
+end;
+
+procedure TPetzAllele.setrange(Value: cardinal);
+begin
+  pcardinal(classprop(self, $8))^ := value;
+end;
+
+{ TPetzChromosome }
+
+function TPetzChromosome.getallele(index: integer): TPetzAllele;
+begin
+  var test := classprop(self, $4);
+  var alleleaddr := pointer(longword(test^) + index * 20);
+  result := TPetzAllele(alleleaddr);    
+end;
+
+{ TPetzGenome }
+
+function TPetzGenome.getchrom1(index: integer): TPetzChromosome;
+begin
+  // Genome contains two arrays of **Chromosome
+  var chromptr := pointer(longword(pointer(self)^) + index * 4); // chromosome**
+  chromptr := pointer(chromptr^); // chromosome*
+  result := TPetzChromosome(chromptr);
+end;
+
+function TPetzGenome.getchrom2(index: integer): TPetzChromosome;
+begin
+  // Genome contains two arrays of **Chromosome
+  var chromptr := pointer(longword(classprop(self, 12)^) + index * 4); // chromosome**
+  chromptr := pointer(chromptr^); // chromosome*
+  result := TPetzChromosome(chromptr);
 end;
 
 end.

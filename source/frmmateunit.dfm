@@ -3,8 +3,8 @@ object frmMate: TfrmMate
   Top = 356
   BorderStyle = bsDialog
   Caption = 'Mate two pets...'
-  ClientHeight = 247
-  ClientWidth = 306
+  ClientHeight = 246
+  ClientWidth = 362
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,8 +16,8 @@ object frmMate: TfrmMate
   OnShow = FormShow
   TextHeight = 13
   object Label1: TLabel
-    Left = 8
-    Top = 24
+    Left = 32
+    Top = 25
     Width = 51
     Height = 13
     Caption = 'Females:'
@@ -29,8 +29,8 @@ object frmMate: TfrmMate
     ParentFont = False
   end
   object Label2: TLabel
-    Left = 160
-    Top = 24
+    Left = 184
+    Top = 25
     Width = 38
     Height = 13
     Caption = 'Males:'
@@ -49,23 +49,23 @@ object frmMate: TfrmMate
     Caption = 'Select a female and a male pet, then click mate!'
   end
   object lstFemales: TListBox
-    Left = 16
-    Top = 40
+    Left = 40
+    Top = 41
     Width = 129
     Height = 169
     ItemHeight = 13
     TabOrder = 0
   end
   object lstMales: TListBox
-    Left = 168
-    Top = 40
+    Left = 192
+    Top = 41
     Width = 129
     Height = 169
     ItemHeight = 13
     TabOrder = 1
   end
   object Button1: TButton
-    Left = 176
+    Left = 232
     Top = 216
     Width = 59
     Height = 25
@@ -75,7 +75,7 @@ object frmMate: TfrmMate
     OnClick = Button1Click
   end
   object btnMate: TButton
-    Left = 112
+    Left = 168
     Top = 216
     Width = 59
     Height = 25
@@ -85,7 +85,7 @@ object frmMate: TfrmMate
     OnClick = btnMateClick
   end
   object btnHelp: TButton
-    Left = 240
+    Left = 296
     Top = 216
     Width = 59
     Height = 25
@@ -94,8 +94,8 @@ object frmMate: TfrmMate
     OnClick = btnHelpClick
   end
   object btnBatch: TButton
-    Left = 47
-    Top = 216
+    Left = 103
+    Top = 215
     Width = 59
     Height = 25
     Caption = 'Batch'
@@ -104,7 +104,7 @@ object frmMate: TfrmMate
     OnClick = btnBatchClick
   end
   object batchCount: TEdit
-    Left = 8
+    Left = 64
     Top = 218
     Width = 33
     Height = 21
@@ -112,5 +112,15 @@ object frmMate: TfrmMate
     TabOrder = 6
     Text = '10'
     StyleName = 'Windows'
+  end
+  object btnCustom: TButton
+    Left = -1
+    Top = 215
+    Width = 59
+    Height = 25
+    Caption = 'Custom'
+    Default = True
+    TabOrder = 7
+    OnClick = btnCustomClick
   end
 end
