@@ -94,8 +94,11 @@ type
   end;
 
   TPetzSHLGlobals = class
+  private
+    function getadoptername: ansistring;
   public
     function mainwindow: hwnd;
+    property adoptername: ansistring read getadoptername;
   end;
 
   TPetzAlposprite = class
@@ -565,6 +568,11 @@ begin
   else raise exception.create('SetAutoSavePhotos - Not supported!');
 
   end;
+end;
+
+function TPetzSHLGlobals.getadoptername: ansistring;
+begin
+  result := pansichar(classprop(self, $240));
 end;
 
 function tpetzshlglobals.mainwindow: hwnd;

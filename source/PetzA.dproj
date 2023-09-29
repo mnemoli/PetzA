@@ -5,7 +5,7 @@
         <FrameworkType>VCL</FrameworkType>
         <MainSource>PetzA.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Release</Config>
+        <Config Condition="'$(Config)'==''">Test</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Library</AppType>
@@ -97,8 +97,8 @@
         <DCC_DebugInfoInExe>false</DCC_DebugInfoInExe>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
         <VerInfo_MajorVer>3</VerInfo_MajorVer>
-        <VerInfo_MinorVer>1</VerInfo_MinorVer>
-        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=3.1.0.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_MinorVer>2</VerInfo_MinorVer>
+        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=3.2.0.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_ExeOutput>C:\petz\Petz 5\Resource\Toyz\</DCC_ExeOutput>
@@ -201,6 +201,12 @@
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule"/>
                 <DeployFile LocalName="C:\petz\Petz 5\Resource\Toyz\PetzA.toy" Configuration="Debug" Class="ProjectOutput"/>
                 <DeployFile LocalName="C:\petz\Petz 5\Resource\Toyz\PetzA.toy" Configuration="Test" Class="ProjectOutput"/>
+                <DeployFile LocalName="E:\Program Files (x86)\Petz\Petz 4 (Vanilla)\Resource\Toyz\PetzA.toy" Configuration="Test" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>PetzA.dll</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="iOSSimulator">
                         <Operation>1</Operation>

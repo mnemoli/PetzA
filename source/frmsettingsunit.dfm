@@ -5,7 +5,7 @@ object frmSettings: TfrmSettings
   BorderStyle = bsDialog
   Caption = 'PetzA Settings'
   ClientHeight = 183
-  ClientWidth = 396
+  ClientWidth = 410
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,16 +15,17 @@ object frmSettings: TfrmSettings
   Position = poScreenCenter
   OnCreate = FormCreate
   DesignSize = (
-    396
+    410
     183)
   TextHeight = 13
   object Bevel1: TBevel
     Left = 0
     Top = 142
-    Width = 396
+    Width = 410
     Height = 41
     Align = alBottom
     Shape = bsTopLine
+    ExplicitWidth = 396
   end
   object lblCameraFormat: TLabel
     Left = 224
@@ -34,7 +35,7 @@ object frmSettings: TfrmSettings
     Caption = 'Camera picture format:'
   end
   object btnCancel: TButton
-    Left = 238
+    Left = 264
     Top = 150
     Width = 67
     Height = 25
@@ -43,11 +44,9 @@ object frmSettings: TfrmSettings
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 7
-    ExplicitLeft = 234
-    ExplicitTop = 149
   end
   object btnOk: TButton
-    Left = 166
+    Left = 192
     Top = 150
     Width = 68
     Height = 25
@@ -57,8 +56,6 @@ object frmSettings: TfrmSettings
     ModalResult = 1
     TabOrder = 6
     OnClick = btnOkClick
-    ExplicitLeft = 162
-    ExplicitTop = 149
   end
   object chkBrainSliders: TCheckBox
     Left = 8
@@ -71,7 +68,7 @@ object frmSettings: TfrmSettings
     TabOrder = 0
   end
   object Button3: TButton
-    Left = -10
+    Left = 16
     Top = 150
     Width = 169
     Height = 25
@@ -79,8 +76,6 @@ object frmSettings: TfrmSettings
     Caption = 'Reset hidden warning messages'
     TabOrder = 9
     OnClick = Button3Click
-    ExplicitLeft = -14
-    ExplicitTop = 149
   end
   object chkNameTags: TCheckBox
     Left = 8
@@ -91,7 +86,7 @@ object frmSettings: TfrmSettings
     TabOrder = 1
   end
   object btnHelp: TButton
-    Left = 310
+    Left = 336
     Top = 150
     Width = 68
     Height = 25
@@ -99,8 +94,6 @@ object frmSettings: TfrmSettings
     Caption = 'Help'
     TabOrder = 8
     OnClick = btnHelpClick
-    ExplicitLeft = 306
-    ExplicitTop = 149
   end
   object chkHideNavigation: TCheckBox
     Left = 8
