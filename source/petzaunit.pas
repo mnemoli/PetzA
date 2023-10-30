@@ -107,6 +107,7 @@ type
     lastadoptpet, lastadoptpetslot: integer;
     fbatchbreedcountdefault: integer;
     fbreedingtimer: uint;
+    fcustomuserprofile: ansistring;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -125,8 +126,9 @@ type
     procedure setgamespeed(value: integer);
     procedure doenumtreebreeder(node: tpetzancestryinfo; list: tstringlist);
     procedure PatchResolutionCheck;
-    function getbatchbreedcountdefault: integer;
     procedure setbatchbreedcountdefault(const Value: integer);
+    procedure setcustomuserprofile(const Value: ansistring);
+    procedure patchcustomuserprofile;
 
   public
     brains: TObjectList;
@@ -152,20 +154,21 @@ type
     property brainslidersontop: boolean read fbrainslidersontop write setbrainslidersontop;
     property gamespeed: integer read fgamespeed write setgamespeed;
     property nodiaperchanges: boolean read fnodiaperchanges write setnodiaperchanges;
-    property batchbreedcountdefault: integer read getbatchbreedcountdefault write setbatchbreedcountdefault;
+    property batchbreedcountdefault: integer read fbatchbreedcountdefault write setbatchbreedcountdefault;
     property reacttocamera: boolean read freacttocamera write setreacttocamera;
+    property customuserprofile: ansistring read fcustomuserprofile write setcustomuserprofile;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
 procedure petzwindowcreate(return, instance: pointer); stdcall;
 var petza: tpetza;
-  hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation, hresetstack, reacttocamerapatch: TPatchThiscall;
+  hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation, hresetstack, reacttocamerapatch, deliveroffspringpatch: TPatchThiscall;
   logging: Boolean;
 procedure dolog(const message: string);
 
 implementation
 
-uses setchildrenunit, mymessageunit, debugunit, gamespeedunit, typinfo, frmsettingsunit,
+uses setchildrenunit, mymessageunit, debugunit, gamespeedunit, typinfo, frmsettingsunit, userprofileunit,
   nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit, controls;
 
 {$WARN SYMBOL_PLATFORM OFF}
@@ -299,6 +302,11 @@ begin
   finally
     list.free;
   end;
+end;
+
+procedure TPetza.setcustomuserprofile(const Value: ansistring);
+begin
+  fcustomuserprofile := Value;
 end;
 
 function tpetza.defaultgamespeed: integer;
@@ -438,6 +446,8 @@ begin
         batchbreedcountdefault := reg.ReadInteger('BatchBreedCountDefault');
       if reg.ValueExists('ReactToCamera') then
         reacttocamera := reg.ReadBool('ReactToCamera');
+      if reg.ValueExists('CustomUserProfile') then
+        customuserprofile := reg.ReadString('CustomUserProfile');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -471,7 +481,8 @@ begin
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
       reg.writeinteger(pre + '-GameSpeed', fgamespeed);
       reg.writebool(pre + '-UseProfiles', profilemanager.useprofiles);
-      reg.WriteInteger('BatchBreedCountDefault', fbatchbreedcountdefault);
+      reg.WriteInteger('BatchBreedCountDefault', batchbreedcountdefault);
+      reg.WriteString('CustomUserProfile', customuserprofile);
     end;
   finally
     reg.free;
@@ -1232,11 +1243,6 @@ begin
   end;
 end;
 
-function TPetza.getbatchbreedcountdefault: integer;
-begin
-  result := fbatchbreedcountdefault;
-end;
-
 procedure mysetdiaperstatus(return, instance: pointer; status: Integer); stdcall;
 begin
   thiscall(instance, rimports.scriptsprite_setdiaperstatus, [0]);
@@ -1248,6 +1254,19 @@ end;
 procedure tpetza.patchnodiaper;
 begin
   patchthiscall(ptr($590B8B), @mysetdiaperstatus);
+end;
+
+function customdeliveroffspring(return, instance: TPetzPetSprite): pointer; stdcall;
+  var offspring: TPetzPetSprite;
+begin
+  offspring := TPetzPetSprite(deliveroffspringpatch.callorigproc(instance, []));
+  thiscall(pointer(classprop(offspring.petinfo, $5bbac)^), rimports.textinfo_adopttext, [cardinal(petza.customuserprofile), cardinal(-1)]);
+  result := offspring;
+end;
+
+procedure tpetza.patchcustomuserprofile;
+begin
+  deliveroffspringpatch := patchthiscall(rimports.petsprite_deliveroffspring, @customdeliveroffspring);
 end;
 
 procedure tpetza.patchreacttocamera(value: bool);
@@ -1445,6 +1464,13 @@ begin
        p := ptr($4d4c65);
        VirtualProtect(p, 1, PAGE_EXECUTE_READWRITE, oldprotect);
        p^ := $EB; // replace with uncontrolled jump to skip neglect
+    end;
+  end;
+
+  // Set up custom user profile
+  case cpetzver of
+    pvpetz4: begin
+      patchcustomuserprofile;
     end;
   end;
 
@@ -1863,6 +1889,17 @@ begin
   end;
 end;
 
+procedure openuserprofile(sender: TMyMenuItem);
+var prof: TUserProfile;
+begin
+  prof := TUserProfile.Create(nil, petza.customuserprofile);
+  try
+    prof.ShowModal;
+  finally
+    prof.free;
+  end;
+end;
+
 procedure openhelp(sender: TMyMenuItem);
 begin
 Application.HelpCommand(HELP_CONTEXT,HELP_Welcome);
@@ -1991,6 +2028,7 @@ begin
 
     menumanager.additem(menumanager.submenu, 'settings', 'Settings...', 0, opensettings);
     menumanager.additem(menumanager.submenu, 'profiles', 'Manage profiles...', 0, openprofiles);
+    menumanager.additem(menumanager.submenu, 'userprofile', 'Set custom pet profile...', 0, openuserprofile);
 
     menumanager.addseparator(menumanager.submenu);
 

@@ -45,7 +45,8 @@ uses
   nakedbitmaploader in 'nakedbitmaploader.pas',
   vectorUnit in 'vectorUnit.pas',
   profilelistdisplay in 'profilelistdisplay.pas',
-  petzprofilesunit in 'petzprofilesunit.pas';
+  petzprofilesunit in 'petzprofilesunit.pas',
+  userprofileunit in 'userprofileunit.pas' {UserProfile};
 
 {$E toy}
 {$R *.RES}
