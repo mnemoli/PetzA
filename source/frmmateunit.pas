@@ -94,24 +94,26 @@ var offspring: TPetzPetSprite;
   old90: longword;
   buffer: array[0..100] of byte;
 begin
-  old := female.interactingpet;
-  female.interactingpet := male;
+ try
+    old := female.interactingpet;
+    female.interactingpet := male;
 
-  old90 := female.stateflag;
-  female.stateflag := 1;
+    old90 := female.stateflag;
+    female.stateflag := 1;
 
-  var buttonindex := pinteger(classprop(petzcase, $3d2c));
+    var buttonindex := pinteger(classprop(petzcase, $3d2c));
 
-  try
-    state := pointer(thiscall(@buffer[0], rimports.stateconceive_stateconceive, []));
-    thiscall(state, rimports.stateconceive_execute, [cardinal(female), 1, 0]);
-    result := female.petinfo.pregnant;
+    try
+      state := pointer(thiscall(@buffer[0], rimports.stateconceive_stateconceive, []));
+      thiscall(state, rimports.stateconceive_execute, [cardinal(female), 1, 0]);
+      result := female.petinfo.pregnant;
+    finally
+      female.interactingpet := old;
+      female.stateflag := old90;
+    end;
   except
     result := false;
   end;
-
-  female.interactingpet := old;
-  female.stateflag := old90;
 end;
 
 procedure deliveroffspring(female: TPetzPetSprite);

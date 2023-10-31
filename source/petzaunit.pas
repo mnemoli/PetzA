@@ -762,6 +762,19 @@ begin
   end;
 end;
 
+procedure sendalltopetdoor(sender: tmymenuitem);
+  var list: tobjectlist;
+  pet: TPetzPetSprite;
+  t1: integer;
+begin
+  list := tobjectlist.create(false);
+  petzclassesman.findclassinstances(cnpetsprite, list);
+  for t1 := 0 to list.count - 1 do begin
+    pet := TPetzPetSprite(TPetzClassInstance(list[t1]).instance);
+    pet.enterpetdoor;
+  end;
+end;
+
 procedure tpetza.refreshadptpetwrap(sender: tobject);
 begin
   refreshadptpet(nil);
@@ -1260,7 +1273,7 @@ function customdeliveroffspring(return, instance: TPetzPetSprite): pointer; stdc
   var offspring: TPetzPetSprite;
 begin
   offspring := TPetzPetSprite(deliveroffspringpatch.callorigproc(instance, []));
-  thiscall(pointer(classprop(offspring.petinfo, $5bbac)^), rimports.textinfo_adopttext, [cardinal(petza.customuserprofile), cardinal(-1)]);
+  thiscall(offspring.petinfo.commenttext, rimports.textinfo_adopttext, [cardinal(petza.customuserprofile), cardinal(-1)]);
   result := offspring;
 end;
 
@@ -1469,7 +1482,7 @@ begin
 
   // Set up custom user profile
   case cpetzver of
-    pvpetz4: begin
+    pvpetz4, pvpetz3, pvpetz5: begin
       patchcustomuserprofile;
     end;
   end;
@@ -2021,6 +2034,8 @@ begin
       menumanager.additem(menumanager.submenu, 'refreshadptpet', 'Bring adoption centre pet back out '#9'Alt-D', 0, refreshadptpet);
     end;
 
+    menumanager.additem(menumanager.submenu, 'sendalltopetdoor', 'Send all to pet door', 0, sendalltopetdoor);
+
     if cpetzver = pvpetz5 then
       menumanager.additem(menumanager.submenu, 'nursery', 'Go to the nursery', 0, gotonursery);
 
@@ -2028,7 +2043,8 @@ begin
 
     menumanager.additem(menumanager.submenu, 'settings', 'Settings...', 0, opensettings);
     menumanager.additem(menumanager.submenu, 'profiles', 'Manage profiles...', 0, openprofiles);
-    menumanager.additem(menumanager.submenu, 'userprofile', 'Set custom pet profile...', 0, openuserprofile);
+    if cpetzver in [pvpetz4, pvpetz5, pvpetz3] then
+      menumanager.additem(menumanager.submenu, 'userprofile', 'Set default pet profile...', 0, openuserprofile);
 
     menumanager.addseparator(menumanager.submenu);
 

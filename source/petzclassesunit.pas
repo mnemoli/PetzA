@@ -77,12 +77,14 @@ type
     function getfemale: boolean;
     function getancestryinfo: tpetzancestryinfo;
     procedure setancestryinfo(value: tpetzancestryinfo);
+    function getcomment: pointer;
   public
     function pregnant: boolean;
     function conceivetime: longword;
     property ancestryinfo: TPetzAncestryInfo read getancestryinfo write setancestryinfo;
     property isfemale: boolean read getfemale write setfemale;
     property neutered: boolean read getneutered write setneutered;
+    property commenttext: pointer read getcomment;
   end;
 
   TPetzDLGGlobals = class
@@ -847,6 +849,18 @@ begin
       result := nil;
       showmessage('TPetzPetInfo:Getancestryinfo - Not supported!');
     end;
+  end;
+end;
+
+function TPetzPetinfo.getcomment: pointer;
+begin
+  case cpetzver of
+    pvpetz5: result := pointer(classprop(self, $5bbbc)^);
+    pvpetz4, pvpetz3: result := pointer(classprop(self, $5bbac)^);
+  else begin
+    result := nil;
+    showmessage('TPetzPetInfo:GetComment - Not supported!');
+  end;
   end;
 end;
 

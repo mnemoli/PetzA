@@ -226,7 +226,11 @@ begin
       exit;
     end;
 
-
+    if cpetzver = pvpetz5 then begin
+      showmessage('This version of PetzA does not support Petz 5! PetzA will not run');
+      exit;
+    end;
+    
     reg := TRegistry.Create;
     try
       reg.RootKey := HKEY_CURRENT_USER;

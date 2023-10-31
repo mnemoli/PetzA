@@ -1,7 +1,7 @@
 object UserProfile: TUserProfile
   Left = 0
   Top = 0
-  Caption = 'User Profile'
+  Caption = 'Default Pet Profile'
   ClientHeight = 442
   ClientWidth = 628
   Color = clBtnFace
