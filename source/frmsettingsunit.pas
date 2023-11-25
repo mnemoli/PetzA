@@ -23,6 +23,7 @@ type
     cmbCameraFormat: TComboBox;
     chkNoDiapers: TCheckBox;
     chkReactToCamera: TCheckBox;
+    chkUsePhotoNameFormat: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -68,6 +69,7 @@ begin
   petza.nodiaperchanges:=chkNoDiapers.checked;
   petza.brainslidersontop := chkBrainSliders.checked;
   petza.CameraFormat := TCameraFormat(cmbCameraFormat.itemindex);
+  petza.usenewphotonameformat := chkUsePhotonameFormat.Checked;
   petza.shownavigation := not chkHideNavigation.checked;
 end;
 
@@ -86,15 +88,17 @@ begin
   chkHideNavigation.Checked := not petza.shownavigation;
   chkshowheart.checked := petza.showheart;
   chkReactToCamera.Checked := petza.reacttocamera;
+  chkUsePhotonameFormat.Checked := petza.usenewphotonameformat;
 
   chkshowheart.enabled := cpetzver in verBreeding;
   chkHideNavigation.Enabled := cpetzver = pvBabyz;
-  chkNameTags.Enabled := cpetzver = pvpetz5;
+  chkNameTags.Enabled := cpetzver in verNametags;
   chkNoDiapers.enabled:=cpetzver = pvBabyz;
   chkInstantBirth.Enabled := assigned(rimports.petsprite_isoffspringdue);
   lblCameraFormat.enabled := cpetzver in verCamera;
   cmbCameraFormat.enabled := cpetzver in verCamera;
   chkReactToCamera.Enabled := cpetzver = pvpetz4;
+  chkUsePhotonameFormat.Enabled := cpetzver in verNametags;
 end;
 
 end.

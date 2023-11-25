@@ -87,22 +87,6 @@ type
     property commenttext: pointer read getcomment;
   end;
 
-  TPetzDLGGlobals = class
-  private
-    function getautosavephotos: integer;
-    procedure setautosavephotos(value: integer);
-  public
-    property maxautosavephotos: integer read getautosavephotos write setautosavephotos;
-  end;
-
-  TPetzSHLGlobals = class
-  private
-    function getadoptername: ansistring;
-  public
-    function mainwindow: hwnd;
-    property adoptername: ansistring read getadoptername;
-  end;
-
   TPetzAlposprite = class
   public
     function isthisapet: boolean;
@@ -144,7 +128,7 @@ type
     function getbiorhythm(index: integer): integer;
     procedure setbiorhythm(index: integer; value: integer);
     procedure enterpetdoor;
-    function name: string;
+    function name: ansistring;
     function GoalManager: pointer;
     property interactingpet: TPetzPetsprite read getinteracting write setinteracting;
     property stateflag: longword read getstateflag write setstateflag;
@@ -159,6 +143,27 @@ type
     conreg, desreg: TRegisterName;
 //    classnametree: TPetzClassNameTree;
     classname: tpetzclassname;
+  end;
+
+  TPetzDLGGlobals = class
+  private
+    function getautosavephotos: integer;
+    procedure setautosavephotos(value: integer);
+    function getphototype: integer;
+  public
+    property maxautosavephotos: integer read getautosavephotos write setautosavephotos;
+    property phototype: integer read getphototype;
+
+  end;
+
+  TPetzSHLGlobals = class
+  private
+    function getadoptername: ansistring;
+    function getphotopet: TPetzPetSprite;
+  public
+    function mainwindow: hwnd;
+    property adoptername: ansistring read getadoptername;
+    property photopet: TPetzPetSprite read getphotopet;
   end;
 
   TChangetype = (ctCreate, ctDestroy);
@@ -224,7 +229,10 @@ end;
 
 function tpetzpetzapp.getdrawready: integer;
 begin
-  result := pinteger(classprop(self, $10))^;
+  if cpetzver = pvpetz3 then
+    result := pinteger(classprop(self, $4))^
+  else
+    result := pinteger(classprop(self, $10))^;
 end;
 
 procedure tpetzpetzapp.setdrawready(value: integer);
@@ -563,6 +571,15 @@ begin
   end;
 end;
 
+function TPetzDLGGlobals.getphototype: integer;
+begin
+  case cpetzver of
+    pvpetz4: result := pinteger(classprop(self, $38))^;
+    pvpetz3: result := pinteger(classprop(self, $34))^;
+  else raise exception.Create('Not supported');
+  end;
+end;
+
 procedure tpetzdlgglobals.setautosavephotos(value: integer);
 begin
   case cpetzver of
@@ -575,6 +592,13 @@ end;
 function TPetzSHLGlobals.getadoptername: ansistring;
 begin
   result := pansichar(classprop(self, $240));
+end;
+
+function TPetzSHLGlobals.getphotopet: TPetzPetSprite;
+begin
+  case cpetzver of
+    pvpetz4,pvpetz3: result := TPetzPetSprite(classprop(self, $2c8)^)
+  end;
 end;
 
 function tpetzshlglobals.mainwindow: hwnd;
@@ -594,7 +618,8 @@ function petzdlgglobals: Tpetzdlgglobals;
 begin
   case cpetzver of
    pvpetz5: result := TPetzDLGGlobals(rimports.get_dlgglobals);
-   pvpetz4: result:= TPetzDLGGlobals(ptr($6371A0));
+   pvpetz4: result := TPetzDLGGlobals(ppointer($6371A0)^);
+   pvpetz3: result := TPetzDLGGlobals(ppointer($639228)^);
    else raise exception.create('GetPetzDlgGlobals - Not supported!');
   end;
 end;
@@ -654,7 +679,7 @@ begin
   result := copy(s, 1, pos('.', s) - 1);
 end;
 
-procedure mydrawtext(xstage, xdrawport: pointer; text: string; x, y: integer; forecolour, backcolour: integer; size: integer);
+procedure mydrawtext(xstage, xdrawport: pointer; text: ansistring; x, y: integer; forecolour, backcolour: integer; size: integer);
 var r: trect;
 begin
   r.left := x;
@@ -696,13 +721,19 @@ begin
   case cpetzver of
     pvpetz5: result := ppointer(ptr($668E30))^;
     pvbabyz: result := ppointer(ptr($7C4C48))^;
+    pvpetz4: result := rimports.g_stage^;
+    pvpetz3: result := ppointer(ptr($006395d0))^;
   else raise Exception.create('GetXStage::Not supported');
   end;
 end;
 
 function getxscreen: pointer;
 begin
-  result := ppointer(ptr($663500))^;
+  case cpetzver of
+    pvpetz4: result := ppointer(ptr($00631bc8))^;
+    pvpetz5: result := ppointer(ptr($663500))^;
+    pvpetz3: result := ppointer(ptr($633c18))^;
+  end;
 end;
 
 
@@ -763,7 +794,8 @@ begin
 
       if (getxscreen <> nil) then begin
          //thiscall(xtileport, rimports.xdrawport_xfillrect, [cardinal(@r), 00000000]);
-        if petza.shownametags then drawpetnametags(xstage, getxscreen);
+      if petza.shownametags then
+        drawpetnametags(xstage, getxscreen);
 {        if not notagain then begin
         displayport(xtileport,'c:\dumptile.raw');
         displayport(xsaveport,'c:\dumpsave.raw');
@@ -1098,7 +1130,7 @@ begin
   Thiscall(self, rimports.petsprite_enterpetdoor, []);
 end;
 
-function tpetzpetsprite.name: string;
+function tpetzpetsprite.name: ansistring;
 var s: string;
   t1: integer;
 begin
@@ -1119,8 +1151,6 @@ begin
   else begin
       result := '<not implemented>';
     end;
-
-    result := UnicodeString(result);
   end;
 
 end;

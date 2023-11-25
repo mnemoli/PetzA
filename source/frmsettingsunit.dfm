@@ -44,6 +44,8 @@ object frmSettings: TfrmSettings
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 7
+    ExplicitLeft = 260
+    ExplicitTop = 149
   end
   object btnOk: TButton
     Left = 192
@@ -56,6 +58,8 @@ object frmSettings: TfrmSettings
     ModalResult = 1
     TabOrder = 6
     OnClick = btnOkClick
+    ExplicitLeft = 188
+    ExplicitTop = 149
   end
   object chkBrainSliders: TCheckBox
     Left = 8
@@ -76,6 +80,8 @@ object frmSettings: TfrmSettings
     Caption = 'Reset hidden warning messages'
     TabOrder = 9
     OnClick = Button3Click
+    ExplicitLeft = 12
+    ExplicitTop = 149
   end
   object chkNameTags: TCheckBox
     Left = 8
@@ -94,6 +100,8 @@ object frmSettings: TfrmSettings
     Caption = 'Help'
     TabOrder = 8
     OnClick = btnHelpClick
+    ExplicitLeft = 332
+    ExplicitTop = 149
   end
   object chkHideNavigation: TCheckBox
     Left = 8
@@ -157,5 +165,15 @@ object frmSettings: TfrmSettings
     Checked = True
     State = cbChecked
     TabOrder = 3
+  end
+  object chkUsePhotoNameFormat: TCheckBox
+    Left = 232
+    Top = 67
+    Width = 201
+    Height = 17
+    Caption = 'New photo name format'
+    Checked = True
+    State = cbChecked
+    TabOrder = 11
   end
 end

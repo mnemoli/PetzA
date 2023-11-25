@@ -108,6 +108,7 @@ type
     fbatchbreedcountdefault: integer;
     fbreedingtimer: uint;
     fcustomuserprofile: ansistring;
+    fusenewphotonameformat: boolean;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -129,6 +130,7 @@ type
     procedure setbatchbreedcountdefault(const Value: integer);
     procedure setcustomuserprofile(const Value: ansistring);
     procedure patchcustomuserprofile;
+    procedure setusenewphotonameformat(const Value: boolean);
 
   public
     brains: TObjectList;
@@ -157,6 +159,7 @@ type
     property batchbreedcountdefault: integer read fbatchbreedcountdefault write setbatchbreedcountdefault;
     property reacttocamera: boolean read freacttocamera write setreacttocamera;
     property customuserprofile: ansistring read fcustomuserprofile write setcustomuserprofile;
+    property usenewphotonameformat: boolean read fusenewphotonameformat write setusenewphotonameformat;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -169,7 +172,7 @@ procedure dolog(const message: string);
 implementation
 
 uses setchildrenunit, mymessageunit, debugunit, gamespeedunit, typinfo, frmsettingsunit, userprofileunit,
-  nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit, controls;
+  nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit, controls, System.StrUtils;
 
 {$WARN SYMBOL_PLATFORM OFF}
 {$WARN UNIT_PLATFORM OFF}
@@ -403,6 +406,15 @@ begin
   end;
 end;
 
+procedure TPetza.setusenewphotonameformat(const Value: boolean);
+begin
+  fusenewphotonameformat := Value;
+  if Value = false then begin
+    // reset filepath names
+    setcameraformat(fcameraformat);
+  end;
+end;
+
 procedure TPetza.setbatchbreedcountdefault(const Value: integer);
 begin
   fbatchbreedcountdefault := value;
@@ -448,6 +460,8 @@ begin
         reacttocamera := reg.ReadBool('ReactToCamera');
       if reg.ValueExists('CustomUserProfile') then
         customuserprofile := reg.ReadString('CustomUserProfile');
+      if reg.ValueExists('UseNewPhotoNameFormat') then
+        usenewphotonameformat := reg.ReadBool('UseNewPhotoNameFormat');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -483,6 +497,7 @@ begin
       reg.writebool(pre + '-UseProfiles', profilemanager.useprofiles);
       reg.WriteInteger('BatchBreedCountDefault', batchbreedcountdefault);
       reg.WriteString('CustomUserProfile', customuserprofile);
+      reg.WriteBool('UseNewPhotoNameFormat', usenewphotonameformat);
     end;
   finally
     reg.free;
@@ -846,6 +861,39 @@ begin
   end;
 end;
 
+function setsavefilename(): bool;
+  var pet: TPetzPetSprite;
+  var names: ansistring;
+  var timestamp: string;
+  var petlist: TObjectList;
+  var namelist: TStringList;
+begin
+  if petza.fusenewphotonameformat then begin
+    if petzdlgglobals.phototype = 2 then begin
+      petlist := tobjectlist.create(false);
+      namelist := tstringlist.create(TDuplicates.dupIgnore, true, false);
+      petzclassesman.findclassinstances(cnpetsprite, petlist);
+      for var t1 := 0 to petlist.count - 1 do begin
+        pet := TPetzPetSprite(TPetzClassInstance(petlist[t1]).instance);
+        namelist.add(pet.name);
+      end;
+      for var t1 := 0 to namelist.Count - 1 do begin
+        if length(names) > 0 then
+          names := names + '_' + namelist[t1]
+        else
+          names := namelist[t1];
+      end;
+    end else begin
+      pet := petzshlglobals.photopet;
+      names := pet.name;
+    end;
+    DateTimeToString(timestamp, 'yymmddhhnnss', Now());
+    var ext := RightStr(petza.fautopicsavepath, 4);
+    petza.fautopicsavepath := '%s\PetzPix\' + names + '-' + timestamp + '-%d.' + ext;
+  end;
+  rimports.xdrawport_closescreendrawport;
+end;
+
 function stripfileext(const s: ansistring): ansistring;
 begin
   result := copy(s, 1, length(s) - length(ExtractFileExt(s)));
@@ -894,6 +942,7 @@ begin
       cfPNG: fautopicsavepath := '%s\PetzPix\petz%d.png';
     end;
   end;
+  fautopicsavepath := fautopicsavepath + #0;
 end;
 
 procedure TPetza.setgamespeed(value: integer);
@@ -958,6 +1007,7 @@ begin
     pvPetz4: begin
         retargetcall(ptr($418F45), @mypicgetsavefilename);
         retargetcall(ptr($418BB1), @mywritedib);
+        retargetcall(ptr($419fc8), @setsavefilename);
 
         p := ptr($418E04);
         VirtualProtect(p, 4, PAGE_EXECUTE_READWRITE, oldprotect);
@@ -972,12 +1022,13 @@ begin
         VirtualProtect(p, 4, PAGE_EXECUTE_READWRITE, oldprotect);
         ppointer(p)^ := @fautopicsavepath[1];
 
-//        petzdlgglobals.maxautosavephotos := 30000; NOT WORKING
+      // petzdlgglobals.maxautosavephotos := 30000; NOT WORKING
       end;
     pvPetz3: begin
         retargetcall(ptr($527B7E), @mypicgetsavefilename);
         retargetcall(ptr($528C16), @mywritedib);
         retargetcall(ptr($5280A4), @mywritedib);
+        retargetcall(ptr($528a84), @setsavefilename);
 
         p := ptr($527A34);
         VirtualProtect(p, 4, PAGE_EXECUTE_READWRITE, oldprotect);
@@ -1170,12 +1221,14 @@ begin
       end;
     pvpetz3: begin
         petzclassesman.hookclass(ptr($4CE7DC), ptr($4CEA20), ptr($4CE7E7), ptr($4CEA42), cnpetsprite);
+        patchthiscall(rimports.petzapp_dodrawframe, @mypetzapp_dodrawframe);
       end;
     pvpetz3german: begin
         petzclassesman.hookclass(ptr($4CF1B9), ptr($4CF410), ptr($4CF1CA), ptr($4CF45C), cnpetsprite, rnEsi);
       end;
     pvpetz4: begin
         petzclassesman.hookclass(ptr($4CBA5A), ptr($4CC040), ptr($4CBA7B), ptr($4CC062), cnpetsprite, rnESI);
+        patchthiscall(rimports.petzapp_dodrawframe, @mypetzapp_dodrawframe);
       end;
     pvpetz5: begin
         petzclassesman.hookclass(ptr($4CFC51), ptr($4D0220), ptr($4CFC5C), ptr($4D0248), cnPetsprite);
@@ -1507,6 +1560,7 @@ begin
   shownavigation := true; //Show it by default
   fnodiaperchanges := False; //by default, diapers get soiled just like normal :)
   freacttocamera := true;
+  fusenewphotonameformat := true;
 
   // breeding settings
   fbreedingtimer := 0;
