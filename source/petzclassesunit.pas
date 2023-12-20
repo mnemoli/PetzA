@@ -87,9 +87,24 @@ type
     property commenttext: pointer read getcomment;
   end;
 
+  TPetzLoadInfo = class
+    private
+      function getsessionid: ushort;
+      function getname: ansistring;
+      function getspriteindex: integer;
+    public
+      property sessionid: ushort read getsessionid;
+      property name: ansistring read getname;
+      property spriteindex: integer read getspriteindex;
+  end;
+
   TPetzAlposprite = class
+  private
+    function getloadinfo: TPetzLoadInfo;
   public
     function isthisapet: boolean;
+    procedure setadjvalue(attr, val: integer);
+    property loadinfo: TPetzLoadInfo read getloadinfo;
   end;
 
   TPetzSpriteAdpt = class
@@ -98,15 +113,6 @@ type
     procedure setpetslot(value: integer);
   public
     property petslot: integer read getpetslot write setpetslot;
-  end;
-
-  TPetzLoadInfo = class
-    private
-      function getsessionid: ushort;
-      function getname: ansistring;
-    public
-      property sessionid: ushort read getsessionid;
-      property name: ansistring read getname;
   end;
 
   TPetzPetSprite = class(tpetzalposprite)
@@ -189,8 +195,12 @@ type
   end;
 
   TPetzCase = class
+  private
+    function getbuttonindex: integer;
+    procedure setbuttonindex(const Value: integer);
     public
-      procedure loadpetz(sessionid: ushort);
+      procedure loadpetz(sessionid: ushort; buttonidx: integer);
+      property buttonindex: integer read getbuttonindex write setbuttonindex;
   end;
 
 (*procedure mypetzapp_dodrawframe(ecx: pointer); stdcall;*)
@@ -203,7 +213,7 @@ function petzdlgglobals: Tpetzdlgglobals;
 function petzshlglobals: tpetzshlglobals;
 function petzcurrentarea: pointer;
 function petzoberon: pointer;
-function petzcase: pointer;
+function petzcase: TPetzCase;
 function petzapp: TPetzPetzApp;
 function getxscreen: pointer;
 function getxstage: pointer;
@@ -270,6 +280,11 @@ begin
   end;
 end;
 
+function TPetzAlposprite.getloadinfo: TPetzLoadInfo;
+begin
+  result := TPetzLoadInfo(classprop(self, $3698));
+end;
+
 function TPetzAlposprite.isthisapet: boolean;
 begin
   result := bool(Thiscall(self, rimports.alposprite_isthisapet, [cardinal(self)]));
@@ -309,7 +324,6 @@ procedure tpetzancestryinfo.setname(value: string);
 begin
   thiscall(self, rimports.ancestryinfo_setname, [cardinal(PAnsiChar(value))]);
 end;
-
 
 function tpetzancestryinfo.getbreed: string;
 var p: PAnsiChar;
@@ -659,9 +673,9 @@ begin
   end;
 end;
 
-function petzcase: pointer;
+function petzcase: TPetzCase;
 begin
-  result := ppointer(ptr($0063930c))^;
+  result := TPetzCase(ppointer(ptr($0063930c))^);
 end;
 
 function petzcurrentarea: pointer;
@@ -1402,11 +1416,32 @@ begin
   result := ushort(classprop(self, $0)^);
 end;
 
+function TPetzLoadInfo.getspriteindex: integer;
+begin
+  result := pinteger(classprop(self, $308))^;
+end;
+
 { TPetzCase }
 
-procedure TPetzCase.loadpetz(sessionid: ushort);
+function TPetzCase.getbuttonindex: integer;
 begin
+  result := pinteger(classprop(petzcase, $3d2c))^;
+end;
+
+procedure TPetzCase.loadpetz(sessionid: ushort; buttonidx: integer);
+begin
+  self.buttonindex := buttonidx;
   thiscall(self, rimports.case_loadpetz, [sessionid, 1, 1, 1]);
+end;
+
+procedure TPetzAlposprite.setadjvalue(attr, val: integer);
+begin
+  thiscall(self, rimports.alposprite_setadjvalue, [cardinal(attr), cardinal(val)]);
+end;
+
+procedure TPetzCase.setbuttonindex(const Value: integer);
+begin
+  pinteger(classprop(petzcase, $3d2c))^ := value;
 end;
 
 end.

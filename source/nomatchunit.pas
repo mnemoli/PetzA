@@ -11,14 +11,14 @@ type
     Memo1: TMemo;
     Button1: TButton;
     Image1: TImage;
-    Label1: TLabel;
     Label2: TLabel;
-    Label3: TLabel;
+    Button2: TButton;
     procedure Label3Click(Sender: TObject);
     procedure Label2Click(Sender: TObject);
     procedure Label1Click(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -47,6 +47,11 @@ begin
 shellexecute(handle,'open','mailto:n.sherlock@gmail.com',nil,nil,sw_shownormal);
 end;
 
+procedure TfrmNoMatch.Button2Click(Sender: TObject);
+begin
+  ModalResult := mrOK;
+end;
+
 procedure TfrmNoMatch.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
 action:=cafree;
@@ -54,7 +59,8 @@ end;
 
 procedure TfrmNoMatch.Button1Click(Sender: TObject);
 begin
-close;
+  ModalResult := mrCancel;
+  close;
 end;
 
 end.

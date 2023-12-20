@@ -81,6 +81,7 @@ OUTSTANDING BUGS
    }
 
 unit petzaunit;
+{$SCOPEDENUMS ON}
 
 interface
 
@@ -91,6 +92,13 @@ uses sysutils, windows, classes, messages, contnrs, mymenuunit, dllpatchunit, bn
   SCommon, SPatching, HtmlHelpViewer;
 
 const petzakeyname = '\Software\Sherlock Software\PetzA';
+
+type TEyeballData = record
+  xballz: pointer;
+  ballstate: pointer;
+  posrotinfo: pointer;
+  irisno: integer;
+end;
 
 type
   TCameraFormat = (cfBMP, cfGIF, cfPNG); //Don't change order without updating settings combo
@@ -109,6 +117,7 @@ type
     fbreedingtimer: uint;
     fcustomuserprofile: ansistring;
     fusenewphotonameformat: boolean;
+    facpetsadult: boolean;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -131,6 +140,7 @@ type
     procedure setcustomuserprofile(const Value: ansistring);
     procedure patchcustomuserprofile;
     procedure setusenewphotonameformat(const Value: boolean);
+    procedure setacpetsadult(const Value: boolean);
 
   public
     brains: TObjectList;
@@ -139,6 +149,8 @@ type
     instantbirth, shownametags: boolean;
     brainageindex: integer;
     brainbarnames: array of string;
+    eyeballdata: TEyeballData;
+    transparentphotos: boolean;
     function getInstallPath: string;
     procedure loadsettings;
     procedure savesettings;
@@ -160,14 +172,35 @@ type
     property reacttocamera: boolean read freacttocamera write setreacttocamera;
     property customuserprofile: ansistring read fcustomuserprofile write setcustomuserprofile;
     property usenewphotonameformat: boolean read fusenewphotonameformat write setusenewphotonameformat;
+    property ACpetsadult: boolean read facpetsadult write setacpetsadult;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
 procedure petzwindowcreate(return, instance: pointer); stdcall;
 var petza: tpetza;
-  hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation, hresetstack, reacttocamerapatch, deliveroffspringpatch: TPatchThiscall;
+  hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation,
+  hresetstack, reacttocamerapatch, deliveroffspringpatch,
+  draweyeballpatch, inittoypatch: TPatchThiscall;
   logging: Boolean;
 procedure dolog(const message: string);
+
+type TAdjective = (
+  AlpoType, Chrz, Toyz, Prop, Part, ThreeD, Color, Flavor, Size, Mass, Friction,
+  Tasty, Edible, Fatty, Liquid, Drug, Medicine, Aphrodisiac, Discipline, Chew,
+  Tug, Density, Thickness, Soft, Fuzzy, Round, Bounce, Swatty, Pretty, Vain,
+  Paint, Groom, BadNoisy, NiceNoisy, Flies, Rideable, Mouselike
+  );
+
+type TPetzColor = (
+  White, Black, Red, Green, Yellow, Blue, Purple, Pink, Orange, Brown, Gray, Clear
+);
+
+type TFlavor = (
+  Chicken, Beef, Fish, Turkey, Milk, Sweet, Catnip, Cheese,
+  Plastic, Rubber, Soft, Bone, Wood, Metal, Water, Rock, Unknown1,
+  HairballFleaspray, Unknown2, Unknown3, Unknown4, Unknown5, Unknown6, Chemicals,
+  Garbage, Unknown7, Fleabottle, Plants, HealthyTreat
+);
 
 implementation
 
@@ -415,6 +448,11 @@ begin
   end;
 end;
 
+procedure TPetza.setacpetsadult(const Value: boolean);
+begin
+  facpetsadult := Value;
+end;
+
 procedure TPetza.setbatchbreedcountdefault(const Value: integer);
 begin
   fbatchbreedcountdefault := value;
@@ -462,6 +500,10 @@ begin
         customuserprofile := reg.ReadString('CustomUserProfile');
       if reg.ValueExists('UseNewPhotoNameFormat') then
         usenewphotonameformat := reg.ReadBool('UseNewPhotoNameFormat');
+      if reg.ValueExists('ACPetsAdult') then
+        acpetsadult := reg.ReadBool('ACPetsAdult');
+      if reg.ValueExists('TransparentPhotos') then
+        transparentphotos := reg.ReadBool('TransparentPhotos');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -498,6 +540,8 @@ begin
       reg.WriteInteger('BatchBreedCountDefault', batchbreedcountdefault);
       reg.WriteString('CustomUserProfile', customuserprofile);
       reg.WriteBool('UseNewPhotoNameFormat', usenewphotonameformat);
+      reg.WriteBool('ACPetsAdult', acpetsadult);
+      reg.WriteBool('TransparentPhotos', transparentphotos);
     end;
   finally
     reg.free;
@@ -702,10 +746,19 @@ begin
 end;
 
 function myspriteadpt_loadpetz(return, instance: pointer; petindex: integer; b1, b2: bool): bool; stdcall;
+  var list: TObjectList;
+  pet: TPetzPetSprite;
 begin
   petza.lastadoptpet := petindex;
   petza.lastadoptpetslot := TPetzSpriteAdpt(instance).petslot;
   result := bool(hloadpetz.callorigproc(instance, [petindex, cardinal(b1), cardinal(b2)]));
+  if petza.ACpetsadult then begin
+    list := TObjectList.Create(false);
+    petzclassesman.findclassinstances(cnpetsprite, list);
+    pet := tpetzpetsprite(TPetzClassInstance(list[list.count - 1]).instance);
+    pet.setbiorhythm(petza.findslider('Age'), 100);
+    list.Free;
+  end;
 end;
 
 procedure exceptionhandler(const exceptIntf: IMEException;
@@ -721,12 +774,6 @@ begin
     handled := false;
   except
   end;
-end;
-
-procedure myloadtoyz(text: pchar); cdecl;
-begin
-{  if longword(text) and (not $FFFF) <> 0 then
-    frmabout.memo1.Lines.add(text);}
 end;
 
 function locatehelpfile: string;
@@ -795,12 +842,117 @@ begin
   refreshadptpet(nil);
 end;
 
+function mydrawiris(circlerenderblock: pointer): bool; stdcall;
+var thisptr: pointer;
+begin
+  asm
+    mov thisptr, ecx;
+  end;
+  thiscall(petza.eyeballdata.xballz, ptr($004501d0), [cardinal(circlerenderblock),
+  cardinal(petza.eyeballdata.ballstate), cardinal(petza.eyeballdata.posrotinfo),
+  petza.eyeballdata.irisno]);
+  var t := thiscall(thisptr, ptr($0045e750), [cardinal(circlerenderblock)]);
+  result := boolean(t);
+end;
+
+procedure mydraweyeball(return, instance, drawportin, ballframeex, ballstatein: pointer;
+ballid: integer; outerrenderblock: pointer;
+ballsize: integer; center: pointer); stdcall; begin
+  var irisnox: integer;
+  var lnz := ppointer(classprop(instance, $184))^;
+  if(ballid = pinteger(classprop(lnz, $8a0))^) then
+    irisnox := pinteger(classprop(lnz, $8a8))^
+  else
+    irisnox := pinteger(classprop(lnz, $8ac))^;
+  with petza.eyeballdata do begin
+    xballz := instance;
+    ballstate := ballstatein;
+    irisno := irisnox;
+    posrotinfo := classprop(ballframeex, $544);
+  end;
+  draweyeballpatch.callorigproc(instance, [cardinal(drawportin), cardinal(ballframeex),
+  cardinal(ballstatein), ballid, cardinal(outerrenderblock), ballsize, cardinal(center)]);
+end;
+
+function getattrvalfromtext(attr: integer; text: string): integer;
+  var val: integer;
+begin
+  val := -1;
+  try
+    val := strtoint(text);
+  except
+    if attr = Ord(TAdjective.Color) then
+      val := GetEnumValue(TypeInfo(TPetzColor), text)
+    else if attr = Ord(TAdjective.Flavor) then
+      val := GetEnumValue(TypeInfo(TFlavor), text);
+  end;
+  result := val;
+end;
+
+procedure myinittoy(return, instance: pointer; b: boolean; host: pointer); stdcall;
+  begin
+  inittoypatch.callorigproc(instance, [cardinal(b), cardinal(host)]);
+  if b then begin
+
+  var alpo := TPetzAlpoSprite(instance);
+  var xlib := ppointer(classprop(alpo, $4))^;
+  var handle := hinst(ppointer(thiscall(xlib, rimports.xlib_getinstancelist, []))^);
+  var idx := alpo.loadinfo.spriteindex;
+  var resource := FindResource(handle, pwidechar('ADJECTIVES' + inttostr(idx)), 'TXT');
+  if resource <> 0 then begin
+    var loader := LoadResource(handle, resource);
+    if loader = 0 then
+      exit;
+    var lock := LockResource(loader);
+    if lock = nil then
+      exit;
+
+    var sz := SizeOfResource(handle, resource);
+
+    var attributesstr: ansistring;
+    SetString(attributesstr, pansichar(lock), sz);
+    var attributestuplelist := string(attributesstr).Split([''#13#10''], TStringSplitOptions.ExcludeEmpty);
+    for var attributetuplestr in attributestuplelist do begin      
+      var tuple := attributetuplestr.Split([' ', ''#9''], TStringSplitOptions.ExcludeEmpty);
+      if length(tuple) > 1 then begin
+         var attr, val: integer;
+         val := -1;
+         attr := -1;
+        try
+          attr := strtoint(tuple[0]);
+        except
+          attr := GetEnumValue(TypeInfo(TAdjective), tuple[0]);
+        end;
+        if attr = -1 then continue;
+
+        if length(tuple) = 2 then begin
+          val := getattrvalfromtext(attr, tuple[1]);
+        end else if length(tuple) = 3 then begin
+          var min := getattrvalfromtext(attr, tuple[1]);
+          var max := getattrvalfromtext(attr, tuple[2]);
+          if (min <> -1) and (max <> -1) then
+            val := RandomRange(min, max + 1);
+        end else begin
+          var randtext := RandomRange(1, length(tuple));
+          val := getattrvalfromtext(attr, tuple[randtext]);
+        end;
+
+        if (attr <> -1) and (val <> -1) then
+          alpo.setadjvalue(attr, val);
+      end;
+    end;
+  end;
+  end;
+end;
+
 function mywritedib(filename: PAnsiChar; dib: HGlobal): longword; cdecl;
 var stream: TMemoryStream;
   p: pointer;
   bitmap: TNakedBitmapLoader;
   gif: tgifimage;
   png: TPNGImage;
+  Ext: TGIFGraphicControlExtension;
+  fileext: string;
 begin
   try
     stream := tmemorystream.create;
@@ -810,21 +962,28 @@ begin
         stream.Write(p^, GlobalSize(dib));
         stream.position := 0;
         bitmap := TNakedBitmapLoader.create;
+        fileext := uppercase(ExtractFileExt(filename));
         try
-          bitmap.LoadNakedFromStream(stream);
+          bitmap.LoadNakedFromStream(stream, petza.transparentphotos and (fileext = '.PNG'));
 
-          if uppercase(ExtractFileExt(filename)) = '.GIF' then begin
+          if fileext = '.GIF' then begin
             gif := TGIFImage.Create;
             try
               gif.DitherMode := dmFloydSteinberg;
               gif.ColorReduction := rmQuantize;
               gif.Assign(bitmap);
+              if petza.transparentphotos then begin
+                // Create an extension to set the transparency flag
+                Ext := TGIFGraphicControlExtension.Create(gif.Images[0]);
+                Ext.Transparent := True;
+                Ext.TransparentColorIndex := 170;
+              end;
               gif.SaveToFile(filename);
             finally
               gif.free;
             end;
           end else
-            if uppercase(ExtractFileExt(filename)) = '.PNG' then begin
+            if fileext = '.PNG' then begin
               gif := TGIFImage.Create;
               try
                 gif.DitherMode := dmFloydSteinberg;
@@ -835,6 +994,8 @@ begin
                 try
                   png.CompressionLevel := 9;
                   png.Assign(bitmap);
+                  if petza.transparentphotos then
+                    png.TransparentColor := TColor($00FEFF);
                   png.SaveToFile(filename);
                 finally
                   png.free;
@@ -843,9 +1004,7 @@ begin
                 gif.free;
               end;
             end else
-
               bitmap.savetofile(filename);
-
         finally
           bitmap.free;
         end;
@@ -903,15 +1062,15 @@ function mypicgetsavefilename(var opfn: topenfilenamea): bool; stdcall;
 var s: string;
 begin
   case petza.CameraFormat of
-    cfGIF: begin
+    TCameraFormat.cfGIF: begin
         opfn.lpstrDefExt := 'gif';
         opfn.nFilterIndex := 1;
       end;
-    cfBMP: begin
+    TCameraFormat.cfBMP: begin
         opfn.lpstrDefExt := 'bmp';
         opfn.nFilterIndex := 2;
       end;
-    cfPNG: begin
+    TCameraFormat.cfPNG: begin
         opfn.lpstrDefExt := 'png';
         opfn.nFilterIndex := 3;
       end;
@@ -930,16 +1089,16 @@ begin
   if cpetzver = pvbabyz then begin
 
     case fCameraFormat of //update the path for the autosave location for pics
-      cfBMP: fautopicsavepath := '%s\BabyPix\babyz%d.bmp';
-      cfGIF: fautopicsavepath := '%s\BabyPix\babyz%d.gif';
-      cfPNG: fautopicsavepath := '%s\BabyPix\babyz%d.png';
+      TCameraFormat.cfBMP: fautopicsavepath := '%s\BabyPix\babyz%d.bmp';
+      TCameraFormat.cfGIF: fautopicsavepath := '%s\BabyPix\babyz%d.gif';
+      TCameraFormat.cfPNG: fautopicsavepath := '%s\BabyPix\babyz%d.png';
     end;
   end else begin
 
     case fCameraFormat of //update the path for the autosave location for pics
-      cfBMP: fautopicsavepath := '%s\PetzPix\petz%d.bmp';
-      cfGIF: fautopicsavepath := '%s\PetzPix\petz%d.gif';
-      cfPNG: fautopicsavepath := '%s\PetzPix\petz%d.png';
+      TCameraFormat.cfBMP: fautopicsavepath := '%s\PetzPix\petz%d.bmp';
+      TCameraFormat.cfGIF: fautopicsavepath := '%s\PetzPix\petz%d.gif';
+      TCameraFormat.cfPNG: fautopicsavepath := '%s\PetzPix\petz%d.png';
     end;
   end;
   fautopicsavepath := fautopicsavepath + #0;
@@ -1500,8 +1659,6 @@ begin
   else
     hpetzwindowcreate := patchthiscall(rimports.petzapp_createmainwindow, @petzwindowcreate);
 
- // ReplaceCDECL(ptr($4098F0),@myloadtoyz);
-
  //Fixes for sound lockups on Babyz/Petz3
   case cpetzver of
     pvbabyz: begin
@@ -1540,13 +1697,28 @@ begin
     end;
   end;
 
+  // Patch iris drawing for texturing
+  case cpetzver of
+    pvpetz4: begin
+      retargetcall(ptr($00451fb4), @mydrawiris);
+      draweyeballpatch := patchthiscall(rimports.xballz_draweyeball, @mydraweyeball);
+    end;
+  end;
+
+  // Patch InitToy for custom toy adjective loading
+  case cpetzver of
+    pvpetz4, pvpetz3: begin
+      inittoypatch := patchthiscall(rimports.toysprite_inittoy, @myinittoy);
+    end;
+  end;
+
   installdispatchhook;
 
   patchcamera;
 
   patchresolutioncheck;
 
-  cameraformat := cfBMP; //set up the gif camera details
+  cameraformat := TCameraFormat.cfBMP; //set up the gif camera details
   instantbirth := false;
   shownametags := false;
   brainslidersontop := true;
@@ -1632,6 +1804,34 @@ begin
   finally
     list.free;
   end;
+end;
+
+procedure ageallinternal(age: integer);
+var list: tobjectlist;
+  t1: integer;
+  pet: tpetzpetsprite;
+begin
+  list := tobjectlist.Create(false);
+  try
+    petzclassesman.findclassinstances(cnpetsprite, list);
+    for t1 := 0 to list.Count - 1 do begin
+      pet := tpetzpetsprite(tpetzclassinstance(list[t1]).instance);
+      pet.setbiorhythm(petza.findslider('Age'), age);
+    end;
+
+  finally
+    list.Free;
+  end;
+end;
+
+procedure ageall100(sender: TMyMenuItem);
+begin
+  ageallinternal(100);
+end;
+
+procedure ageall12(sender: TMyMenuItem);
+begin
+  ageallinternal(12);
 end;
 
 procedure petmate(sender: tmymenuitem);
@@ -1816,10 +2016,8 @@ begin
             if petza.fbreedingtimer = 10 then begin
              // We've waited long enough for the last offspring to come out, so
              // call the next one out
-             var buttonindex := pinteger(classprop(petzcase, $3d2c));
              waitingforpettocomeout := false;
-             buttonindex^ := 0;
-             thiscall(petzcase, rimports.case_loadpetz, [cardinal(lastmotherid), 1, 1, 1]);
+             petzcase.loadpetz(lastmotherid, 0);
              batchbreedcount := batchbreedcount - 1;
              petza.fbreedingtimer := 0;
 
@@ -2082,14 +2280,19 @@ begin
       needsep := true;
       menumanager.additem(menumanager.submenu, 'ageall', 'Make babies grow up', 0, ageallbabies);
     end;
+    
+    if assigned(rimports.petsprite_setpetbiorhythm) then begin
+      menumanager.additem(menumanager.submenu, 'ageall12', 'Age all to 12', 0, ageall12);
+      menumanager.additem(menumanager.submenu, 'ageall100', 'Age all to 100', 0, ageall100);
+    end;
 
+  menumanager.additem(menumanager.submenu, 'sendalltopetdoor', 'Send all to pet door', 0, sendalltopetdoor);
+   
     if assigned(rimports.spriteadpt_loadpetz) then begin
       needsep := true;
       menumanager.additem(menumanager.submenu, 'refreshadptpet', 'Bring adoption centre pet back out '#9'Alt-D', 0, refreshadptpet);
     end;
-
-    menumanager.additem(menumanager.submenu, 'sendalltopetdoor', 'Send all to pet door', 0, sendalltopetdoor);
-
+     
     if cpetzver = pvpetz5 then
       menumanager.additem(menumanager.submenu, 'nursery', 'Go to the nursery', 0, gotonursery);
 

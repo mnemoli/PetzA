@@ -16,6 +16,7 @@ uses
   dialogs,
   System.win.registry,
   Classes,
+  Controls,
   contnrs,
   typinfo,
   DECHash,
@@ -230,7 +231,7 @@ begin
       showmessage('This version of PetzA does not support Petz 5! PetzA will not run');
       exit;
     end;
-    
+
     reg := TRegistry.Create;
     try
       reg.RootKey := HKEY_CURRENT_USER;
@@ -244,8 +245,14 @@ begin
           proghash := checkhash;
           if not proghash.matches then begin
             frmNoMatch := TfrmNoMatch.Create(nil);
-            frmnomatch.showmodal;
-            exit; //abort!
+            var r := frmnomatch.showmodal;
+            if r = mrCancel then
+              exit //abort!
+            else begin
+              //user has chosen to continue - store identifying information so we don't scan again
+              reg.writeinteger(pre + '-filesize', details.size);
+              reg.WriteFloat(pre + '-filedate', details.date);
+            end;
           end else begin
       //exe is checked and valid. store identifying information so we don't scan again
             reg.writeinteger(pre + '-filesize', details.size);

@@ -24,6 +24,8 @@ type
     chkNoDiapers: TCheckBox;
     chkReactToCamera: TCheckBox;
     chkUsePhotoNameFormat: TCheckBox;
+    chkAdultAC: TCheckBox;
+    chkTransparentPhotos: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -71,6 +73,8 @@ begin
   petza.CameraFormat := TCameraFormat(cmbCameraFormat.itemindex);
   petza.usenewphotonameformat := chkUsePhotonameFormat.Checked;
   petza.shownavigation := not chkHideNavigation.checked;
+  petza.ACpetsadult := chkadultac.checked;
+  petza.transparentphotos := chktransparentphotos.checked;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -89,6 +93,8 @@ begin
   chkshowheart.checked := petza.showheart;
   chkReactToCamera.Checked := petza.reacttocamera;
   chkUsePhotonameFormat.Checked := petza.usenewphotonameformat;
+  chkadultac.checked := petza.ACpetsadult;
+  chktransparentphotos.Checked := petza.transparentphotos;
 
   chkshowheart.enabled := cpetzver in verBreeding;
   chkHideNavigation.Enabled := cpetzver = pvBabyz;
@@ -99,6 +105,7 @@ begin
   cmbCameraFormat.enabled := cpetzver in verCamera;
   chkReactToCamera.Enabled := cpetzver = pvpetz4;
   chkUsePhotonameFormat.Enabled := cpetzver in verNametags;
+  chkadultac.Enabled := cpetzver in verNametags;
 end;
 
 end.

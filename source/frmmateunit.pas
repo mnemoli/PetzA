@@ -119,12 +119,8 @@ end;
 procedure deliveroffspring(female: TPetzPetSprite);
   var data: array[0..2] of byte;
   offspring: TPetzPetSprite;
-  buttonindex: pinteger;
   motherid: uint;
 begin
-
-  buttonindex := pinteger(classprop(petzcase, $3d2c));
-
   patchbreedingcalls;
 
   offspring := TPetzPetSprite(thiscall(female, rimports.petsprite_deliveroffspring, []));
@@ -139,8 +135,7 @@ begin
     thiscall(offspring, rimports.petsprite_setshouldibedeleted, [1]);
     thiscall(petzoberon, rimports.oberon_fixshouldibedeleted, []);
     // Call mother back out, which results in offspring coming out
-    buttonindex^ := 1;
-    thiscall(petzcase, rimports.case_loadpetz, [cardinal(motherid), 1, 1, 1]);
+    petzcase.loadpetz(motherid, 1);
   end;
 end;
 

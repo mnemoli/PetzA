@@ -176,4 +176,22 @@ object frmSettings: TfrmSettings
     State = cbChecked
     TabOrder = 11
   end
+  object chkAdultAC: TCheckBox
+    Left = 231
+    Top = 102
+    Width = 201
+    Height = 17
+    Caption = 'AC Petz as adults'
+    TabOrder = 12
+  end
+  object chkTransparentPhotos: TCheckBox
+    Left = 232
+    Top = 85
+    Width = 201
+    Height = 17
+    Caption = 'Transparent photos (gif/png)'
+    Checked = True
+    State = cbChecked
+    TabOrder = 13
+  end
 end

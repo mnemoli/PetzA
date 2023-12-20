@@ -11,10 +11,8 @@ object frmNoMatch: TfrmNoMatch
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
-  OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
-  PixelsPerInch = 96
   TextHeight = 13
   object Image1: TImage
     Left = 8
@@ -145,24 +143,9 @@ object frmNoMatch: TfrmNoMatch
       0799700077100001C008A2600D59C014AEC910C47006D4100974400AA4B000E6
       7006C18097BDF99A9E890AA8909CCB199DD2399DD4599DD6799D0D1110003B}
   end
-  object Label1: TLabel
-    Left = 120
-    Top = 248
-    Width = 114
-    Height = 13
-    Cursor = crHandPoint
-    Caption = 'Email Nicholas Sherlock'
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clBlue
-    Font.Height = -11
-    Font.Name = 'MS Sans Serif'
-    Font.Style = [fsUnderline]
-    ParentFont = False
-    OnClick = Label1Click
-  end
   object Label2: TLabel
     Left = 120
-    Top = 264
+    Top = 250
     Width = 104
     Height = 13
     Cursor = crHandPoint
@@ -175,21 +158,6 @@ object frmNoMatch: TfrmNoMatch
     ParentFont = False
     OnClick = Label2Click
   end
-  object Label3: TLabel
-    Left = 120
-    Top = 280
-    Width = 85
-    Height = 13
-    Cursor = crHandPoint
-    Caption = 'PetzA help forums'
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clBlue
-    Font.Height = -11
-    Font.Name = 'MS Sans Serif'
-    Font.Style = [fsUnderline]
-    ParentFont = False
-    OnClick = Label3Click
-  end
   object Memo1: TMemo
     Left = 120
     Top = 8
@@ -198,9 +166,7 @@ object frmNoMatch: TfrmNoMatch
     BorderStyle = bsNone
     Color = clBtnFace
     Lines.Strings = (
-      
-        'Sorry, you are using an unsupported version of Petz, so PetzA ca' +
-        'nnot run. '
+      'You are using an unsupported version of Petz!'
       
         'This means that your Petz .exe is slightly different from what P' +
         'etzA expects. '
@@ -213,30 +179,14 @@ object frmNoMatch: TfrmNoMatch
       'about.'
       ''
       
-        'Reinstalling PetzA should automatically fix the problem. PetzA w' +
-        'ill '
-      
-        'download the correct .exe for your version of Petz during instal' +
-        'lation. If this '
-      
-        'does not work, then you can visit the PetzA page at the link bel' +
-        'ow to '
-      
-        'manually download the correct Petz .exe for your version of Petz' +
-        '.'
+        'If you know what you'#39're doing, click Ignore to continue running ' +
+        'Petz.'
+      'Make sure you take a backup of your pets and content first!'
       ''
       
-        'This message will continue to appear until your Petz .exe is cor' +
-        'rect or you '
-      
-        'uninstall PetzA. You can uninstall PetzA from the "Add/Remove Pr' +
-        'ograms" '
-      'part of your Windows Control Panel.'
-      ''
-      
-        'If you are still having troubles, then you can email me at the l' +
-        'ink below, or '
-      'ask for help on the PetzA forums linked below.')
+        'Otherwise, click OK to run without PetzA. Reinstalling PetzA wil' +
+        'l '  +
+      'automatically download the correct version of Petz for you.')
     ReadOnly = True
     TabOrder = 0
   end
@@ -249,5 +199,14 @@ object frmNoMatch: TfrmNoMatch
     Default = True
     TabOrder = 1
     OnClick = Button1Click
+  end
+  object Button2: TButton
+    Left = 319
+    Top = 272
+    Width = 75
+    Height = 25
+    Caption = 'Ignore'
+    TabOrder = 2
+    OnClick = Button2Click
   end
 end

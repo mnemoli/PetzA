@@ -5,7 +5,7 @@
         <FrameworkType>VCL</FrameworkType>
         <MainSource>PetzA.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Release</Config>
+        <Config Condition="'$(Config)'==''">Test</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Library</AppType>
@@ -72,6 +72,10 @@
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Manifest_File>(None)</Manifest_File>
+        <VerInfo_MajorVer>3</VerInfo_MajorVer>
+        <VerInfo_MinorVer>5</VerInfo_MinorVer>
+        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=3.5.0.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
         <DCC_UsePackage>DBXSqliteDriver;IndyIPCommon;bindcompdbx;DBXInterBaseDriver;vcl;IndyIPServer;vclactnband;vclFireDAC;IndySystem;tethering;dsnapcon;FireDACADSDriver;FireDACMSAccDriver;fmxFireDAC;vclimg;vcltouch;vcldb;bindcompfmx;FireDACPgDriver;inetdb;DbxCommonDriver;fmx;fmxdae;xmlrtl;fmxobj;vclwinx;rtl;DbxClientDriver;CustomIPTransport;vcldsnap;dbexpress;IndyCore;vclx;bindcomp;appanalytics;dsnap;IndyIPClient;bindcompvcl;VCLRESTComponents;dbxcds;VclSmp;adortl;vclie;bindengine;DBXMySQLDriver;dsnapxml;FireDACMySQLDriver;dbrtl;IndyProtocols;inetdbxpress;FireDACCommonODBC;fmxase;$(DCC_UsePackage)</DCC_UsePackage>
@@ -95,10 +99,9 @@
         <DCC_DebugDCUs>false</DCC_DebugDCUs>
         <DCC_ImportedDataReferences>false</DCC_ImportedDataReferences>
         <DCC_DebugInfoInExe>false</DCC_DebugInfoInExe>
-        <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
         <VerInfo_MajorVer>3</VerInfo_MajorVer>
-        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=3.4.0.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <VerInfo_MinorVer>4</VerInfo_MinorVer>
+        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=3.5.0.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_MinorVer>5</VerInfo_MinorVer>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_ExeOutput>E:\Program Files (x86)\Petz\Petz 4 (Vanilla)\Resource\Toyz\</DCC_ExeOutput>
@@ -169,7 +172,6 @@
         <DCCReference Include="petzprofilesunit.pas"/>
         <DCCReference Include="userprofileunit.pas">
             <Form>UserProfile</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
@@ -1037,6 +1039,7 @@
                 <Platform value="Win32">True</Platform>
                 <Platform value="Win64">False</Platform>
             </Platforms>
+            <ModelSupport>False</ModelSupport>
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>
     </ProjectExtensions>
