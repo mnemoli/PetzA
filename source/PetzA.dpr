@@ -232,6 +232,11 @@ begin
       exit;
     end;
 
+    if cpetzver = pvbabyz then begin
+      showmessage('This version of PetzA does not support Babyz! PetzA will not run');
+      exit;
+    end;
+
     reg := TRegistry.Create;
     try
       reg.RootKey := HKEY_CURRENT_USER;

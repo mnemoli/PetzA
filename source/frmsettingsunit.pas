@@ -15,17 +15,17 @@ type
     Button3: TButton;
     chkNameTags: TCheckBox;
     btnHelp: TButton;
-    chkHideNavigation: TCheckBox;
     GroupBox1: TGroupBox;
     chkShowHeart: TCheckBox;
     chkInstantBirth: TCheckBox;
     lblCameraFormat: TLabel;
     cmbCameraFormat: TComboBox;
-    chkNoDiapers: TCheckBox;
     chkReactToCamera: TCheckBox;
     chkUsePhotoNameFormat: TCheckBox;
     chkAdultAC: TCheckBox;
     chkTransparentPhotos: TCheckBox;
+    chkDisableNeglect: TCheckBox;
+    chkTexturedIrises: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -66,15 +66,13 @@ begin
   petza.instantbirth := chkInstantBirth.checked;
   petza.shownametags := chkNameTags.checked;
   petza.reacttocamera := chkReactToCamera.checked;
-  if (not chkNoDiapers.checked) and petza.nodiaperchanges then
-   showmessage('You must restart Babyz for diaper changing to return to normal');
-  petza.nodiaperchanges:=chkNoDiapers.checked;
   petza.brainslidersontop := chkBrainSliders.checked;
   petza.CameraFormat := TCameraFormat(cmbCameraFormat.itemindex);
   petza.usenewphotonameformat := chkUsePhotonameFormat.Checked;
-  petza.shownavigation := not chkHideNavigation.checked;
   petza.ACpetsadult := chkadultac.checked;
   petza.transparentphotos := chktransparentphotos.checked;
+  petza.neglectdisabled := chkdisableneglect.Checked;
+  petza.texturedirises := chktexturedirises.Checked;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -86,26 +84,26 @@ procedure TfrmSettings.FormCreate(Sender: TObject);
 begin
   chkBrainSliders.checked := petza.brainslidersontop;
   chkNameTags.checked := petza.shownametags;
-  chkNoDiapers.checked := petza.nodiaperchanges;
   chkInstantBirth.Checked := petza.instantbirth;
   cmbCameraFormat.itemindex := integer(petza.CameraFormat);
-  chkHideNavigation.Checked := not petza.shownavigation;
   chkshowheart.checked := petza.showheart;
   chkReactToCamera.Checked := petza.reacttocamera;
   chkUsePhotonameFormat.Checked := petza.usenewphotonameformat;
   chkadultac.checked := petza.ACpetsadult;
   chktransparentphotos.Checked := petza.transparentphotos;
+  chkdisableneglect.Checked := petza.neglectdisabled;
+  chktexturedirises.Checked := petza.texturedirises;
 
   chkshowheart.enabled := cpetzver in verBreeding;
-  chkHideNavigation.Enabled := cpetzver = pvBabyz;
   chkNameTags.Enabled := cpetzver in verNametags;
-  chkNoDiapers.enabled:=cpetzver = pvBabyz;
   chkInstantBirth.Enabled := assigned(rimports.petsprite_isoffspringdue);
   lblCameraFormat.enabled := cpetzver in verCamera;
   cmbCameraFormat.enabled := cpetzver in verCamera;
   chkReactToCamera.Enabled := cpetzver = pvpetz4;
   chkUsePhotonameFormat.Enabled := cpetzver in verNametags;
   chkadultac.Enabled := cpetzver in verNametags;
+  chkdisableneglect.Enabled := cpetzver in verNametags;
+  chktexturedirises.Enabled := cpetzver = pvpetz4;
 end;
 
 end.

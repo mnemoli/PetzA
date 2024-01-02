@@ -35,7 +35,7 @@ object frmSettings: TfrmSettings
     Caption = 'Camera picture format:'
   end
   object btnCancel: TButton
-    Left = 264
+    Left = 260
     Top = 150
     Width = 67
     Height = 25
@@ -43,12 +43,12 @@ object frmSettings: TfrmSettings
     Cancel = True
     Caption = 'Cancel'
     ModalResult = 2
-    TabOrder = 7
-    ExplicitLeft = 260
+    TabOrder = 6
+    ExplicitLeft = 256
     ExplicitTop = 149
   end
   object btnOk: TButton
-    Left = 192
+    Left = 188
     Top = 150
     Width = 68
     Height = 25
@@ -56,9 +56,9 @@ object frmSettings: TfrmSettings
     Caption = 'Ok'
     Default = True
     ModalResult = 1
-    TabOrder = 6
+    TabOrder = 5
     OnClick = btnOkClick
-    ExplicitLeft = 188
+    ExplicitLeft = 184
     ExplicitTop = 149
   end
   object chkBrainSliders: TCheckBox
@@ -72,15 +72,15 @@ object frmSettings: TfrmSettings
     TabOrder = 0
   end
   object Button3: TButton
-    Left = 16
+    Left = 12
     Top = 150
     Width = 169
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Reset hidden warning messages'
-    TabOrder = 9
+    TabOrder = 8
     OnClick = Button3Click
-    ExplicitLeft = 12
+    ExplicitLeft = 8
     ExplicitTop = 149
   end
   object chkNameTags: TCheckBox
@@ -92,24 +92,16 @@ object frmSettings: TfrmSettings
     TabOrder = 1
   end
   object btnHelp: TButton
-    Left = 336
+    Left = 332
     Top = 150
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Help'
-    TabOrder = 8
+    TabOrder = 7
     OnClick = btnHelpClick
-    ExplicitLeft = 332
+    ExplicitLeft = 328
     ExplicitTop = 149
-  end
-  object chkHideNavigation: TCheckBox
-    Left = 8
-    Top = 40
-    Width = 201
-    Height = 17
-    Caption = 'Hide Babyz navigation bar'
-    TabOrder = 2
   end
   object GroupBox1: TGroupBox
     Left = 8
@@ -117,7 +109,7 @@ object frmSettings: TfrmSettings
     Width = 217
     Height = 57
     Caption = 'Mating'
-    TabOrder = 5
+    TabOrder = 4
     object chkShowHeart: TCheckBox
       Left = 8
       Top = 32
@@ -141,20 +133,11 @@ object frmSettings: TfrmSettings
     Width = 145
     Height = 21
     Style = csDropDownList
-    TabOrder = 4
+    TabOrder = 3
     Items.Strings = (
       'Bitmap (Petz Default)'
       'GIF'
       'PNG')
-  end
-  object chkNoDiapers: TCheckBox
-    Left = 8
-    Top = 56
-    Width = 201
-    Height = 17
-    Caption = 'Diapers can'#39't be soiled'
-    Enabled = False
-    TabOrder = 10
   end
   object chkReactToCamera: TCheckBox
     Left = 232
@@ -164,7 +147,7 @@ object frmSettings: TfrmSettings
     Caption = 'Petz react to camera'
     Checked = True
     State = cbChecked
-    TabOrder = 3
+    TabOrder = 2
   end
   object chkUsePhotoNameFormat: TCheckBox
     Left = 232
@@ -174,7 +157,7 @@ object frmSettings: TfrmSettings
     Caption = 'New photo name format'
     Checked = True
     State = cbChecked
-    TabOrder = 11
+    TabOrder = 9
   end
   object chkAdultAC: TCheckBox
     Left = 231
@@ -182,7 +165,7 @@ object frmSettings: TfrmSettings
     Width = 201
     Height = 17
     Caption = 'AC Petz as adults'
-    TabOrder = 12
+    TabOrder = 10
   end
   object chkTransparentPhotos: TCheckBox
     Left = 232
@@ -192,6 +175,23 @@ object frmSettings: TfrmSettings
     Caption = 'Transparent photos (gif/png)'
     Checked = True
     State = cbChecked
+    TabOrder = 11
+  end
+  object chkDisableNeglect: TCheckBox
+    Left = 8
+    Top = 40
+    Width = 201
+    Height = 17
+    Caption = 'Disable daily neglect'
+    TabOrder = 12
+  end
+  object chkTexturedIrises: TCheckBox
+    Left = 8
+    Top = 56
+    Width = 201
+    Height = 17
+    Caption = 'Enable textured irises'
+    Enabled = False
     TabOrder = 13
   end
 end

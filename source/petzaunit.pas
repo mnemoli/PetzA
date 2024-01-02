@@ -89,7 +89,7 @@ uses sysutils, windows, classes, messages, contnrs, mymenuunit, dllpatchunit, bn
   petzclassesunit, registry, sliderbrainunit, forms, petzcommon1, CommDlg, graphics,
   aboutunit, dialogs, frmmateunit, trimfamilytreeunit, math, madexcept,
   profilemanagerunit, petzprofilesunit, actnlist, menus, madkernel,
-  SCommon, SPatching, HtmlHelpViewer;
+  SCommon, SPatching, HtmlHelpViewer, adoptedpetloadinfounit;
 
 const petzakeyname = '\Software\Sherlock Software\PetzA';
 
@@ -118,6 +118,7 @@ type
     fcustomuserprofile: ansistring;
     fusenewphotonameformat: boolean;
     facpetsadult: boolean;
+    ftexturedirises: boolean;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -141,6 +142,7 @@ type
     procedure patchcustomuserprofile;
     procedure setusenewphotonameformat(const Value: boolean);
     procedure setacpetsadult(const Value: boolean);
+    procedure settexturedirises(const Value: boolean);
 
   public
     brains: TObjectList;
@@ -151,6 +153,7 @@ type
     brainbarnames: array of string;
     eyeballdata: TEyeballData;
     transparentphotos: boolean;
+    neglectdisabled: boolean;
     function getInstallPath: string;
     procedure loadsettings;
     procedure savesettings;
@@ -173,6 +176,7 @@ type
     property customuserprofile: ansistring read fcustomuserprofile write setcustomuserprofile;
     property usenewphotonameformat: boolean read fusenewphotonameformat write setusenewphotonameformat;
     property ACpetsadult: boolean read facpetsadult write setacpetsadult;
+    property texturedirises: boolean read ftexturedirises write settexturedirises;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -439,6 +443,7 @@ begin
   end;
 end;
 
+
 procedure TPetza.setusenewphotonameformat(const Value: boolean);
 begin
   fusenewphotonameformat := Value;
@@ -504,6 +509,10 @@ begin
         acpetsadult := reg.ReadBool('ACPetsAdult');
       if reg.ValueExists('TransparentPhotos') then
         transparentphotos := reg.ReadBool('TransparentPhotos');
+      if reg.ValueExists('DisableNeglect') then
+        neglectdisabled := reg.ReadBool('DisableNeglect');
+      if reg.ValueExists('TexturedIrises') then
+        texturedirises := reg.ReadBool('TexturedIrises');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -542,6 +551,8 @@ begin
       reg.WriteBool('UseNewPhotoNameFormat', usenewphotonameformat);
       reg.WriteBool('ACPetsAdult', acpetsadult);
       reg.WriteBool('TransparentPhotos', transparentphotos);
+      reg.WriteBool('DisableNeglect', neglectdisabled);
+      reg.WriteBool('TexturedIrises', texturedirises);
     end;
   finally
     reg.free;
@@ -872,6 +883,29 @@ ballsize: integer; center: pointer); stdcall; begin
   end;
   draweyeballpatch.callorigproc(instance, [cardinal(drawportin), cardinal(ballframeex),
   cardinal(ballstatein), ballid, cardinal(outerrenderblock), ballsize, cardinal(center)]);
+end;
+
+procedure TPetza.settexturedirises(const Value: boolean);
+begin
+  if value <> ftexturedirises then begin
+    ftexturedirises := value;
+    case cpetzver of
+      pvpetz4: begin  
+        if value then begin
+          retargetcall(ptr($451fb4), @mydrawiris);
+          if assigned(draweyeballpatch) then
+            draweyeballpatch.patch
+          else
+            draweyeballpatch := patchthiscall(rimports.xballz_draweyeball, @mydraweyeball);  
+        end else begin
+          if (assigned(draweyeballpatch)) then begin
+            retargetcall(ptr($451fb4), ptr($45e750));
+            draweyeballpatch.restore;
+          end;
+        end;
+      end;
+    end;
+  end;
 end;
 
 function getattrvalfromtext(attr: integer; text: string): integer;
@@ -1681,27 +1715,10 @@ begin
       end;
   end;
 
-  // Disable neglect accumulating from not taking pets out
-  case cpetzver of
-    pvpetz4: begin
-       p := ptr($4d4c65);
-       VirtualProtect(p, 1, PAGE_EXECUTE_READWRITE, oldprotect);
-       p^ := $EB; // replace with uncontrolled jump to skip neglect
-    end;
-  end;
-
   // Set up custom user profile
   case cpetzver of
     pvpetz4, pvpetz3, pvpetz5: begin
       patchcustomuserprofile;
-    end;
-  end;
-
-  // Patch iris drawing for texturing
-  case cpetzver of
-    pvpetz4: begin
-      retargetcall(ptr($00451fb4), @mydrawiris);
-      draweyeballpatch := patchthiscall(rimports.xballz_draweyeball, @mydraweyeball);
     end;
   end;
 
@@ -1733,12 +1750,26 @@ begin
   fnodiaperchanges := False; //by default, diapers get soiled just like normal :)
   freacttocamera := true;
   fusenewphotonameformat := true;
+  neglectdisabled := true;
 
   // breeding settings
   fbreedingtimer := 0;
   fbatchbreedcountdefault := 10;
 
   loadsettings; //pretty late in the peace so all objects are created
+
+  if neglectdisabled then
+    // Disable neglect accumulating from not taking pets out
+    case cpetzver of
+      pvpetz4: begin
+        b := $EB;
+        patchcodebuf(ptr($4d4c65), 1, 1, b);
+      end;
+      pvpetz3: begin
+        b := $EB;
+        patchcodebuf(ptr($4dd88a), 1, 1, b);
+      end;
+  end;
 
   petzaloaded; //should be last instruction
 end;

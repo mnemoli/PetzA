@@ -19,9 +19,6 @@ Coordinates=383,125,53,51
 [Bevel1]
 Coordinates=10,247,47,33
 
-[chkHideNavigation]
-Coordinates=310,10,107,51
-
 [btnOk]
 Coordinates=224,125,44,51
 
@@ -40,6 +37,6 @@ Coordinates=115,186,70,51
 [chkBrainSliders]
 Coordinates=278,125,95,51
 
-[chkNoDiapers]
+[]
 Coordinates=10,186,95,51
 
