@@ -1819,11 +1819,19 @@ begin
 procedure mydrawsprites(sprites: pointer); stdcall;
 var instance: pointer;
 var port: pointer;
+type rect = array[0..3] of integer;
+type prect = ^rect;  
+var boundsrect : rect;
 begin
 asm
   mov instance, ecx;
 end;
-  thiscall(petza.maskdrawport, rimports.xdrawport_xfillrect, [cardinal(classprop(petza.maskdrawport, 12)), cardinal(253)]);
+  boundsrect := prect(classprop(petza.maskdrawport, 12))^;
+  boundsrect[0] := boundsrect[0] - 128;
+  boundsrect[1] := boundsrect[1] - 128;
+  boundsrect[2] := boundsrect[2] + 128;
+  boundsrect[3] := boundsrect[3] + 128;
+  thiscall(petza.maskdrawport, rimports.xdrawport_xfillrect, [cardinal(@boundsrect), cardinal(253)]);
   port := ppointer(classprop(instance, 12))^;
   pboolean(classprop(port, 168))^ := true;
   pinteger(classprop(port, 164))^ := 1;
