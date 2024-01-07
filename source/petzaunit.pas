@@ -154,6 +154,7 @@ type
     eyeballdata: TEyeballData;
     transparentphotos: boolean;
     neglectdisabled: boolean;
+    maskdrawport: pointer;
     function getInstallPath: string;
     procedure loadsettings;
     procedure savesettings;
@@ -184,7 +185,7 @@ procedure petzwindowcreate(return, instance: pointer); stdcall;
 var petza: tpetza;
   hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation,
   hresetstack, reacttocamerapatch, deliveroffspringpatch,
-  draweyeballpatch, inittoypatch: TPatchThiscall;
+  draweyeballpatch, inittoypatch, drawspritespatch, initstagepatch: TPatchThiscall;
   logging: Boolean;
 procedure dolog(const message: string);
 
@@ -896,7 +897,7 @@ begin
           if assigned(draweyeballpatch) then
             draweyeballpatch.patch
           else
-            draweyeballpatch := patchthiscall(rimports.xballz_draweyeball, @mydraweyeball);  
+            draweyeballpatch := patchthiscall(rimports.xballz_draweyeball, @mydraweyeball);
         end else begin
           if (assigned(draweyeballpatch)) then begin
             retargetcall(ptr($451fb4), ptr($45e750));
@@ -1523,6 +1524,437 @@ begin
   result := offspring;
 end;
 
+procedure myxcopybits(dst: pointer; rect1: pointer; rect2: pointer; rop: integer); stdcall;
+
+type uar = array[0..256] of byte;
+type puar = ^uar;
+  var src: pointer;
+  hicolordrawport: pointer;
+  ar: array[0..15] of integer;
+  customrect: array[0..3] of integer;
+
+bits : puar;
+w, h: integer;
+begin
+  asm
+    mov src, ecx;
+  end;
+//  ar[0] := 1;
+//  ar[1] := 202;
+//  ar[2] := 202;
+//  ar[3] := 0;
+//  ar[4] := 0;
+//  ar[5] := 0;
+//  ar[6] := 0;
+//  ar[7] := -1;
+//  ar[8] := 0;
+//  ar[9] := 0;
+//  ar[10] := 1024;
+//  ar[11] := 1024;
+//  ar[12] := 0;
+//  ar[15] := 0;
+//
+//  customrect[0] := 50;
+//  customrect[1] := 50;
+//  customrect[2] := 1024;
+//  customrect[3] := 400;
+//  hicolordrawport := ppointer(classprop(rimports.g_stage^, $8))^;
+
+//  thiscall(src, ptr($004361a0), [cardinal(hicolordrawport), cardinal(rect1), cardinal(rect2), cardinal(rop)]);
+//  pboolean(classprop(src, $a8))^ := false;
+  //thiscall(src, ptr($00436e90), [cardinal(rect1), cardinal(155)]);
+  //thiscall(src, ptr($00436e90), [cardinal(@customrect), cardinal(75)]);
+  //thiscall(src, ptr($0045e750), [cardinal(@ar)]);
+  //thiscall(src, ptr($00436e90), [cardinal(rect1), cardinal(185)]);
+//  thiscall(src, ptr($004361a0), [cardinal(hicolordrawport), cardinal(rect1), cardinal(rect2), cardinal(rop)]);
+    //pboolean(classprop(src, $a8))^ := true;
+    //pboolean(classprop(dst, $a8))^ := true;
+//    bits := ppointer(classprop(src, 148))^;
+//  w := pinteger(classprop(src, 20))^;
+//  h := pinteger(classprop(src, 24))^;
+//  thiscall(src, ptr($00436e90), [cardinal(rect2), cardinal(253)]);
+//  pboolean(classprop(src, $a8))^ := true;
+//
+//  pinteger(classprop(src, 164))^ := 1;
+//  thiscall(src, ptr($004361a0), [cardinal(dst), cardinal(rect1), cardinal(rect2), cardinal(rop)]);
+//  pboolean(classprop(src, $a8))^ := false;
+//
+//  pinteger(classprop(src, 164))^ := 0;
+    //pboolean(classprop(src, $a8))^ := false;
+    //pboolean(classprop(dst, $a8))^ := false;
+//  thiscall(hicolordrawport, ptr($00436e90), [cardinal(rect1), cardinal(253)]);
+end;
+
+procedure mydscall(sprites: pointer); stdcall;
+var stage: pointer;
+var lc, hc, tp: pointer;
+begin
+  asm
+    mov stage, ecx;
+  end;
+  lc := ppointer(classprop(stage, 12))^;
+  //hc := ppointer(classprop(stage, 8))^;
+  //tp := ppointer(classprop(stage, 4))^;
+  pboolean(classprop(lc, $a8))^ := true;
+  //pboolean(classprop(hc, $a8))^ := true;
+  //pboolean(classprop(tp, $a8))^ := true;
+  pinteger(classprop(lc, 164))^ := 1;
+  //pinteger(classprop(hc, 164))^ := 1;
+  //pinteger(classprop(tp, 164))^ := 1;
+  thiscall(stage, ptr($00489c50), [cardinal(sprites)]);
+  pboolean(classprop(lc, $a8))^ := false;
+//  pboolean(classprop(hc, $a8))^ := false;
+//  pboolean(classprop(tp, $a8))^ := false;
+  pinteger(classprop(lc, 164))^ := 0;
+//  pinteger(classprop(hc, 164))^ := 0;
+//  pinteger(classprop(tp, 164))^ := 0;
+end;
+
+procedure mycopy8bit(prect: pointer); stdcall;
+type trect = record
+  x1,y1,x2,y2: integer;
+end;
+type rectptr = ^trect;
+type palette = array[0..255] of FixedUInt;
+var port: pointer;
+var bitsptr, maskbitsptr: pbyte;
+var hibitsptr: pfixeduint;
+var color: FixedUInt;
+var rgbpalette: pointer;
+var height, width, rowbytes: integer;
+var rect, bounds: trect;
+var startpos: integer;
+var rawrowbytes: integer;
+var maskbounds: trect;
+begin
+asm
+  mov port, ecx;
+end;
+  rect := rectptr(prect)^;
+  height := rect.y2 - rect.y1;
+  width := rect.x2 - rect.x1;
+  rawrowbytes :=  pinteger(classprop(port, 28))^;
+  rowbytes := (rect.x1 - rect.x2) + rawrowbytes;
+  bounds := rectptr(classprop(port, 12))^;
+  //maskbounds := bounds;
+  //rectptr(classprop(petza.maskdrawport, 12))^ := bounds;
+ // maskbounds := rectptr(classprop(petza.maskdrawport, 12))^;
+
+  
+  //thiscall(petza.maskdrawport, ptr($00460740), [cardinal(ppointer($00637538)^), cardinal(ppointer(00637538)^)]);
+
+  startpos := ((bounds.y2 - rect.y2) * rawrowbytes) + rect.x1;
+  bitsptr := pbyte(cardinal(ppointer(classprop(port, 148))^) + startpos);
+  maskbitsptr := pbyte(cardinal(ppointer(classprop(petza.maskdrawport, 148))^) + startpos);
+  hibitsptr := pointer(cardinal(ppointer(classprop(port, 152))^) + startpos * 4);
+
+  rgbpalette := ppointer($00630d58)^;
+
+  if height > 0 then
+    if width > 0 then begin
+      for var y := 0 to height - 1 do begin
+        for var x := 0 to width - 1 do begin
+          var maskcolor := maskbitsptr^;
+          if maskcolor <> 0 then 
+            color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^
+          else
+            color := $A020F0;
+          hibitsptr^ := color;
+          bitsptr := bitsptr + 1;
+          maskbitsptr := maskbitsptr + 1;
+          hibitsptr := pointer(cardinal(hibitsptr) + 4);
+        end;
+        bitsptr := bitsptr + rowbytes;
+        hibitsptr := pointer(cardinal(hibitsptr) + rowbytes * 4);
+        maskbitsptr := maskbitsptr + rowbytes;
+      end;
+    end;
+
+end;
+
+procedure myinitstage(return, instance: pointer; b1, b2: bool); stdcall;
+type rect = array[0..3] of integer;
+type prect = ^rect;
+var maskrect: rect;
+begin
+  initstagepatch.callorigproc(instance, [cardinal(b1), cardinal(b2)]);
+  if not assigned(petza.maskdrawport) then begin
+    petza.maskdrawport := rimports.petzallocmem(172);
+    thiscall(petza.maskdrawport, ptr($0045bbf0), []);
+    maskrect := prect(classprop(petzshlglobals, 648))^;
+    maskrect[0] := maskrect[0] - 128;
+    maskrect[1] := maskrect[1] - 128;
+    maskrect[2] := maskrect[2] + 128;
+    maskrect[3] := maskrect[3] + 128;
+    thiscall(petza.maskdrawport, ptr($0045bd40), [cardinal(@maskrect), cardinal(8),
+    cardinal(false), cardinal(true), cardinal(false)]);
+  end;
+end;
+
+
+
+procedure copybitstransparent(srcport, dstport: pointer; psrcrect, pdstrect: pointer; maskvalue: integer);
+type rect = record
+  x1, y1, x2, y2: integer;
+end;
+type prect = ^rect;
+var srcbits, dstbits: pbyte;
+var srcsize, dstsize: rect;
+var srcrect, dstrect: rect;
+var srcrowwidth, dstrowwidth: integer;
+begin
+
+  srcsize := prect(classprop(srcport, 12))^;
+  dstsize := prect(classprop(dstport, 12))^;
+
+  srcrect := prect(psrcrect)^;
+  srcrect.x1 := srcrect.x1 + srcsize.x1;
+  srcrect.x2 := srcrect.x2 + srcsize.x1;
+  srcrect.y1 := srcrect.y1 + srcsize.y1;
+  srcrect.y2 := srcrect.y2 + srcsize.y1;
+  dstrect := prect(pdstrect)^;
+  dstrect.x1 := dstrect.x1 + dstsize.x1;
+  dstrect.x2 := dstrect.x2 + dstsize.x1;
+  dstrect.y1 := dstrect.y1 + dstsize.y1;
+  dstrect.y2 := dstrect.y2 + dstsize.y1;
+
+  if srcrect.x1 < 0 then begin
+    dstrect.x1 := dstrect.x1 - srcrect.x1;
+    srcrect.x1 := 0;
+  end;
+  if srcrect.y1 < 0 then begin
+    dstrect.y1 := dstrect.y1 - srcrect.y1;
+    srcrect.y1 := 0;
+  end;
+  if srcsize.x2 < srcrect.x2 then begin
+    dstrect.x2 := dstrect.x2 + (srcsize.x2 - srcrect.x2);
+    srcrect.x2 := srcsize.x2;
+  end;
+  if srcsize.y2 < srcrect.y2 then begin
+    dstrect.y2 := dstrect.y2 + (srcsize.y2 - srcrect.y2);
+    srcrect.y2 := srcsize.y2;
+  end;
+
+  if dstrect.x1 < 0 then begin
+    srcrect.x1 := srcrect.x1 - dstrect.x1;
+    dstrect.x1 := 0;
+  end;
+  if dstrect.y1 < 0 then begin
+    srcrect.y1 := srcrect.y1 - dstrect.y1;
+    dstrect.y1 := 0;
+  end;
+  if dstsize.x2 < dstrect.x2 then begin
+    srcrect.x2 := srcrect.x2 + (dstsize.x2 - dstrect.x2);
+    dstrect.x2 := dstsize.x2;
+  end;
+  if dstsize.y2 < dstrect.y2 then begin
+    srcrect.y2 := srcrect.y2 + (dstsize.y2 - dstrect.y2);
+    dstrect.y2 := dstsize.y2;
+  end;
+
+  srcrowwidth := pinteger(classprop(srcport, 28))^;
+  dstrowwidth := pinteger(classprop(dstport, 28))^;
+
+  var startpos := ((srcsize.y2 - srcrect.y2) * srcrowwidth) + srcrect.x1;
+
+  srcbits := pbyte(cardinal(ppointer(classprop(srcport, 148))^) + startpos);
+
+  startpos := ((dstsize.y2 - dstrect.y2) * dstrowwidth) + dstrect.x1;
+
+  dstbits := pbyte(cardinal(ppointer(classprop(dstport, 148))^) + startpos);
+
+  for var y := srcrect.y1 to srcrect.y2 - 1 do begin
+    for var x := srcrect.x1 to srcrect.x2 - 1 do begin
+    if srcbits^ <> 253 then
+      if maskvalue <> -1 then
+        dstbits^ := maskvalue
+      else
+        dstbits^ := srcbits^;
+      dstbits := dstbits + 1;
+      srcbits := srcbits + 1;
+    end;
+    srcbits := srcbits + (srcrowwidth - (srcrect.x2 - srcrect.x1));
+    dstbits := dstbits + (dstrowwidth - (dstrect.x2 - dstrect.x1));
+  end;
+
+end;
+
+procedure mydisplayballzframe(return, instance, port, bounds, ballstate: pointer); stdcall;
+type rect = array[0..3] of integer;
+type prect = ^rect;
+var thismaskdrawport: pointer;
+var localbounds: rect;
+var inrect: rect;
+begin
+  inrect := prect(bounds)^;
+  localbounds[0] := 0;
+  localbounds[1] := 0;
+  localbounds[2] := inrect[2] - inrect[0];
+  localbounds[3] := inrect[3] - inrect[1];
+
+  // create new small drawport big enough for the pet
+  thismaskdrawport := rimports.petzallocmem(172);
+    thiscall(thismaskdrawport, ptr($0045bbf0), []);
+//    thiscall(thismaskdrawport, ptr($0045bd40), [cardinal(classprop(petzshlglobals, 648)), cardinal(8),
+//    cardinal(true), cardinal(true), cardinal(false)]);
+    thiscall(thismaskdrawport, ptr($0045bd40), [cardinal(@localbounds), cardinal(8),
+    cardinal(true), cardinal(true), cardinal(false)]);
+    // set origin
+    thiscall(thismaskdrawport, ptr($00460740), [cardinal(0), cardinal(0)]); 
+    thiscall(petza.maskdrawport, ptr($00460740), [cardinal(128), cardinal(128)]);
+    // fill with transparent
+    thiscall(thismaskdrawport, ptr($00436e90), [cardinal(@localbounds), cardinal(253)]);
+  // draw onto the small drawport
+  drawspritespatch.callorigproc(instance, [cardinal(thismaskdrawport), cardinal(@localbounds), cardinal(ballstate)]);
+  // copy from small drawport to main drawport with transparency
+  copybitstransparent(thismaskdrawport, port, @localbounds, @inrect, -1);
+  // copy from small drawport to mask drawport
+  copybitstransparent(thismaskdrawport, petza.maskdrawport, @localbounds, @inrect, 0);
+  //thiscall(thismaskdrawport, ptr($00435fb0), [cardinal(port), cardinal(@localbounds), cardinal(@localbounds), cardinal(0)]);
+  // destruct
+  thiscall(thismaskdrawport, ptr($0045bca0), []);
+  rimports.petzdeletemem(thismaskdrawport);
+  end;
+
+procedure mydrawsprites(sprites: pointer); stdcall;
+var instance: pointer;
+var port: pointer;
+begin
+asm
+  mov instance, ecx;
+end;
+  thiscall(petza.maskdrawport, rimports.xdrawport_xfillrect, [cardinal(classprop(petza.maskdrawport, 12)), cardinal(253)]);
+  port := ppointer(classprop(instance, 12))^;
+  pboolean(classprop(port, 168))^ := true;
+  pinteger(classprop(port, 164))^ := 1;
+  thiscall(instance, ptr($00489c50), [cardinal(sprites)]);
+  pboolean(classprop(port, 168))^ := false;
+  pinteger(classprop(port, 164))^ := 0;
+end;
+
+procedure mycopysaveport(port, rect: pointer); stdcall;
+var stage: pointer;
+saveport: pointer;
+theirport: pointer;
+begin
+  asm
+    mov stage, ecx;
+  end;
+  theirport := ppointer($00631bc8)^;
+  saveport := ppointer(classprop(stage, $8))^;
+  // write saveport directly to screen
+  thiscall(saveport, ptr($004361a0), [cardinal(theirport), cardinal(rect), cardinal(rect), cardinal(0)]);
+//  // call orig
+//  thiscall(stage, ptr($00489b30), [cardinal(port), cardinal(rect)]);
+//  // copy8bit
+//  thiscall(port, ptr($00435e40), [cardinal(rect)]);
+//  // empty the bits
+//  thiscall(port, ptr($00436e90), [cardinal(rect), cardinal(253)]);
+end;
+
+procedure mydraw(rect1, rect2, port: pointer; stackdraw: integer); stdcall;
+type colarray = array[0..255] of TColor;
+type pcolarray = ^colarray;
+type ppcolarray = ^pcolarray;
+type uar = array[0..256] of byte;
+type puar = ^uar;
+type MyDrawPort = record
+  vars: array[0..42] of integer;
+end;
+type rect = record
+public
+  x1: integer;
+  y1: integer;
+  x2: integer;
+  y2: integer;
+end;
+type prect = ^rect;
+var sprite: pointer;
+fun: pointer;
+vftable: cardinal;
+port2: pointer;
+color: pcolarray;
+backupcolor: TColor;
+bits : puar;
+w, h: integer;
+newdrawport: pointer;
+fuckoff: rect;
+theirport: pointer;
+begin
+asm
+  mov sprite, ecx;
+end;
+
+
+  vftable := cardinal(ppointer(cardinal(sprite))^);
+  fun := ppointer(vftable + $74)^;
+//  // make new drawport
+//  newdrawport := rimports.petzallocmem(172);
+//  thiscall(newdrawport, ptr($0045bbf0), []);
+//  fuckoff.x1 := 0;
+//  fuckoff.x2 := 0;
+//  thiscall(newdrawport, ptr($0045bd40), [);
+
+
+  //theirport := ppointer($00631bc8)^;
+//  fuckoff := prect(rect2)^;
+//  fuckoff2 := prect(rect1)^;
+//  fuckoff3.x1 := 0;
+//  fuckoff3.y1 := 0;
+//  fuckoff3.x2 := fuckoff2.x2 - fuckoff2.x1;
+//  fuckoff3.y2 := fuckoff2.y2 - fuckoff2.y1;
+//  if (fuckoff.x2 - fuckoff.x1 > 0) and (fuckoff.y2 - fuckoff.y1 > 0) then begin
+//
+//    thiscall(newdrawport, ptr($0045bd40), [cardinal(rect2), cardinal(8), cardinal(true), cardinal(true), cardinal(true)]);
+//
+//    thiscall(theirport, ptr($00436e90), [cardinal(rect2), cardinal(140)]);
+//
+//    thiscall(sprite, fun, [cardinal(rect2), cardinal(rect2), cardinal(port), cardinal(stackdraw)]);
+//            //pboolean(classprop(newdrawport, $a8))^ := true;
+//    //pinteger(classprop(newdrawport, $a4))^ := 1;
+//    thiscall(port, ptr($004361a0), [cardinal(theirport), cardinal(rect2), cardinal(rect2), cardinal(0)]);
+//  end;
+
+  thiscall(newdrawport, ptr($0045bca0), []);
+  rimports.petzdeletemem(newdrawport);
+  // call orig now with new drwaport
+   //thiscall(sprite, fun, [cardinal(rect1), cardinal(rect2), cardinal(@newdrawport), cardinal(stackdraw)]);
+
+//  port2 := ppointer($00631bc8)^;
+//
+//  bits := ppointer(classprop(port, 148))^;
+//  w := pinteger(classprop(port, 20))^;
+//  h := pinteger(classprop(port, 24))^;
+////  fillchar(bits^, w * h, 253);
+///
+///
+//  // call orig ballframe
+//  thiscall(sprite, fun, [cardinal(rect1), cardinal(rect2), cardinal(port), cardinal(stackdraw)]);
+////
+//  color := ppcolarray($00630d58)^;
+//  backupcolor := color[212];
+//  color[212] := clPurple;
+//  // copy8bit
+//  thiscall(port, ptr($00435e40), [cardinal(rect2)]);
+//  // null out this bit
+//  thiscall(port, ptr($00436e90), [cardinal(rect2), cardinal(253)]);
+//  color[212] := backupcolor;
+// //fillchar(bits^, w * h, 253);
+  asm
+    mov edx, vftable
+  end;
+end;
+
+//procedure mydrawsprites(return, instance: pointer; sprites: pointer); stdcall;
+//var hicolordrawport: pointer;
+//rect: pointer;
+//begin
+//  hicolordrawport := ppointer(classprop(instance, $8))^;
+//  rect := ppointer(classprop(instance, $48))^;
+//  drawspritespatch.callorigproc(instance, [cardinal(sprites)]);
+//  thiscall(hicolordrawport, ptr($004361a0), [cardinal($00631bc8), cardinal(rect), cardinal(rect), cardinal(0)]);
+//end;
+
 procedure tpetza.patchcustomuserprofile;
 begin
   deliveroffspringpatch := patchthiscall(rimports.petsprite_deliveroffspring, @customdeliveroffspring);
@@ -1755,6 +2187,38 @@ begin
   // breeding settings
   fbreedingtimer := 0;
   fbatchbreedcountdefault := 10;
+
+  //b := $EB;
+  //patchcodebuf(ptr($004ac584), 1, 1, b);
+
+  //drawspritespatch := patchthiscall(ptr($00489c50), @mydrawsprites);
+  b := $08;
+  //patchcodebuf(ptr($0048a33e + 2), 1, 1, b);
+
+  //retargetcall(ptr($004c9c4f), @mydscall);
+
+  //retargetcall(ptr($0048a341), @myxcopybits);
+  retargetcall(ptr($004c9c4f), @mydrawsprites);
+
+  drawspritespatch := patchthiscall(ptr($00450bd0), @mydisplayballzframe);
+
+        p := ptr($0048b06b); //CALL draw
+        b := icall;
+        //patchcodebuf(p, sizeof(b), 5, b); //change to normal call
+        //retargetcall(p, @mydraw); //and point to our func. Note NOP spacing
+//        p := ptr($0045bc5b);
+//        b := $1;
+        //patchcodebuf(p, 1, 1, b);
+
+        //retargetcall(ptr($0048a261), @mycopysaveport);
+
+        p := ptr($00435eb7);
+        b := $B0;
+        //patchcodebuf(p, 1, 1, b);
+
+        initstagepatch := patchthiscall(ptr($00489610), @myinitstage);
+
+        retargetcall(ptr($004365f2), @mycopy8bit);
 
   loadsettings; //pretty late in the peace so all objects are created
 
