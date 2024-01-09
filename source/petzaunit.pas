@@ -154,6 +154,7 @@ type
     eyeballdata: TEyeballData;
     transparentphotos: boolean;
     neglectdisabled: boolean;
+    ownername: ansistring;
     function getInstallPath: string;
     procedure loadsettings;
     procedure savesettings;
@@ -513,6 +514,8 @@ begin
         neglectdisabled := reg.ReadBool('DisableNeglect');
       if reg.ValueExists('TexturedIrises') then
         texturedirises := reg.ReadBool('TexturedIrises');
+      if reg.ValueExists('OwnerName') then
+        ownername := reg.ReadString('OwnerName');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -553,6 +556,7 @@ begin
       reg.WriteBool('TransparentPhotos', transparentphotos);
       reg.WriteBool('DisableNeglect', neglectdisabled);
       reg.WriteBool('TexturedIrises', texturedirises);
+      reg.WriteString('OwnerName', ownername);
     end;
   finally
     reg.free;
@@ -1520,6 +1524,8 @@ function customdeliveroffspring(return, instance: TPetzPetSprite): pointer; stdc
 begin
   offspring := TPetzPetSprite(deliveroffspringpatch.callorigproc(instance, []));
   thiscall(offspring.petinfo.commenttext, rimports.textinfo_adopttext, [cardinal(petza.customuserprofile), cardinal(-1)]);
+  thiscall(offspring.petinfo.ancestryinfo, rimports.ancestryinfo_setadopter, [cardinal(petza.ownername)]);
+  thiscall(pointer(classprop(offspring.petinfo, $5bba8)^), rimports.textinfo_adopttext, [cardinal(petza.ownername), cardinal(-1)]);
   result := offspring;
 end;
 
@@ -1751,6 +1757,7 @@ begin
   freacttocamera := true;
   fusenewphotonameformat := true;
   neglectdisabled := true;
+  ownername := petzshlglobals.adoptername;
 
   // breeding settings
   fbreedingtimer := 0;
@@ -2188,7 +2195,7 @@ end;
 procedure openuserprofile(sender: TMyMenuItem);
 var prof: TUserProfile;
 begin
-  prof := TUserProfile.Create(nil, petza.customuserprofile);
+  prof := TUserProfile.Create(nil);
   try
     prof.ShowModal;
   finally

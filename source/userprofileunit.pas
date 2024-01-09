@@ -11,9 +11,11 @@ type
     OK: TButton;
     Cancel: TButton;
     CustomUserProfile: TMemo;
+    OwnerNameEdit: TEdit;
+    OwnerNameLabel: TLabel;
     procedure CancelClick(Sender: TObject);
     procedure OKClick(Sender: TObject);
-    constructor Create(AOwner: TComponent; text: string);
+    constructor Create(AOwner: TComponent);
   private
     { Private declarations }
   public
@@ -33,15 +35,17 @@ begin
   self.Close;
 end;
 
-constructor TUserProfile.Create(AOwner: TComponent; text: string);
+constructor TUserProfile.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  CustomUserProfile.Text := text;
+  CustomUserProfile.Text := petza.customuserprofile;
+  OwnerNameEdit.Text := petza.ownername;
 end;
 
 procedure TUserProfile.OKClick(Sender: TObject);
 begin
   petza.customuserprofile := CustomUserProfile.Text;
+  petza.ownername := OwnerNameEdit.Text;
   self.Close;
 end;
 

@@ -11,6 +11,13 @@ object UserProfile: TUserProfile
   Font.Name = 'Segoe UI'
   Font.Style = []
   TextHeight = 15
+  object OwnerNameLabel: TLabel
+    Left = 24
+    Top = 394
+    Width = 70
+    Height = 15
+    Caption = 'Owner Name'
+  end
   object OK: TButton
     Left = 545
     Top = 409
@@ -37,5 +44,13 @@ object UserProfile: TUserProfile
     Lines.Strings = (
       'CustomUserProfile')
     TabOrder = 2
+  end
+  object OwnerNameEdit: TEdit
+    Left = 100
+    Top = 391
+    Width = 121
+    Height = 23
+    TabOrder = 3
+    Text = 'OwnerName'
   end
 end
