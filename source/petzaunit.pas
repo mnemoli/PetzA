@@ -185,7 +185,7 @@ procedure petzwindowcreate(return, instance: pointer); stdcall;
 var petza: tpetza;
   hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation,
   hresetstack, reacttocamerapatch, deliveroffspringpatch,
-  draweyeballpatch, inittoypatch: TPatchThiscall;
+  draweyeballpatch, inittoypatch, drawphotopatch: TPatchThiscall;
   logging: Boolean;
 procedure dolog(const message: string);
 
@@ -900,7 +900,7 @@ begin
           if assigned(draweyeballpatch) then
             draweyeballpatch.patch
           else
-            draweyeballpatch := patchthiscall(rimports.xballz_draweyeball, @mydraweyeball);  
+            draweyeballpatch := patchthiscall(rimports.xballz_draweyeball, @mydraweyeball);
         end else begin
           if (assigned(draweyeballpatch)) then begin
             retargetcall(ptr($451fb4), ptr($45e750));
@@ -1014,7 +1014,7 @@ begin
                 // Create an extension to set the transparency flag
                 Ext := TGIFGraphicControlExtension.Create(gif.Images[0]);
                 Ext.Transparent := True;
-                Ext.TransparentColorIndex := 170;
+                Ext.TransparentColorIndex := 245;
               end;
               gif.SaveToFile(filename);
             finally
@@ -1094,6 +1094,35 @@ end;
 function stripfileext(const s: ansistring): ansistring;
 begin
   result := copy(s, 1, length(s) - length(ExtractFileExt(s)));
+end;
+
+function mydrawphotop4(return, stage, pt1, pt2, hasbg: pointer): cardinal; stdcall;
+var port: pointer;
+var bits: pbyte;
+var bitsnum: cardinal;
+begin
+  // would like to call orig and exit earlier if we have background, but
+  // delphi is doing something weird and always showing the hasbg bool as true
+  port := ppointer(classprop(stage, 12))^;
+  bits := ppointer(classprop(port, 148))^;
+  bitsnum := pcardinal(classprop(port, 32))^;
+  fillchar(bits^, bitsnum, 245);
+  result := drawphotopatch.callorigproc(stage, [cardinal(pt1), cardinal(pt2), cardinal(hasbg)]);
+end;
+
+function mydrawphotop3(return, stage, pt1, pt2: pointer): cardinal; stdcall;
+var port: pointer;
+var bits: pbyte;
+var bitsnum: cardinal;
+begin
+asm
+  mov stage, ecx;
+end;
+  port := ppointer(classprop(stage, 12))^;
+  bits := ppointer(classprop(port, 148))^;
+  bitsnum := pcardinal(classprop(port, 32))^;
+  fillchar(bits^, bitsnum, 245);
+  result := drawphotopatch.callorigproc(stage, [cardinal(pt1), cardinal(pt2)]);
 end;
 
 function mypicgetsavefilename(var opfn: topenfilenamea): bool; stdcall;
@@ -1202,6 +1231,9 @@ begin
         petzdlgglobals.maxautosavephotos := 30000;
       end;
     pvPetz4: begin
+        drawphotopatch := patchthiscall(ptr($48a3b0), @mydrawphotop4);
+        var b: byte := byte(nop);
+        patchcodebuf(ptr($48a514), 1, 11, b);
         retargetcall(ptr($418F45), @mypicgetsavefilename);
         retargetcall(ptr($418BB1), @mywritedib);
         retargetcall(ptr($419fc8), @setsavefilename);
@@ -1222,6 +1254,9 @@ begin
       // petzdlgglobals.maxautosavephotos := 30000; NOT WORKING
       end;
     pvPetz3: begin
+        drawphotopatch := patchthiscall(ptr($005706a0), @mydrawphotop3);
+        var b: byte := byte(nop);
+        patchcodebuf(ptr($5706c1), 1, 11, b);
         retargetcall(ptr($527B7E), @mypicgetsavefilename);
         retargetcall(ptr($528C16), @mywritedib);
         retargetcall(ptr($5280A4), @mywritedib);

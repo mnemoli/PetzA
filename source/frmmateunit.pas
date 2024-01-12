@@ -130,8 +130,6 @@ begin
     motherid := female.id;
     // Age up offspring
     offspring.setbiorhythm(8, 100);
-    thiscall(offspring.petinfo.ancestryinfo, rimports.ancestryinfo_setadopter, [cardinal(@petza.ownername)]);
-    thiscall(pointer(classprop(offspring.petinfo, $5bba8)^), rimports.textinfo_adopttext, [cardinal(@petza.ownername), cardinal(-1)]);
     // Delete mother and offspring
     thiscall(female, rimports.petsprite_setshouldibedeleted, [1]);
     thiscall(offspring, rimports.petsprite_setshouldibedeleted, [1]);
