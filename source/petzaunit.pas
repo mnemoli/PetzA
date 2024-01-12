@@ -1096,31 +1096,25 @@ begin
   result := copy(s, 1, length(s) - length(ExtractFileExt(s)));
 end;
 
-function mydrawphotop4(return, stage, pt1, pt2, hasbg: pointer): cardinal; stdcall;
-var port: pointer;
+function mydrawphotop4(return: pointer; stage: TPetzStage; pt1, pt2, hasbg: pointer): cardinal; stdcall;
 var bits: pbyte;
 var bitsnum: cardinal;
 begin
   // would like to call orig and exit earlier if we have background, but
   // delphi is doing something weird and always showing the hasbg bool as true
-  port := ppointer(classprop(stage, 12))^;
-  bits := ppointer(classprop(port, 148))^;
-  bitsnum := pcardinal(classprop(port, 32))^;
+  bits := stage.activedrawport.bits;
+  bitsnum := stage.activedrawport.numbits;
   fillchar(bits^, bitsnum, 245);
   result := drawphotopatch.callorigproc(stage, [cardinal(pt1), cardinal(pt2), cardinal(hasbg)]);
 end;
 
-function mydrawphotop3(return, stage, pt1, pt2: pointer): cardinal; stdcall;
+function mydrawphotop3(return: pointer; stage: TPetzStage; pt1, pt2: pointer): cardinal; stdcall;
 var port: pointer;
 var bits: pbyte;
 var bitsnum: cardinal;
 begin
-asm
-  mov stage, ecx;
-end;
-  port := ppointer(classprop(stage, 12))^;
-  bits := ppointer(classprop(port, 148))^;
-  bitsnum := pcardinal(classprop(port, 32))^;
+  bits := stage.activedrawport.bits;
+  bitsnum := stage.activedrawport.numbits;
   fillchar(bits^, bitsnum, 245);
   result := drawphotopatch.callorigproc(stage, [cardinal(pt1), cardinal(pt2)]);
 end;

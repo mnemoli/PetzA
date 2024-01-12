@@ -203,6 +203,22 @@ type
       property buttonindex: integer read getbuttonindex write setbuttonindex;
   end;
 
+  TPetzDrawport = class
+  private
+    function getbits: pbyte;
+    function getnumbits: cardinal;
+  public
+    property bits: pbyte read getbits;
+    property numbits: cardinal read getnumbits;
+  end;
+
+  TPetzStage = class
+  private
+    function getactivedrawport: TPetzDrawport;
+  public
+    property activedrawport: TPetzDrawport read getactivedrawport;
+  end;
+
 (*procedure mypetzapp_dodrawframe(ecx: pointer); stdcall;*)
 procedure createmainwindow(return, instance: pointer); stdcall;
 procedure mypetzapp_dodrawframe(return, instance: pointer); stdcall;
@@ -1442,6 +1458,25 @@ end;
 procedure TPetzCase.setbuttonindex(const Value: integer);
 begin
   pinteger(classprop(petzcase, $3d2c))^ := value;
+end;
+
+{ TPetzStage }
+
+function TPetzStage.getactivedrawport: TPetzDrawport;
+begin
+  result := TPetzDrawport(ppointer(classprop(self, 12))^);
+end;
+
+{ TPetzDrawport }
+
+function TPetzDrawport.getbits: pbyte;
+begin
+  result := ppointer(classprop(self, 148))^;
+end;
+
+function TPetzDrawport.getnumbits: cardinal;
+begin
+  result := pcardinal(classprop(self, 32))^;
 end;
 
 end.
