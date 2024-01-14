@@ -166,9 +166,10 @@ type
   private
     function getadoptername: ansistring;
     function getphotopet: TPetzPetSprite;
+    procedure setadoptername(const Value: ansistring);
   public
     function mainwindow: hwnd;
-    property adoptername: ansistring read getadoptername;
+    property adoptername: ansistring read getadoptername write setadoptername;
     property photopet: TPetzPetSprite read getphotopet;
   end;
 
@@ -642,6 +643,11 @@ begin
     pvbabyz: result := phwnd(ptr(integer(self) + $7F4))^;
   else showmessage('TPetzSHLGlobals:MainWindow - Not supported!');
   end;
+end;
+
+procedure TPetzSHLGlobals.setadoptername(const Value: ansistring);
+begin
+  strpcopy(pansichar(classprop(self, $240)), value);
 end;
 
 function petzdlgglobals: Tpetzdlgglobals;

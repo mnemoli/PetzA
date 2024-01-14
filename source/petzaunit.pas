@@ -1551,6 +1551,7 @@ end;
 function customdeliveroffspring(return, instance: TPetzPetSprite): pointer; stdcall;
   var offspring: TPetzPetSprite;
 begin
+  petzshlglobals.adoptername := petza.ownername;
   offspring := TPetzPetSprite(deliveroffspringpatch.callorigproc(instance, []));
   thiscall(offspring.petinfo.commenttext, rimports.textinfo_adopttext, [cardinal(petza.customuserprofile), cardinal(-1)]);
   thiscall(offspring.petinfo.ancestryinfo, rimports.ancestryinfo_setadopter, [cardinal(petza.ownername)]);

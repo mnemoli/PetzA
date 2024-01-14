@@ -3,8 +3,8 @@ object frmMate: TfrmMate
   Top = 356
   BorderStyle = bsDialog
   Caption = 'Mate two pets...'
-  ClientHeight = 276
-  ClientWidth = 302
+  ClientHeight = 281
+  ClientWidth = 311
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -49,8 +49,8 @@ object frmMate: TfrmMate
     Caption = 'Select a female and a male pet, then click mate!'
   end
   object OwnerNameLabel: TLabel
-    Left = 8
-    Top = 247
+    Left = 118
+    Top = 256
     Width = 62
     Height = 13
     Caption = 'Owner Name'
@@ -121,10 +121,11 @@ object frmMate: TfrmMate
     StyleName = 'Windows'
   end
   object OwnerNameEdit: TEdit
-    Left = 76
-    Top = 244
-    Width = 121
+    Left = 8
+    Top = 253
+    Width = 104
     Height = 21
+    MaxLength = 50
     TabOrder = 7
     Text = 'OwnerNameEdit'
   end
