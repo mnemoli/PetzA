@@ -18,6 +18,8 @@ type
     btnHelp: TButton;
     btnBatch: TButton;
     batchCount: TEdit;
+    OwnerNameLabel: TLabel;
+    OwnerNameEdit: TEdit;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure Button1Click(Sender: TObject);
     procedure btnMateClick(Sender: TObject);
@@ -128,8 +130,6 @@ begin
     motherid := female.id;
     // Age up offspring
     offspring.setbiorhythm(8, 100);
-    thiscall(offspring.petinfo.ancestryinfo, rimports.ancestryinfo_setadopter, [cardinal(petzshlglobals.adoptername)]);
-    thiscall(pointer(classprop(offspring.petinfo, $5bba8)^), rimports.textinfo_adopttext, [cardinal(petzshlglobals.adoptername), cardinal(-1)]);
     // Delete mother and offspring
     thiscall(female, rimports.petsprite_setshouldibedeleted, [1]);
     thiscall(offspring, rimports.petsprite_setshouldibedeleted, [1]);
@@ -178,6 +178,7 @@ end;
 procedure TfrmMate.btnMateClick(Sender: TObject);
   var male, female: TPetzPetSprite;
 begin
+    petza.ownername := OwnerNameEdit.Text;
     if validate(female, male) then begin
       if matebystateconceive(female, male) then
         nonmodalmessage('Success!','MateSuccess') else
@@ -191,11 +192,13 @@ begin
   lstmales.itemindex := 0;
   batchcount.text := inttostr(petza.batchbreedcountdefault);
   btnBatch.Enabled := cpetzver = pvpetz4;
+  OwnerNameEdit.Text := petza.ownername;
 end;
 
 procedure TfrmMate.btnBatchClick(Sender: TObject);
   var female, male: TPetzPetSprite;
 begin
+  petza.ownername := OwnerNameEdit.Text;
   // Validate batch count
   var bc: integer := 1;
   try

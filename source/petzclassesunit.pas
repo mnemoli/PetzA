@@ -166,9 +166,10 @@ type
   private
     function getadoptername: ansistring;
     function getphotopet: TPetzPetSprite;
+    procedure setadoptername(const Value: ansistring);
   public
     function mainwindow: hwnd;
-    property adoptername: ansistring read getadoptername;
+    property adoptername: ansistring read getadoptername write setadoptername;
     property photopet: TPetzPetSprite read getphotopet;
   end;
 
@@ -201,6 +202,22 @@ type
     public
       procedure loadpetz(sessionid: ushort; buttonidx: integer);
       property buttonindex: integer read getbuttonindex write setbuttonindex;
+  end;
+
+  TPetzDrawport = class
+  private
+    function getbits: pbyte;
+    function getnumbits: cardinal;
+  public
+    property bits: pbyte read getbits;
+    property numbits: cardinal read getnumbits;
+  end;
+
+  TPetzStage = class
+  private
+    function getactivedrawport: TPetzDrawport;
+  public
+    property activedrawport: TPetzDrawport read getactivedrawport;
   end;
 
 (*procedure mypetzapp_dodrawframe(ecx: pointer); stdcall;*)
@@ -626,6 +643,11 @@ begin
     pvbabyz: result := phwnd(ptr(integer(self) + $7F4))^;
   else showmessage('TPetzSHLGlobals:MainWindow - Not supported!');
   end;
+end;
+
+procedure TPetzSHLGlobals.setadoptername(const Value: ansistring);
+begin
+  strpcopy(pansichar(classprop(self, $240)), value);
 end;
 
 function petzdlgglobals: Tpetzdlgglobals;
@@ -1442,6 +1464,25 @@ end;
 procedure TPetzCase.setbuttonindex(const Value: integer);
 begin
   pinteger(classprop(petzcase, $3d2c))^ := value;
+end;
+
+{ TPetzStage }
+
+function TPetzStage.getactivedrawport: TPetzDrawport;
+begin
+  result := TPetzDrawport(ppointer(classprop(self, 12))^);
+end;
+
+{ TPetzDrawport }
+
+function TPetzDrawport.getbits: pbyte;
+begin
+  result := ppointer(classprop(self, 148))^;
+end;
+
+function TPetzDrawport.getnumbits: cardinal;
+begin
+  result := pcardinal(classprop(self, 32))^;
 end;
 
 end.
