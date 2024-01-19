@@ -206,6 +206,9 @@ type
 
   TPetzRect = record
     x1, y1, x2, y2: integer;
+    constructor create(px1, py1, px2, py2: integer);
+    class operator add(a, b: TPetzRect): TPetzRect;
+    class operator equal(a, b: TPetzRect): bool;
   end;
 
   TPetzPRect = ^TPetzRect;
@@ -227,6 +230,7 @@ type
     procedure SetOrigin(x, y: integer);
     procedure FillTransparent(bounds: TPetzPRect; color: byte);
     procedure CopyBitsTransparentMask(dstport: TPetzDrawport; psrcrect, pdstrect: TPetzPRect; maskvalue: integer);
+    procedure CopyBits(dstport: TPetzDrawport; psrcrect, pdstrect: TPetzPRect);
     procedure Copy8BitCustom(prect: TPetzPRect; maskdrawport: TPetzDrawport; palettes: TDictionary<byte, tgamepalette>);
     class function MakeNew(bounds: TPetzPRect; circledraw, locolor, hicolor: bool): TPetzDrawport;
   end;
@@ -1495,8 +1499,8 @@ end;
 
 procedure TPetzDrawport.Copy8BitCustom(prect: TPetzPRect; maskdrawport: TPetzDrawport; palettes: TDictionary<byte, tgamepalette>);
 var bitsptr, maskbitsptr: pbyte;
-var hibitsptr: pfixeduint;
-var color: FixedUInt;
+var hibitsptr: pcardinal;
+var color: cardinal;
 var rgbpalette: pointer;
 var height, width, rowbytes: integer;
 var rect: TPetzRect;
@@ -1523,21 +1527,15 @@ begin
       for var y := 0 to height - 1 do begin
         for var x := 0 to width - 1 do begin
           var maskcolor := maskbitsptr^;
+          //color :=  pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^;
           if maskcolor <> 1 then
             color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^
           else begin
-            palettes.TryGetValue(0, palar);
-            color := palar[bitsptr^];
+           var didgetpalette := palettes.TryGetValue(0, palar);
+           color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^;
+            if didgetpalette then
+              color := palar[bitsptr^];
           end;
-//          if maskcolor <> 0 then
-//            if maskcolor = 1 then begin
-//              palettes.TryGetValue(0, palar);
-//              color := palar[bits^];
-//            end
-//            else
-//              color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^
-//          else
-//            color := $A020F0;
           hibitsptr^ := color;
           bitsptr := bitsptr + 1;
           maskbitsptr := maskbitsptr + 1;
@@ -1548,6 +1546,12 @@ begin
         maskbitsptr := maskbitsptr + rowbytes;
       end;
     end;
+end;
+
+procedure TPetzDrawport.CopyBits(dstport: TPetzDrawport; psrcrect,
+  pdstrect: TPetzPRect);
+begin
+  thiscall(self, ptr($004361a0), [cardinal(dstport), cardinal(psrcrect), cardinal(pdstrect), cardinal(0)]);
 end;
 
 procedure TPetzDrawport.CopyBitsTransparentMask(dstport: TPetzDrawport; psrcrect,
@@ -1680,6 +1684,39 @@ end;
 procedure TPetzDrawport.SetOrigin(x, y: integer);
 begin
   thiscall(self, ptr($00460740), [cardinal(x), cardinal(y)]);
+end;
+
+{ TPetzRect }
+
+class operator TPetzRect.add(a, b: TPetzRect): TPetzRect;
+var output: TPetzRect;
+begin
+  output.x1 := b.x1;
+  if a.x1 <= b.x1 then
+    output.x1 := a.x1;
+  output.y1 := b.y1;
+  if a.y1 <= b.y1 then
+    output.y1 := a.y1;
+  output.x2 := b.x2;
+  if b.x2 <= a.x2 then
+    output.x2 := a.x2;
+  output.y2 := b.y2;
+  if b.y2 <= a.y2 then
+    output.y2 := a.y2;
+  result := output;
+end;
+
+constructor TPetzRect.create(px1, py1, px2, py2: integer);
+begin
+  x1 := px1;
+  x2 := px2;
+  y1 := py1;
+  y2 := py2;
+end;
+
+class operator TPetzRect.equal(a, b: TPetzRect): bool;
+begin
+  result := (a.x1 = b.x1) and (a.y1 = b.y1) and (a.x2 = b.x2) and (a.y2 = b.y2);
 end;
 
 end.
