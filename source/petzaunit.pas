@@ -1633,7 +1633,9 @@ end;
   localbounds.y1 := 0;
   localbounds.x2 := inrect.x2 - inrect.x1;
   localbounds.y2 := inrect.y2 - inrect.y1;
- // create new small drawport big enough for the pet
+  if (localbounds.x2 = 0) and (localbounds.y2 = 0) then
+    exit;
+ // create new small drawport big enough for the filmstrip
   thismaskdrawport := TPetzDrawport.MakeNew(@localbounds, false, true, false);
   // set origin
   thismaskdrawport.setorigin(-inrect.x1, -inrect.y1);
@@ -1646,7 +1648,6 @@ end;
   // set filmstrip bits to 0, all filmstrips will just use palette 0
   thismaskdrawport.CopyBitsTransparentMask(petza.maskdrawport, @inrect, @inrect, 0);
   thismaskdrawport.Destroy;
-  petza.lastmaskvalue := 0;
 end;
 
 procedure mydrawstacked(return, sprite: pointer; drawport: TPetzDrawport; stackdraw: integer); stdcall;
