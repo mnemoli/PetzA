@@ -51,7 +51,8 @@ uses
   vectorUnit in 'vectorUnit.pas',
   profilelistdisplay in 'profilelistdisplay.pas',
   petzprofilesunit in 'petzprofilesunit.pas',
-  userprofileunit in 'userprofileunit.pas' {UserProfile};
+  userprofileunit in 'userprofileunit.pas' {UserProfile},
+  paletteswapunit in 'paletteswapunit.pas';
 
 {$E toy}
 {$R *.RES}

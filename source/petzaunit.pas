@@ -89,7 +89,7 @@ uses sysutils, windows, classes, messages, contnrs, mymenuunit, dllpatchunit, bn
   petzclassesunit, registry, sliderbrainunit, forms, petzcommon1, CommDlg, graphics,
   aboutunit, dialogs, frmmateunit, trimfamilytreeunit, math, madexcept,
   profilemanagerunit, petzprofilesunit, actnlist, menus, madkernel,
-  SCommon, SPatching, HtmlHelpViewer, adoptedpetloadinfounit, Generics.Collections, petzpaletteunit;
+  SCommon, SPatching, HtmlHelpViewer, adoptedpetloadinfounit, Generics.Collections, petzpaletteunit, paletteswapunit;
 
 const petzakeyname = '\Software\Sherlock Software\PetzA';
 
@@ -98,6 +98,13 @@ type TEyeballData = record
   ballstate: pointer;
   posrotinfo: pointer;
   irisno: integer;
+end;
+
+type TDrawData = record
+  miniport: TPetzDrawport;
+  originalport: TPetzDrawport;
+  bounds: TPetzRect;
+  palette: byte;
 end;
 
 type
@@ -152,6 +159,7 @@ type
     brainageindex: integer;
     brainbarnames: array of string;
     eyeballdata: TEyeballData;
+    drawdata: TStack<TDrawData>;
     transparentphotos: boolean;
     neglectdisabled: boolean;
     maskdrawport: TPetzDrawport;
@@ -188,10 +196,9 @@ var petza: tpetza;
   hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation,
   hresetstack, reacttocamerapatch, deliveroffspringpatch,
   draweyeballpatch, inittoypatch, drawphotopatch, drawspritespatch, initstagepatch,
-  loadlnzpatch, drawfilmstrippatch: TPatchThiscall;
+  loadlnzpatch, drawfilmstrippatch, drawstackedpatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, byte>;
 var  logging: Boolean;
-var palettes: TDictionary<byte, tgamepalette>;
 procedure dolog(const message: string);
 
 type TAdjective = (
@@ -1570,7 +1577,7 @@ begin
 asm
   mov port, ecx;
 end;
-  port.Copy8BitCustom(prect, petza.maskdrawport, palettes);
+  port.Copy8BitCustom(prect, petza.maskdrawport);
 end;
 
 procedure myloadlnz(return, instance, path: pointer; param2: cardinal; xballz, cache: pointer); stdcall;
@@ -1639,15 +1646,40 @@ end;
   // set filmstrip bits to 0, all filmstrips will just use palette 0
   thismaskdrawport.CopyBitsTransparentMask(petza.maskdrawport, @inrect, @inrect, 0);
   thismaskdrawport.Destroy;
+  petza.lastmaskvalue := 0;
 end;
 
-procedure mydisplayballzframe(return, xballz, port, bounds, ballstate: pointer); stdcall;
+procedure mydrawstacked(return, sprite: pointer; drawport: TPetzDrawport; stackdraw: integer); stdcall;
+var dd: TDrawData;
+var spritebounds: TPetzRect;
+var drawref: pointer;
+begin
+  if petza.drawdata.Count > 0 then begin
+    dd := petza.drawdata.Peek;
+    spritebounds := TPetzPRect(classprop(sprite, 320))^;
+    // Copy over what we've already drawn
+    dd.miniport.CopyBitsTransparentMask(dd.originalport, @dd.bounds, @dd.bounds, -1);
+    dd.miniport.CopyBitsTransparentMask(petza.maskdrawport, @dd.bounds, @dd.bounds, dd.palette);
+    dd.miniport.FillTransparent(@dd.bounds, 253);
+    // Draw stacked sprite
+    drawref := ppointer(cardinal(ppointer(sprite)^) + $74)^;
+    thiscall(sprite, drawref, [cardinal(@spritebounds), cardinal(@spritebounds), cardinal(dd.originalport), cardinal(stackdraw)]);
+  end else
+    drawstackedpatch.callorigproc(sprite, [cardinal(drawport), cardinal(stackdraw)]);
+end;
+
+procedure mydisplayballzframe(port, bounds, ballstate: pointer); stdcall;
+var xballz: pointer;
 var thismaskdrawport: TPetzDrawport;
 var localbounds: TPetzRect;
 var inrect: TPetzRect;
 var lnz: pointer;
 var palette: byte;
+var dd: TDrawData;
 begin
+asm
+  mov xballz, ecx;
+end;
   inrect := TPetzPRect(bounds)^;
   localbounds.x1 := 0;
   localbounds.y1 := 0;
@@ -1664,8 +1696,14 @@ begin
   //petza.maskdrawport.SetOrigin(128, 128);
   // fill with transparent
   thismaskdrawport.FillTransparent(@inrect, 253);
+  dd.miniport := thismaskdrawport;
+  dd.originalport := port;
+  dd.bounds := inrect;
+  dd.palette := palette;
+  petza.drawdata.Push(dd);
   // draw onto the small drawport
-  drawspritespatch.callorigproc(xballz, [cardinal(thismaskdrawport), cardinal(@inrect), cardinal(ballstate)]);
+  thiscall(xballz, ptr($00450bd0), [cardinal(thismaskdrawport), cardinal(@inrect), cardinal(ballstate)]);
+  //drawspritespatch.callorigproc(xballz, [cardinal(thismaskdrawport), cardinal(@inrect), cardinal(ballstate)]);
   // copy from small drawport to main drawport with transparency
   thismaskdrawport.CopyBitsTransparentMask(port, @inrect, @inrect, -1);
   // copy from small drawport to mask drawport
@@ -1674,8 +1712,7 @@ begin
   thismaskdrawport.Destroy;
 
   petza.lastmaskvalue := palette;
-
-  //drawspritespatch.callorigproc(xballz, [cardinal(port), cardinal(bounds), cardinal(ballstate)]);
+  petza.drawdata.Pop;
 end;
 
 
@@ -2042,33 +2079,20 @@ begin
   fbatchbreedcountdefault := 10;
 
   // Patch drawing for extra palettes
+  drawdata := TStack<TDrawData>.Create();
   retargetcall(ptr($004c9c4f), @mydrawsprites);
   //retargetcall(ptr($0048a2d5), @mydraw);
   drawfilmstrippatch := patchthiscall(ptr($00461d10), @mydrawfilmstrip);
-  //retargetcall(ptr($004a7d45), @mydrawfilmstrip);
-  //retargetcall(ptr($0048fa12), @mydrawfilmstrip);
-  drawspritespatch := patchthiscall(ptr($00450bd0), @mydisplayballzframe);
+  retargetcall(ptr($0047d3d7), @mydisplayballzframe);
+//  drawspritespatch := patchthiscall(ptr($00450bd0), @mydisplayballzframe);
   initstagepatch := patchthiscall(ptr($00489610), @myinitstage);
+  drawstackedpatch := patchthiscall(ptr($00488b60), @mydrawstacked);
   retargetcall(ptr($004365f2), @mycopy8bit);
   // Patch lnz loading for extra palettes
   lnzpalettecache := TDictionary<pointer, byte>.Create();
   loadlnzpatch := patchthiscall(ptr($0046c390), @myloadlnz);
   // Load palettes
-  palettes := TDictionary<byte, TgamePalette>.Create();
-  var palettebmp: TBitmap;
-  var fpal: plogpalette;
-  getmem(fpal, sizeof(tlogpalette) + sizeof(tpaletteentry)*255);
-  fpal.palNumEntries := 256;
-  fpal.palVersion := $300;
-  palettebmp := TBitmap.Create();
-  palettebmp.LoadFromResourceName(hinstance, 'PaletteOddballz');
-  GetPaletteEntries(palettebmp.Palette, 0, 256, fpal.palPalEntry[0]);
-  for var i := 0 to 255 do
-    begin
-      var fcolor := fpal.palPalEntry[i].peRed shl 16 + fpal.palPalEntry[i].peGreen shl 8 + fpal.palPalEntry[i].peBlue;
-      thispalette[i] := fcolor;
-    end;
-  palettes.AddOrSetValue(0, thispalette);
+  loadpalettes;
 
   loadsettings; //pretty late in the peace so all objects are created
 

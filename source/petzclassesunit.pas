@@ -3,7 +3,7 @@ unit petzclassesunit;
 interface
 
 uses sysutils, windows, graphics, classes, contnrs, dialogs, bndpetz,
-  dllpatchunit, Generics.Collections, petzpaletteunit;
+  dllpatchunit, Generics.Collections, petzpaletteunit, paletteswapunit;
 
 var notagain: boolean;
 
@@ -231,7 +231,7 @@ type
     procedure FillTransparent(bounds: TPetzPRect; color: byte);
     procedure CopyBitsTransparentMask(dstport: TPetzDrawport; psrcrect, pdstrect: TPetzPRect; maskvalue: integer);
     procedure CopyBits(dstport: TPetzDrawport; psrcrect, pdstrect: TPetzPRect);
-    procedure Copy8BitCustom(prect: TPetzPRect; maskdrawport: TPetzDrawport; palettes: TDictionary<byte, tgamepalette>);
+    procedure Copy8BitCustom(prect: TPetzPRect; maskdrawport: TPetzDrawport);
     class function MakeNew(bounds: TPetzPRect; circledraw, locolor, hicolor: bool): TPetzDrawport;
   end;
 
@@ -1497,7 +1497,7 @@ end;
 
 { TPetzDrawport }
 
-procedure TPetzDrawport.Copy8BitCustom(prect: TPetzPRect; maskdrawport: TPetzDrawport; palettes: TDictionary<byte, tgamepalette>);
+procedure TPetzDrawport.Copy8BitCustom(prect: TPetzPRect; maskdrawport: TPetzDrawport);
 var bitsptr, maskbitsptr: pbyte;
 var hibitsptr: pcardinal;
 var color: cardinal;
@@ -1528,13 +1528,14 @@ begin
         for var x := 0 to width - 1 do begin
           var maskcolor := maskbitsptr^;
           //color :=  pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^;
-          if maskcolor <> 1 then
+          if (maskcolor = 0) or (maskcolor = 253) then
             color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^
           else begin
-           var didgetpalette := palettes.TryGetValue(0, palar);
-           color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^;
+           var didgetpalette := palettes.TryGetValue(maskcolor - 1, palar);
             if didgetpalette then
-              color := palar[bitsptr^];
+              color := palar[bitsptr^]
+            else
+              color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^;
           end;
           hibitsptr^ := color;
           bitsptr := bitsptr + 1;

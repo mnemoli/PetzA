@@ -173,9 +173,14 @@
         <DCCReference Include="userprofileunit.pas">
             <Form>UserProfile</Form>
         </DCCReference>
+        <DCCReference Include="paletteswapunit.pas"/>
         <RcItem Include="..\palettes\oddballzpalette.bmp">
             <ResourceType>BITMAP</ResourceType>
             <ResourceId>PaletteOddballz</ResourceId>
+        </RcItem>
+        <RcItem Include="..\palettes\pastelpalette.bmp">
+            <ResourceType>BITMAP</ResourceType>
+            <ResourceId>PalettePastel</ResourceId>
         </RcItem>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
