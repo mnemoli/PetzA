@@ -1014,7 +1014,7 @@ begin
                 // Create an extension to set the transparency flag
                 Ext := TGIFGraphicControlExtension.Create(gif.Images[0]);
                 Ext.Transparent := True;
-                Ext.TransparentColorIndex := 245;
+                Ext.TransparentColorIndex := 200;
               end;
               gif.SaveToFile(filename);
             finally
@@ -1104,7 +1104,7 @@ begin
   // delphi is doing something weird and always showing the hasbg bool as true
   bits := stage.activedrawport.bits;
   bitsnum := stage.activedrawport.numbits;
-  fillchar(bits^, bitsnum, 245);
+  fillchar(bits^, bitsnum, 200);
   result := drawphotopatch.callorigproc(stage, [cardinal(pt1), cardinal(pt2), cardinal(hasbg)]);
 end;
 
@@ -1115,7 +1115,7 @@ var bitsnum: cardinal;
 begin
   bits := stage.activedrawport.bits;
   bitsnum := stage.activedrawport.numbits;
-  fillchar(bits^, bitsnum, 245);
+  fillchar(bits^, bitsnum, 200);
   result := drawphotopatch.callorigproc(stage, [cardinal(pt1), cardinal(pt2)]);
 end;
 
