@@ -97,6 +97,7 @@
         <DCC_DebugDCUs>false</DCC_DebugDCUs>
         <DCC_ImportedDataReferences>false</DCC_ImportedDataReferences>
         <DCC_DebugInfoInExe>false</DCC_DebugInfoInExe>
+        <VerInfo_PreRelease>false</VerInfo_PreRelease>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_ExeOutput>E:\Program Files (x86)\Petz\Petz 4 (Vanilla)\Resource\Toyz\</DCC_ExeOutput>
@@ -106,6 +107,7 @@
         <DCC_MapFile>3</DCC_MapFile>
         <Debugger_HostApplication>E:\Program Files (x86)\Petz\Petz 4 (Vanilla)\Petz 4.exe</Debugger_HostApplication>
         <Debugger_CWD>E:\Program Files (x86)\Petz\Petz 4 (Vanilla)</Debugger_CWD>
+        <VerInfo_PreRelease>false</VerInfo_PreRelease>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
