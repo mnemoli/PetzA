@@ -47,7 +47,7 @@ begin
     palette.palNumEntries := header.biClrUsed;
 
     for t1 := 0 to header.biClrUsed - 1 do begin
-      if (t1 = 170) and replacebackground then begin
+      if (t1 = 200) and replacebackground then begin
       palette.palPalEntry[t1].peBlue := $00;
       palette.palPalEntry[t1].peGreen := $fe;
       palette.palPalEntry[t1].peRed := $ff;

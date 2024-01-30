@@ -47,21 +47,21 @@ type
     function getfathertree: tpetzancestryinfo;
     procedure setmothertree(value: tpetzancestryinfo);
     function getmothertree: tpetzancestryinfo;
-    function getbreed: string;
-    procedure setbreed(value: string);
-    function getname: string;
-    procedure setname(value: string);
-    function getadopter: string;
-    procedure setadopter(value: string);
+    function getbreed: ansistring;
+    procedure setbreed(value: ansistring);
+    function getname: ansistring;
+    procedure setname(value: ansistring);
+    function getadopter: ansistring;
+    procedure setadopter(value: ansistring);
     function getadoptiondate: tdatetime;
     procedure setadoptiondate(value: tdatetime);
     function getisfemale: boolean;
     procedure setisfemale(value: boolean);
   public
     property isfemale: boolean read getisfemale write setisfemale;
-    property breed: string read getbreed write setbreed;
-    property name: string read getname write setname;
-    property adopter: string read getadopter write setadopter;
+    property breed: ansistring read getbreed write setbreed;
+    property name: ansistring read getname write setname;
+    property adopter: ansistring read getadopter write setadopter;
     property mothertree: tpetzancestryinfo read getmothertree write setmothertree;
     property fathertree: tpetzancestryinfo read getfathertree write setfathertree;
     property adoptiondate: Tdatetime read getadoptiondate write setadoptiondate;
@@ -166,9 +166,10 @@ type
   private
     function getadoptername: ansistring;
     function getphotopet: TPetzPetSprite;
+    procedure setadoptername(const Value: ansistring);
   public
     function mainwindow: hwnd;
-    property adoptername: ansistring read getadoptername;
+    property adoptername: ansistring read getadoptername write setadoptername;
     property photopet: TPetzPetSprite read getphotopet;
   end;
 
@@ -201,6 +202,22 @@ type
     public
       procedure loadpetz(sessionid: ushort; buttonidx: integer);
       property buttonindex: integer read getbuttonindex write setbuttonindex;
+  end;
+
+  TPetzDrawport = class
+  private
+    function getbits: pbyte;
+    function getnumbits: cardinal;
+  public
+    property bits: pbyte read getbits;
+    property numbits: cardinal read getnumbits;
+  end;
+
+  TPetzStage = class
+  private
+    function getactivedrawport: TPetzDrawport;
+  public
+    property activedrawport: TPetzDrawport read getactivedrawport;
   end;
 
 (*procedure mypetzapp_dodrawframe(ecx: pointer); stdcall;*)
@@ -313,39 +330,39 @@ begin
 end;
 
 
-function tpetzancestryinfo.getname: string;
+function tpetzancestryinfo.getname: ansistring;
 var p: PAnsiChar;
 begin
   p := PAnsiChar(ptr(integer(self) + $8)^);
   result := p;
 end;
 
-procedure tpetzancestryinfo.setname(value: string);
+procedure tpetzancestryinfo.setname(value: ansistring);
 begin
   thiscall(self, rimports.ancestryinfo_setname, [cardinal(PAnsiChar(value))]);
 end;
 
-function tpetzancestryinfo.getbreed: string;
+function tpetzancestryinfo.getbreed: ansistring;
 var p: PAnsiChar;
 begin
   p := PAnsiChar(ptr(integer(self) + $C)^);
   result := p;
 end;
 
-procedure tpetzancestryinfo.setbreed(value: string);
+procedure tpetzancestryinfo.setbreed(value: ansistring);
 begin
   thiscall(self, rimports.ancestryinfo_setbreed, [cardinal(PAnsiChar(value))]);
 end;
 
 
-function tpetzancestryinfo.getadopter: string;
+function tpetzancestryinfo.getadopter: ansistring;
 var p: PAnsiChar;
 begin
   p := PAnsiChar(ptr(integer(self) + $10)^);
   result := p;
 end;
 
-procedure tpetzancestryinfo.setadopter(value: string);
+procedure tpetzancestryinfo.setadopter(value: ansistring);
 begin
   thiscall(self, rimports.ancestryinfo_setadopter, [cardinal(PAnsiChar(value))]);
 end;
@@ -626,6 +643,11 @@ begin
     pvbabyz: result := phwnd(ptr(integer(self) + $7F4))^;
   else showmessage('TPetzSHLGlobals:MainWindow - Not supported!');
   end;
+end;
+
+procedure TPetzSHLGlobals.setadoptername(const Value: ansistring);
+begin
+  strpcopy(pansichar(classprop(self, $240)), value);
 end;
 
 function petzdlgglobals: Tpetzdlgglobals;
@@ -1442,6 +1464,25 @@ end;
 procedure TPetzCase.setbuttonindex(const Value: integer);
 begin
   pinteger(classprop(petzcase, $3d2c))^ := value;
+end;
+
+{ TPetzStage }
+
+function TPetzStage.getactivedrawport: TPetzDrawport;
+begin
+  result := TPetzDrawport(ppointer(classprop(self, 12))^);
+end;
+
+{ TPetzDrawport }
+
+function TPetzDrawport.getbits: pbyte;
+begin
+  result := ppointer(classprop(self, 148))^;
+end;
+
+function TPetzDrawport.getnumbits: cardinal;
+begin
+  result := pcardinal(classprop(self, 32))^;
 end;
 
 end.
