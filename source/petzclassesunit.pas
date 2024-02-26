@@ -85,19 +85,6 @@ type
     property neutered: boolean read getneutered write setneutered;
   end;
 
-  TPetzDLGGlobals = class
-  private
-    function getautosavephotos: integer;
-    procedure setautosavephotos(value: integer);
-  public
-    property maxautosavephotos: integer read getautosavephotos write setautosavephotos;
-  end;
-
-  TPetzSHLGlobals = class
-  public
-    function mainwindow: hwnd;
-  end;
-
   TPetzAlposprite = class
   public
     function isthisapet: boolean;
@@ -131,6 +118,24 @@ type
     property interactingpet: TPetzPetsprite read getinteracting write setinteracting;
     property stateflag: longword read getstateflag write setstateflag;
     property id: smallint read getid;
+  end;
+
+  TPetzDLGGlobals = class
+  private
+    function getautosavephotos: integer;
+    procedure setautosavephotos(value: integer);
+    function getphototype: integer;
+  public
+    property maxautosavephotos: integer read getautosavephotos write setautosavephotos;
+    property phototype: integer read getphototype;
+  end;
+
+  TPetzSHLGlobals = class
+  private
+    function getphotopet: TPetzPetSprite;
+  public
+    function mainwindow: hwnd;
+    property photopet: TPetzPetSprite read getphotopet;
   end;
 
   TPetzClassHook = class
@@ -537,12 +542,26 @@ begin
   end;
 end;
 
+function TPetzDLGGlobals.getphototype: integer;
+begin
+    case cpetzver of
+      pvbabyz: result := pinteger(classprop(self, $34))^;
+    end;
+end;
+
 procedure tpetzdlgglobals.setautosavephotos(value: integer);
 begin
   case cpetzver of
     pvpetz5,pvpetz4: pinteger(classprop(self, $2C))^ := value;
   else raise exception.create('SetAutoSavePhotos - Not supported!');
 
+  end;
+end;
+
+function TPetzSHLGlobals.getphotopet: TPetzPetSprite;
+begin
+  case cpetzver of
+    pvbabyz: result := TPetzPetSprite(classprop(self, $5e4)^);
   end;
 end;
 
@@ -564,6 +583,7 @@ begin
   case cpetzver of
    pvpetz5: result := TPetzDLGGlobals(rimports.get_dlgglobals);
    pvpetz4: result:= TPetzDLGGlobals(ptr($6371A0));
+   pvbabyz: result := TPetzDLGGlobals(ptr($7c4860));
    else raise exception.create('GetPetzDlgGlobals - Not supported!');
   end;
 end;

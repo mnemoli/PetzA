@@ -156,7 +156,7 @@ procedure dolog(const message: string);
 implementation
 
 uses setchildrenunit, mymessageunit, debugunit, gamespeedunit, typinfo, frmsettingsunit,
-  nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit;
+  nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit, System.StrUtils;
 
 {$WARN SYMBOL_PLATFORM OFF}
 {$WARN UNIT_PLATFORM OFF}
@@ -801,6 +801,38 @@ begin
   end;
 end;
 
+function setsavefilename(return, instance: pointer; strio: pansichar): bool; stdcall;
+  var pet: TPetzPetSprite;
+  var names: ansistring;
+  var timestamp: string;
+  var petlist: TObjectList;
+  var namelist: TStringList;
+begin
+  if petzdlgglobals.phototype = 2 then begin
+    petlist := tobjectlist.create(false);
+    namelist := tstringlist.create(TDuplicates.dupIgnore, true, false);
+    petzclassesman.findclassinstances(cnpetsprite, petlist);
+    for var t1 := 0 to petlist.count - 1 do begin
+      pet := TPetzPetSprite(TPetzClassInstance(petlist[t1]).instance);
+      namelist.add(pet.name);
+    end;
+    for var t1 := 0 to namelist.Count - 1 do begin
+      if length(names) > 0 then
+        names := names + '_' + namelist[t1]
+      else
+        names := namelist[t1];
+    end;
+  end else begin
+    pet := petzshlglobals.photopet;
+    names := pet.name;
+  end;
+  DateTimeToString(timestamp, 'yymmddhhnnss', Now());
+  var ext := RightStr(petza.fautopicsavepath, 4);
+  petza.fautopicsavepath := '%s\BabyPix\' + names + '-' + timestamp + ext;
+  strpcopy(strio, petza.fautopicsavepath);
+  result := true;
+end;
+
 function stripfileext(const s: ansistring): ansistring;
 begin
   result := copy(s, 1, length(s) - length(ExtractFileExt(s)));
@@ -957,12 +989,8 @@ begin
     pvbabyz: begin
 
         retargetcall(ptr($503F2B), @mypicgetsavefilename);
-
         retargetcall(ptr($503C03), @mywritedib);
-
-        p := ptr($503D33); //Babyz has a nice "Generate unique pic name" routine
-        VirtualProtect(p, 4, PAGE_EXECUTE_READWRITE, oldprotect);
-        ppointer(p)^ := @fautopicsavepath[1];
+        patchthiscall(ptr($503cd3), @setsavefilename);
       end;
   end;
 end;
@@ -1369,15 +1397,6 @@ begin
         patchcodebuf(p, sizeof(b), 6, b); //change to normal call
         retargetcall(p, @myclosehandlepatchpetz3german); //and point to our func. Note NOP spacing
       end;
-  end;
-
-  // Disable neglect accumulating from not taking pets out
-  case cpetzver of
-    pvpetz4: begin
-       p := ptr($4d4c65);
-       VirtualProtect(p, 1, PAGE_EXECUTE_READWRITE, oldprotect);
-       p^ := $EB; // replace with uncontrolled jump to skip neglect
-    end;
   end;
 
   installdispatchhook;
