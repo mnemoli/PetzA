@@ -104,6 +104,7 @@ type
     fshowheart, fnavvisible, fshownavigation: boolean;
     fnodiaperchanges, fbrainslidersontop, pendingrefresh: boolean;
     lastadoptpet, lastadoptpetslot: integer;
+    fusenewphotonameformat: boolean;
 
     procedure patchnodiaper;
     procedure patchnavigation;
@@ -120,6 +121,7 @@ type
     procedure setgamespeed(value: integer);
     procedure doenumtreebreeder(node: tpetzancestryinfo; list: tstringlist);
     procedure PatchResolutionCheck;
+    procedure setusenewphotonameformat(const Value: boolean);
   public
     brains: TObjectList;
     actionlist: Tactionlist;
@@ -127,6 +129,7 @@ type
     instantbirth, shownametags: boolean;
     brainageindex: integer;
     brainbarnames: array of string;
+    transparentphotos: boolean;
     function getInstallPath: string;
     procedure loadsettings;
     procedure savesettings;
@@ -144,12 +147,14 @@ type
     property brainslidersontop: boolean read fbrainslidersontop write setbrainslidersontop;
     property gamespeed: integer read fgamespeed write setgamespeed;
     property nodiaperchanges: boolean read fnodiaperchanges write setnodiaperchanges;
+    property usenewphotonameformat: boolean read fusenewphotonameformat write setusenewphotonameformat;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
 procedure petzwindowcreate(return, instance: pointer); stdcall;
 var petza: tpetza;
-  hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation, hresetstack: TPatchThiscall;
+  hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation, hresetstack,
+  photonamepatch, drawphotopatch: TPatchThiscall;
   logging: Boolean;
 procedure dolog(const message: string);
 
@@ -373,6 +378,15 @@ begin
   end;
 end;
 
+procedure TPetza.setusenewphotonameformat(const Value: boolean);
+begin
+  fusenewphotonameformat := Value;
+  if Value = false then begin
+    // reset filepath names
+    setcameraformat(fcameraformat);
+  end;
+end;
+
 procedure tpetza.setbrainslidersontop(value: Boolean);
 var t1: integer;
 begin
@@ -419,6 +433,10 @@ begin
         showheart := reg.readbool('ShowHeart');
       if reg.ValueExists('NoDiaperChanges') then
         nodiaperchanges := reg.ReadBool('NoDiaperChanges');
+      if reg.ValueExists('UseNewPhotoNameFormat') then
+        usenewphotonameformat := reg.ReadBool('UseNewPhotoNameFormat');
+      if reg.ValueExists('TransparentPhotos') then
+        transparentphotos := reg.ReadBool('TransparentPhotos');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -448,6 +466,8 @@ begin
       reg.WriteBool('ShowNavigation', shownavigation);
       reg.writebool('ShowHeart', showheart);
       reg.WriteBool('NoDiaperChanges', nodiaperchanges);
+      reg.WriteBool('UseNewPhotoNameFormat', usenewphotonameformat);
+      reg.WriteBool('TransparentPhotos', transparentphotos);
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
       reg.writeinteger(pre + '-GameSpeed', fgamespeed);
       reg.writebool(pre + '-UseProfiles', profilemanager.useprofiles);
@@ -735,12 +755,39 @@ begin
   refreshadptpet(nil);
 end;
 
+//function myopendib(filename: PAnsiChar): pointer; cdecl;
+//  var stream: TMemoryStream;
+//  var ext: string;
+//  var png: TPNGImage;
+//  var bmp: tbitmap;
+//  type fptr = function(filename:pansichar): pointer; cdecl;
+//  var origoutputptr: pointer;
+//begin
+//  origoutputptr := fptr(ptr($004767b0))(filename);
+//  ext := extractfileext(filename).ToUpper;
+//  try
+//    stream := tmemorystream.Create;
+//    try
+//      stream.LoadFromFile(filename);
+//      if ext = '.PNG' then begin
+//      end
+//      else if ext = '.BMP' then begin
+//      end;
+//    finally
+//    end;
+//  finally
+//    stream.free;
+//  end;
+//end;
+
 function mywritedib(filename: PAnsiChar; dib: HGlobal): longword; cdecl;
 var stream: TMemoryStream;
   p: pointer;
   bitmap: TNakedBitmapLoader;
   gif: tgifimage;
+  Ext: TGIFGraphicControlExtension;
   png: TPNGImage;
+  fileext: string;
 begin
   try
     stream := tmemorystream.create;
@@ -750,6 +797,7 @@ begin
         stream.Write(p^, GlobalSize(dib));
         stream.position := 0;
         bitmap := TNakedBitmapLoader.create;
+        fileext := uppercase(ExtractFileExt(filename));
         try
           bitmap.LoadNakedFromStream(stream);
 
@@ -759,6 +807,12 @@ begin
               gif.DitherMode := dmFloydSteinberg;
               gif.ColorReduction := rmQuantize;
               gif.Assign(bitmap);
+              if petza.transparentphotos then begin
+                // Create an extension to set the transparency flag
+                Ext := TGIFGraphicControlExtension.Create(gif.Images[0]);
+                Ext.Transparent := True;
+                Ext.TransparentColorIndex := 253;
+              end;
               gif.SaveToFile(filename);
             finally
               gif.free;
@@ -775,6 +829,8 @@ begin
                 try
                   png.CompressionLevel := 9;
                   png.Assign(bitmap);
+                  if petza.transparentphotos then
+                    png.TransparentColor := TColor($FF00FF);
                   png.SaveToFile(filename);
                 finally
                   png.free;
@@ -783,7 +839,6 @@ begin
                 gif.free;
               end;
             end else
-
               bitmap.savetofile(filename);
 
         finally
@@ -808,29 +863,46 @@ function setsavefilename(return, instance: pointer; strio: pansichar): bool; std
   var petlist: TObjectList;
   var namelist: TStringList;
 begin
-  if petzdlgglobals.phototype = 2 then begin
-    petlist := tobjectlist.create(false);
-    namelist := tstringlist.create(TDuplicates.dupIgnore, true, false);
-    petzclassesman.findclassinstances(cnpetsprite, petlist);
-    for var t1 := 0 to petlist.count - 1 do begin
-      pet := TPetzPetSprite(TPetzClassInstance(petlist[t1]).instance);
-      namelist.add(pet.name);
+  if petza.fusenewphotonameformat then begin
+    if petzdlgglobals.phototype = 2 then begin
+      petlist := tobjectlist.create(false);
+      namelist := tstringlist.create(TDuplicates.dupIgnore, true, false);
+      petzclassesman.findclassinstances(cnpetsprite, petlist);
+      for var t1 := 0 to petlist.count - 1 do begin
+        pet := TPetzPetSprite(TPetzClassInstance(petlist[t1]).instance);
+        namelist.add(pet.name);
+      end;
+      for var t1 := 0 to namelist.Count - 1 do begin
+        if length(names) > 0 then
+          names := names + '_' + namelist[t1]
+        else
+          names := namelist[t1];
+      end;
+    end else begin
+      pet := petzshlglobals.photopet;
+      names := pet.name;
     end;
-    for var t1 := 0 to namelist.Count - 1 do begin
-      if length(names) > 0 then
-        names := names + '_' + namelist[t1]
-      else
-        names := namelist[t1];
-    end;
-  end else begin
-    pet := petzshlglobals.photopet;
-    names := pet.name;
-  end;
-  DateTimeToString(timestamp, 'yymmddhhnnss', Now());
-  var ext := RightStr(petza.fautopicsavepath, 4);
-  petza.fautopicsavepath := '%s\BabyPix\' + names + '-' + timestamp + ext;
-  strpcopy(strio, petza.fautopicsavepath);
-  result := true;
+    DateTimeToString(timestamp, 'yymmddhhnnsszzz', Now());
+    var ext := RightStr(petza.fautopicsavepath, 4);
+    petza.fautopicsavepath := petzshlglobals.gamepath + '\BabyPix\' + names + '-' + timestamp + ext;
+    strpcopy(strio, petza.fautopicsavepath);
+    result := true;
+  end
+  else
+    result := bool(photonamepatch.callorigproc(instance, [cardinal(strio)]));
+end;
+
+function mydrawphotobabyz(return: pointer; stage: TPetzStage; pt1, pt2, hasbg: pointer): cardinal; stdcall;
+var bits: pbyte;
+var bitsnum: cardinal;
+begin
+  // would like to call orig and exit earlier if we have background, but
+  // delphi is doing something weird and always showing the hasbg bool as true
+  bits := stage.activedrawport.bits;
+  bitsnum := stage.activedrawport.numbits;
+  fillchar(bits^, bitsnum, 253);
+  // Note that original func has also been patched not to fill rect
+  result := drawphotopatch.callorigproc(stage, [cardinal(pt1), cardinal(pt2), cardinal(hasbg)]);
 end;
 
 function stripfileext(const s: ansistring): ansistring;
@@ -987,10 +1059,18 @@ begin
         ppointer(p)^ := @fautopicsavepath[1];
       end;
     pvbabyz: begin
-
+        drawphotopatch := patchthiscall(ptr($4f66fb), @mydrawphotobabyz);
+         var b: byte := byte(nop);
+        patchcodebuf(ptr($4f6745), 1, 9, b);
+        patchcodebuf(ptr($4f675c), 1, 3, b);
         retargetcall(ptr($503F2B), @mypicgetsavefilename);
         retargetcall(ptr($503C03), @mywritedib);
-        patchthiscall(ptr($503cd3), @setsavefilename);
+        //retargetcall(ptr($4fdc73), @myopendib);
+        photonamepatch := patchthiscall(ptr($503cd3), @setsavefilename);
+        //p := ptr($00502db9);
+        //fbabyzbookimageformat2 := '.png';
+        //VirtualProtect(p, 4, PAGE_EXECUTE_READWRITE, oldprotect);
+        //ppointer(p)^ := @fbabyzbookimageformat2[1];
       end;
   end;
 end;

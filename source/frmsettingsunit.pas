@@ -21,7 +21,9 @@ type
     chkInstantBirth: TCheckBox;
     lblCameraFormat: TLabel;
     cmbCameraFormat: TComboBox;
+    chkUsePhotonameFormat: TCheckBox;
     chkNoDiapers: TCheckBox;
+    chkTransparentPhotos: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -67,6 +69,8 @@ begin
   petza.brainslidersontop := chkBrainSliders.checked;
   petza.CameraFormat := TCameraFormat(cmbCameraFormat.itemindex);
   petza.shownavigation := not chkHideNavigation.checked;
+  petza.usenewphotonameformat := chkUsePhotonameFormat.Checked;
+  petza.transparentphotos := chkTransparentPhotos.Checked;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -83,6 +87,8 @@ begin
   cmbCameraFormat.itemindex := integer(petza.CameraFormat);
   chkHideNavigation.Checked := not petza.shownavigation;
   chkshowheart.checked := petza.showheart;
+  chkUsePhotonameFormat.checked := petza.usenewphotonameformat;
+  chkTransparentPhotos.Checked := petza.transparentphotos;
 
   chkshowheart.enabled := cpetzver in verBreeding;
   chkHideNavigation.Enabled := cpetzver = pvBabyz;

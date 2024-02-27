@@ -133,9 +133,11 @@ type
   TPetzSHLGlobals = class
   private
     function getphotopet: TPetzPetSprite;
+    function getgamepath: ansistring;
   public
     function mainwindow: hwnd;
     property photopet: TPetzPetSprite read getphotopet;
+    property gamepath: ansistring read getgamepath;
   end;
 
   TPetzClassHook = class
@@ -166,6 +168,22 @@ type
     constructor create;
     destructor Destroy; override;
     property onClassChange: tonclasschangeevent read fonclasschange write fonclasschange;
+  end;
+
+  TPetzDrawport = class
+  private
+    function getbits: pbyte;
+    function getnumbits: cardinal;
+  public
+    property bits: pbyte read getbits;
+    property numbits: cardinal read getnumbits;
+  end;
+
+  TPetzStage = class
+  private
+    function getactivedrawport: TPetzDrawport;
+  public
+    property activedrawport: TPetzDrawport read getactivedrawport;
   end;
 
 (*procedure mypetzapp_dodrawframe(ecx: pointer); stdcall;*)
@@ -558,6 +576,13 @@ begin
   end;
 end;
 
+function TPetzSHLGlobals.getgamepath: ansistring;
+var p: PAnsiChar;
+begin
+  p := PAnsiChar(classprop(self, 56));
+  result := p;
+end;
+
 function TPetzSHLGlobals.getphotopet: TPetzPetSprite;
 begin
   case cpetzver of
@@ -582,8 +607,8 @@ function petzdlgglobals: Tpetzdlgglobals;
 begin
   case cpetzver of
    pvpetz5: result := TPetzDLGGlobals(rimports.get_dlgglobals);
-   pvpetz4: result:= TPetzDLGGlobals(ptr($6371A0));
-   pvbabyz: result := TPetzDLGGlobals(ptr($7c4860));
+   pvpetz4: result := TPetzDLGGlobals(ptr($6371A0));
+   pvbabyz: result := TPetzDLGGlobals(ppointer($7c4860)^);
    else raise exception.create('GetPetzDlgGlobals - Not supported!');
   end;
 end;
@@ -1304,6 +1329,25 @@ destructor tpetzclassesman.destroy;
 begin
   finstances.free;
   fhooks.free;
+end;
+
+{ TPetzStage }
+
+function TPetzStage.getactivedrawport: TPetzDrawport;
+begin
+  result := TPetzDrawport(ppointer(classprop(self, 12))^);
+end;
+
+{ TPetzDrawport }
+
+function TPetzDrawport.getbits: pbyte;
+begin
+  result := ppointer(classprop(self, 148))^;
+end;
+
+function TPetzDrawport.getnumbits: cardinal;
+begin
+  result := pcardinal(classprop(self, 32))^;
 end;
 
 initialization
