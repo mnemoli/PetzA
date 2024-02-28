@@ -18,6 +18,7 @@ type
     Label5: TLabel;
     Label6: TLabel;
     XMLDocument1: TXMLDocument;
+    Label7: TLabel;
     procedure Button1Click(Sender: TObject);
     procedure Label4Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
@@ -70,7 +71,7 @@ begin
     setlength(s, 500);
     setlength(s, GetModuleFileName(hinstance, pchar(s), length(s)));
     rs.GetFileVersion(s);
-    label1.caption := petzvername(cpetzver) + ' (V' + inttostr(rs.Major) + '.' + inttostr(rs.minor) + '.' + inttostr(rs.Release) + ') was developed by Nicholas Sherlock';
+    label1.caption := 'BABYZ-'+petzvername(cpetzver) + ' (V' + inttostr(rs.Major) + '.' + inttostr(rs.minor) + '.' + inttostr(rs.Release) + ') released by Prism Mirror Lens';
 
   finally
     rs.free;
@@ -88,4 +89,5 @@ begin
 end;
 
 end.
+
 

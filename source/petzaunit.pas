@@ -755,31 +755,6 @@ begin
   refreshadptpet(nil);
 end;
 
-//function myopendib(filename: PAnsiChar): pointer; cdecl;
-//  var stream: TMemoryStream;
-//  var ext: string;
-//  var png: TPNGImage;
-//  var bmp: tbitmap;
-//  type fptr = function(filename:pansichar): pointer; cdecl;
-//  var origoutputptr: pointer;
-//begin
-//  origoutputptr := fptr(ptr($004767b0))(filename);
-//  ext := extractfileext(filename).ToUpper;
-//  try
-//    stream := tmemorystream.Create;
-//    try
-//      stream.LoadFromFile(filename);
-//      if ext = '.PNG' then begin
-//      end
-//      else if ext = '.BMP' then begin
-//      end;
-//    finally
-//    end;
-//  finally
-//    stream.free;
-//  end;
-//end;
-
 function mywritedib(filename: PAnsiChar; dib: HGlobal): longword; cdecl;
 var stream: TMemoryStream;
   p: pointer;
@@ -799,9 +774,9 @@ begin
         bitmap := TNakedBitmapLoader.create;
         fileext := uppercase(ExtractFileExt(filename));
         try
-          bitmap.LoadNakedFromStream(stream);
+          bitmap.LoadNakedFromStream(stream, fileext = '.BMP');
 
-          if uppercase(ExtractFileExt(filename)) = '.GIF' then begin
+          if fileext = '.GIF' then begin
             gif := TGIFImage.Create;
             try
               gif.DitherMode := dmFloydSteinberg;
@@ -817,30 +792,38 @@ begin
             finally
               gif.free;
             end;
-          end else
-            if uppercase(ExtractFileExt(filename)) = '.PNG' then begin
-              gif := TGIFImage.Create;
+          end
+          else if fileext = '.PNG' then begin
+            gif := TGIFImage.Create;
+            try
+              gif.DitherMode := dmFloydSteinberg;
+              gif.ColorReduction := rmQuantize;
+              gif.Assign(bitmap);
+              bitmap.assign(gif);
+              png := TPNGImage.Create;
               try
-                gif.DitherMode := dmFloydSteinberg;
-                gif.ColorReduction := rmQuantize;
-                gif.Assign(bitmap);
-                bitmap.assign(gif);
-                png := TPNGImage.Create;
-                try
-                  png.CompressionLevel := 9;
-                  png.Assign(bitmap);
-                  if petza.transparentphotos then
-                    png.TransparentColor := TColor($FF00FF);
-                  png.SaveToFile(filename);
-                finally
-                  png.free;
-                end;
+                png.CompressionLevel := 9;
+                png.Assign(bitmap);
+                if petza.transparentphotos then
+                  png.TransparentColor := TColor($FF00FF);
+                png.SaveToFile(filename);
               finally
-                gif.free;
+                png.free;
               end;
-            end else
-              bitmap.savetofile(filename);
-
+            finally
+              gif.free;
+            end;
+          end
+          else begin
+            bitmap.savetofile(filename);
+            if (string(filename).Contains('Baby Book')) and (petza.fcameraformat <> TCameraFormat.cfBMP) then begin
+              var f := string(filename);
+              var x := string(RightStr(petza.fautopicsavepath, 4));
+              var a := f + x;
+              var pp: ansistring := a;
+              mywritedib(pansichar(pp), dib);
+            end;
+          end;
         finally
           bitmap.free;
         end;
@@ -1065,12 +1048,7 @@ begin
         patchcodebuf(ptr($4f675c), 1, 3, b);
         retargetcall(ptr($503F2B), @mypicgetsavefilename);
         retargetcall(ptr($503C03), @mywritedib);
-        //retargetcall(ptr($4fdc73), @myopendib);
         photonamepatch := patchthiscall(ptr($503cd3), @setsavefilename);
-        //p := ptr($00502db9);
-        //fbabyzbookimageformat2 := '.png';
-        //VirtualProtect(p, 4, PAGE_EXECUTE_READWRITE, oldprotect);
-        //ppointer(p)^ := @fbabyzbookimageformat2[1];
       end;
   end;
 end;
