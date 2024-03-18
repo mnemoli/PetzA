@@ -16,14 +16,12 @@ type
     chkNameTags: TCheckBox;
     btnHelp: TButton;
     chkHideNavigation: TCheckBox;
-    GroupBox1: TGroupBox;
-    chkShowHeart: TCheckBox;
-    chkInstantBirth: TCheckBox;
     lblCameraFormat: TLabel;
     cmbCameraFormat: TComboBox;
     chkUsePhotonameFormat: TCheckBox;
     chkNoDiapers: TCheckBox;
     chkTransparentPhotos: TCheckBox;
+    chkStopWalking: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -60,8 +58,6 @@ end;
 
 procedure TfrmSettings.btnOkClick(Sender: TObject);
 begin
-  petza.showheart := chkshowheart.checked;
-  petza.instantbirth := chkInstantBirth.checked;
   petza.shownametags := chkNameTags.checked;
   if (not chkNoDiapers.checked) and petza.nodiaperchanges then
    showmessage('You must restart Babyz for diaper changing to return to normal');
@@ -71,6 +67,7 @@ begin
   petza.shownavigation := not chkHideNavigation.checked;
   petza.usenewphotonameformat := chkUsePhotonameFormat.Checked;
   petza.transparentphotos := chkTransparentPhotos.Checked;
+  petza.stopwalking := chkStopWalking.Checked;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -83,18 +80,16 @@ begin
   chkBrainSliders.checked := petza.brainslidersontop;
   chkNameTags.checked := petza.shownametags;
   chkNoDiapers.checked := petza.nodiaperchanges;
-  chkInstantBirth.Checked := petza.instantbirth;
   cmbCameraFormat.itemindex := integer(petza.CameraFormat);
   chkHideNavigation.Checked := not petza.shownavigation;
-  chkshowheart.checked := petza.showheart;
   chkUsePhotonameFormat.checked := petza.usenewphotonameformat;
   chkTransparentPhotos.Checked := petza.transparentphotos;
+  chkStopWalking.Checked := petza.stopwalking;
 
-  chkshowheart.enabled := cpetzver in verBreeding;
   chkHideNavigation.Enabled := cpetzver = pvBabyz;
   chkNameTags.Enabled := cpetzver = pvpetz5;
   chkNoDiapers.enabled:=cpetzver = pvBabyz;
-  chkInstantBirth.Enabled := assigned(rimports.petsprite_isoffspringdue);
+  chkStopWalking.Enabled := cpetzver = pvBabyz;
   lblCameraFormat.enabled := cpetzver in verCamera;
   cmbCameraFormat.enabled := cpetzver in verCamera;
 end;

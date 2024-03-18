@@ -105,6 +105,7 @@ type
     fnodiaperchanges, fbrainslidersontop, pendingrefresh: boolean;
     lastadoptpet, lastadoptpetslot: integer;
     fusenewphotonameformat: boolean;
+    fstopwalking: boolean;
 
     procedure patchnodiaper;
     procedure patchnavigation;
@@ -122,6 +123,7 @@ type
     procedure doenumtreebreeder(node: tpetzancestryinfo; list: tstringlist);
     procedure PatchResolutionCheck;
     procedure setusenewphotonameformat(const Value: boolean);
+    procedure setstopwalking(const Value: boolean);
   public
     brains: TObjectList;
     actionlist: Tactionlist;
@@ -148,6 +150,7 @@ type
     property gamespeed: integer read fgamespeed write setgamespeed;
     property nodiaperchanges: boolean read fnodiaperchanges write setnodiaperchanges;
     property usenewphotonameformat: boolean read fusenewphotonameformat write setusenewphotonameformat;
+    property stopwalking: boolean read fstopwalking write setstopwalking;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -378,6 +381,20 @@ begin
   end;
 end;
 
+procedure TPetza.setstopwalking(const Value: boolean);
+var data: array[0..1] of byte;
+begin
+  fstopwalking := Value;
+  if Value = true then begin
+    var b := nop;
+    patchcodebuf(ptr($005501ee), 1, 2, b);
+  end else begin
+    data[0] := $74;
+    data[1] := $07;
+    patchcodebuf(ptr($005501ee), 2, 2, data);
+  end;
+end;
+
 procedure TPetza.setusenewphotonameformat(const Value: boolean);
 begin
   fusenewphotonameformat := Value;
@@ -437,6 +454,9 @@ begin
         usenewphotonameformat := reg.ReadBool('UseNewPhotoNameFormat');
       if reg.ValueExists('TransparentPhotos') then
         transparentphotos := reg.ReadBool('TransparentPhotos');
+      if reg.ValueExists('StopWalking') then
+        stopwalking := reg.ReadBool('StopWalking');
+
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -468,6 +488,7 @@ begin
       reg.WriteBool('NoDiaperChanges', nodiaperchanges);
       reg.WriteBool('UseNewPhotoNameFormat', usenewphotonameformat);
       reg.WriteBool('TransparentPhotos', transparentphotos);
+      reg.WriteBool('StopWalking', stopwalking);
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
       reg.writeinteger(pre + '-GameSpeed', fgamespeed);
       reg.writebool(pre + '-UseProfiles', profilemanager.useprofiles);

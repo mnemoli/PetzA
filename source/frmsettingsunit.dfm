@@ -34,7 +34,7 @@ object frmSettings: TfrmSettings
     Caption = 'Camera picture format:'
   end
   object btnCancel: TButton
-    Left = 246
+    Left = 242
     Top = 150
     Width = 67
     Height = 25
@@ -42,12 +42,12 @@ object frmSettings: TfrmSettings
     Cancel = True
     Caption = 'Cancel'
     ModalResult = 2
-    TabOrder = 7
-    ExplicitLeft = 242
+    TabOrder = 6
+    ExplicitLeft = 238
     ExplicitTop = 149
   end
   object btnOk: TButton
-    Left = 174
+    Left = 170
     Top = 150
     Width = 68
     Height = 25
@@ -55,9 +55,9 @@ object frmSettings: TfrmSettings
     Caption = 'Ok'
     Default = True
     ModalResult = 1
-    TabOrder = 6
+    TabOrder = 5
     OnClick = btnOkClick
-    ExplicitLeft = 170
+    ExplicitLeft = 166
     ExplicitTop = 149
   end
   object chkBrainSliders: TCheckBox
@@ -71,15 +71,15 @@ object frmSettings: TfrmSettings
     TabOrder = 0
   end
   object Button3: TButton
-    Left = -2
+    Left = -6
     Top = 150
     Width = 169
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Reset hidden warning messages'
-    TabOrder = 10
+    TabOrder = 9
     OnClick = Button3Click
-    ExplicitLeft = -6
+    ExplicitLeft = -10
     ExplicitTop = 149
   end
   object chkNameTags: TCheckBox
@@ -91,15 +91,15 @@ object frmSettings: TfrmSettings
     TabOrder = 1
   end
   object btnHelp: TButton
-    Left = 318
+    Left = 314
     Top = 150
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Help'
-    TabOrder = 8
+    TabOrder = 7
     OnClick = btnHelpClick
-    ExplicitLeft = 314
+    ExplicitLeft = 310
     ExplicitTop = 149
   end
   object chkHideNavigation: TCheckBox
@@ -109,30 +109,6 @@ object frmSettings: TfrmSettings
     Height = 17
     Caption = 'Hide Babyz navigation bar'
     TabOrder = 2
-  end
-  object GroupBox1: TGroupBox
-    Left = 8
-    Top = 80
-    Width = 217
-    Height = 57
-    Caption = 'Mating'
-    TabOrder = 5
-    object chkShowHeart: TCheckBox
-      Left = 8
-      Top = 32
-      Width = 201
-      Height = 17
-      Caption = 'Show love heart when mating'
-      TabOrder = 1
-    end
-    object chkInstantBirth: TCheckBox
-      Left = 8
-      Top = 16
-      Width = 201
-      Height = 17
-      Caption = 'Babies should be born instantly'
-      TabOrder = 0
-    end
   end
   object cmbCameraFormat: TComboBox
     Left = 232
@@ -154,7 +130,7 @@ object frmSettings: TfrmSettings
     Caption = 'New photo name format'
     Checked = True
     State = cbChecked
-    TabOrder = 9
+    TabOrder = 8
   end
   object chkNoDiapers: TCheckBox
     Left = 8
@@ -173,6 +149,15 @@ object frmSettings: TfrmSettings
     Caption = 'Transparent photos (gif/png)'
     Checked = True
     State = cbChecked
+    TabOrder = 10
+  end
+  object chkStopWalking: TCheckBox
+    Left = 8
+    Top = 72
+    Width = 201
+    Height = 17
+    Caption = 'Stop Babyz walking'
+    Enabled = False
     TabOrder = 11
   end
 end
