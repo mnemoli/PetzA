@@ -452,8 +452,8 @@ begin
         nodiaperchanges := reg.ReadBool('NoDiaperChanges');
       if reg.ValueExists('UseNewPhotoNameFormat') then
         usenewphotonameformat := reg.ReadBool('UseNewPhotoNameFormat');
-      if reg.ValueExists('TransparentPhotos') then
-        transparentphotos := reg.ReadBool('TransparentPhotos');
+      if reg.ValueExists('TransparentPhotos-Babyz') then
+        transparentphotos := reg.ReadBool('TransparentPhotos-Babyz');
       if reg.ValueExists('StopWalking') then
         stopwalking := reg.ReadBool('StopWalking');
 
@@ -487,7 +487,7 @@ begin
       reg.writebool('ShowHeart', showheart);
       reg.WriteBool('NoDiaperChanges', nodiaperchanges);
       reg.WriteBool('UseNewPhotoNameFormat', usenewphotonameformat);
-      reg.WriteBool('TransparentPhotos', transparentphotos);
+      reg.WriteBool('TransparentPhotos-Babyz', transparentphotos);
       reg.WriteBool('StopWalking', stopwalking);
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
       reg.writeinteger(pre + '-GameSpeed', fgamespeed);
