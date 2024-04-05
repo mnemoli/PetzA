@@ -91,6 +91,13 @@ uses sysutils, windows, classes, messages, contnrs, mymenuunit, dllpatchunit, bn
 
 const petzakeyname = '\Software\Sherlock Software\PetzA';
 
+type TEyeballData = record
+  xballz: pointer;
+  ballstate: pointer;
+  posrotinfo: pointer;
+  irisno: integer;
+end;
+
 type
   TCameraFormat = (cfBMP, cfGIF, cfPNG); //Don't change order without updating settings combo
   TPetzaPlaymode = (pmStandard, pmServer, pmClient);
@@ -107,7 +114,6 @@ type
     fusenewphotonameformat: boolean;
     fstopwalking: boolean;
 
-    procedure patchnodiaper;
     procedure patchnavigation;
     procedure installclasscreationhooks;
     procedure installdispatchhook;
@@ -131,6 +137,7 @@ type
     instantbirth, shownametags: boolean;
     brainageindex: integer;
     brainbarnames: array of string;
+    eyeballdata: TEyeballData;
     transparentphotos: boolean;
     function getInstallPath: string;
     procedure loadsettings;
@@ -157,7 +164,7 @@ procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
 procedure petzwindowcreate(return, instance: pointer); stdcall;
 var petza: tpetza;
   hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation, hresetstack,
-  photonamepatch, drawphotopatch: TPatchThiscall;
+  photonamepatch, drawphotopatch, draweyeballpatch: TPatchThiscall;
   logging: Boolean;
 procedure dolog(const message: string);
 
@@ -324,13 +331,16 @@ begin
 end;
 
 procedure tpetza.setnodiaperchanges(value: Boolean);
+var data: array[0..2] of byte;
 begin
-  if fnodiaperchanges <> value then begin
-
-    if value and (cpetzver = pvBabyz) then
-      patchnodiaper;
-
-    fnodiaperchanges := value;
+  fnodiaperchanges := Value;
+  if Value = true then begin
+    var b := nop;
+    patchcodebuf(ptr($54bb94), 1, 2, b);
+  end else begin
+    data[0] := $7e;
+    data[1] := $07;
+    patchcodebuf(ptr($54bb94), 2, 2, data);
   end;
 end;
 
@@ -774,6 +784,38 @@ end;
 procedure tpetza.refreshadptpetwrap(sender: tobject);
 begin
   refreshadptpet(nil);
+end;
+
+function mydrawiris(circlerenderblock: pointer): bool; stdcall;
+var thisptr: pointer;
+begin
+  asm
+    mov thisptr, ecx;
+  end;
+  thiscall(petza.eyeballdata.xballz, ptr($0048b33a), [cardinal(circlerenderblock),
+  cardinal(petza.eyeballdata.ballstate), cardinal(petza.eyeballdata.posrotinfo),
+  petza.eyeballdata.irisno]);
+  var t := thiscall(thisptr, ptr($004a5b8b), [cardinal(circlerenderblock)]);
+  result := boolean(t);
+end;
+
+procedure mydraweyeball(return, instance, drawportin, ballframeex, ballstatein: pointer;
+ballid: integer; outerrenderblock: pointer;
+ballsize: integer; center: pointer); stdcall; begin
+  var irisnox: integer;
+  var lnz := ppointer(classprop(instance, $184))^;
+  if(ballid = pinteger(classprop(lnz, $ac4))^) then
+    irisnox := pinteger(classprop(lnz, $acc))^
+  else
+    irisnox := pinteger(classprop(lnz, $ac8))^;
+  with petza.eyeballdata do begin
+    xballz := instance;
+    ballstate := ballstatein;
+    irisno := irisnox;
+    posrotinfo := classprop(ballframeex, $67c);
+  end;
+  draweyeballpatch.callorigproc(instance, [cardinal(drawportin), cardinal(ballframeex),
+  cardinal(ballstatein), ballid, cardinal(outerrenderblock), ballsize, cardinal(center)]);
 end;
 
 function mywritedib(filename: PAnsiChar; dib: HGlobal): longword; cdecl;
@@ -1306,19 +1348,6 @@ begin
   end;
 end;
 
-procedure mysetdiaperstatus(return, instance: pointer; status: Integer); stdcall;
-begin
-  thiscall(instance, rimports.scriptsprite_setdiaperstatus, [0]);
-
-  pbyte(classprop(ppointer(classprop(instance, $7560))^, $9545C))^ := 0;
-  plongword(classprop(instance, $46F0))^ := 0;
-end;
-
-procedure tpetza.patchnodiaper;
-begin
-  patchthiscall(ptr($590B8B), @mysetdiaperstatus);
-end;
-
 constructor tpetza.create;
 type ppointer = ^pointer;
 var oldprotect: cardinal;
@@ -1476,6 +1505,15 @@ begin
         patchcodebuf(p, sizeof(b), 6, b); //change to normal call
         retargetcall(p, @myclosehandlepatchpetz3german); //and point to our func. Note NOP spacing
       end;
+  end;
+
+  // Patch iris drawing for texturing
+  case cpetzver of
+    pvbabyz: begin
+      retargetcall(ptr($0048f3c6), @mydrawiris);
+      retargetcall(ptr($0048e930), @mydrawiris);
+      draweyeballpatch := patchthiscall(rimports.xballz_draweyeball, @mydraweyeball);
+    end;
   end;
 
   installdispatchhook;
