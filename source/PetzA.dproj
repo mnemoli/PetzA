@@ -182,6 +182,10 @@
             <ResourceType>BITMAP</ResourceType>
             <ResourceId>PalettePastel</ResourceId>
         </RcItem>
+        <RcItem Include="..\palettes\babyzpalette.bmp">
+            <ResourceType>BITMAP</ResourceType>
+            <ResourceId>PaletteBabyz</ResourceId>
+        </RcItem>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

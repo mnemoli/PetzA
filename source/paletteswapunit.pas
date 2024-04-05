@@ -8,7 +8,7 @@ procedure loadpalettes;
 
 implementation
 
-const palettenamelist: array[0..1] of string = ('PaletteOddballz', 'PalettePastel');
+const palettenamelist: array[0..2] of string = ('PaletteOddballz', 'PalettePastel', 'PaletteBabyz');
 
 procedure loadpalettes;
   var palettebmp: TBitmap;
@@ -19,16 +19,14 @@ begin
   fpal.palNumEntries := 256;
   fpal.palVersion := $300;
   palettebmp := TBitmap.Create();
-  for var i := 0 to 1 do begin
+  for var i := 0 to 2 do begin
     var thispalette: tgamepalette;
     palettebmp.LoadFromResourceName(hinstance, palettenamelist[i]);
     GetPaletteEntries(palettebmp.Palette, 0, 256, fpal.palPalEntry[0]);
-    for var j := 0 to 15 do
+    for var j := 0 to 255 do
       begin
-        for var k := 0 to 15 do begin
-          var color: TColor := palettebmp.canvas.Pixels[k, j];
-          thispalette[(j * 16) + k] := getrvalue(color) shl 16 + getgvalue(color) shl 8 + getbvalue(color);
-        end;
+        var color := fpal.palPalEntry[j];
+        thispalette[j] := color.peRed shl 16 + color.peGreen shl 8 + color.peBlue;
       end;
     palettes.AddOrSetValue(i, thispalette);
   end;
