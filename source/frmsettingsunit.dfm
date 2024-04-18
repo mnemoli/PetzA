@@ -34,7 +34,7 @@ object frmSettings: TfrmSettings
     Caption = 'Camera picture format:'
   end
   object btnCancel: TButton
-    Left = 242
+    Left = 238
     Top = 150
     Width = 67
     Height = 25
@@ -43,11 +43,11 @@ object frmSettings: TfrmSettings
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 6
-    ExplicitLeft = 238
+    ExplicitLeft = 234
     ExplicitTop = 149
   end
   object btnOk: TButton
-    Left = 170
+    Left = 166
     Top = 150
     Width = 68
     Height = 25
@@ -57,7 +57,7 @@ object frmSettings: TfrmSettings
     ModalResult = 1
     TabOrder = 5
     OnClick = btnOkClick
-    ExplicitLeft = 166
+    ExplicitLeft = 162
     ExplicitTop = 149
   end
   object chkBrainSliders: TCheckBox
@@ -71,7 +71,7 @@ object frmSettings: TfrmSettings
     TabOrder = 0
   end
   object Button3: TButton
-    Left = -6
+    Left = -10
     Top = 150
     Width = 169
     Height = 25
@@ -79,7 +79,7 @@ object frmSettings: TfrmSettings
     Caption = 'Reset hidden warning messages'
     TabOrder = 9
     OnClick = Button3Click
-    ExplicitLeft = -10
+    ExplicitLeft = -14
     ExplicitTop = 149
   end
   object chkNameTags: TCheckBox
@@ -91,7 +91,7 @@ object frmSettings: TfrmSettings
     TabOrder = 1
   end
   object btnHelp: TButton
-    Left = 314
+    Left = 310
     Top = 150
     Width = 68
     Height = 25
@@ -99,7 +99,7 @@ object frmSettings: TfrmSettings
     Caption = 'Help'
     TabOrder = 7
     OnClick = btnHelpClick
-    ExplicitLeft = 310
+    ExplicitLeft = 306
     ExplicitTop = 149
   end
   object chkHideNavigation: TCheckBox
@@ -159,5 +159,13 @@ object frmSettings: TfrmSettings
     Caption = 'Stop Babyz walking'
     Enabled = False
     TabOrder = 11
+  end
+  object chkTexturedIrises: TCheckBox
+    Left = 8
+    Top = 89
+    Width = 201
+    Height = 17
+    Caption = 'Enable textured irises'
+    TabOrder = 12
   end
 end

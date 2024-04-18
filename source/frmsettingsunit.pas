@@ -22,6 +22,7 @@ type
     chkNoDiapers: TCheckBox;
     chkTransparentPhotos: TCheckBox;
     chkStopWalking: TCheckBox;
+    chkTexturedIrises: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -68,6 +69,7 @@ begin
   petza.usenewphotonameformat := chkUsePhotonameFormat.Checked;
   petza.transparentphotos := chkTransparentPhotos.Checked;
   petza.stopwalking := chkStopWalking.Checked;
+  petza.texturedirises := chkTexturedIrises.Checked;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -85,6 +87,7 @@ begin
   chkUsePhotonameFormat.checked := petza.usenewphotonameformat;
   chkTransparentPhotos.Checked := petza.transparentphotos;
   chkStopWalking.Checked := petza.stopwalking;
+  chkTexturedIrises.Checked := petza.texturedirises;
 
   chkHideNavigation.Enabled := cpetzver = pvBabyz;
   chkNameTags.Enabled := cpetzver = pvpetz5;

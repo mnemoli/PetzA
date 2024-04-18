@@ -113,6 +113,7 @@ type
     lastadoptpet, lastadoptpetslot: integer;
     fusenewphotonameformat: boolean;
     fstopwalking: boolean;
+    ftexturedirises: boolean;
 
     procedure patchnavigation;
     procedure installclasscreationhooks;
@@ -130,6 +131,7 @@ type
     procedure PatchResolutionCheck;
     procedure setusenewphotonameformat(const Value: boolean);
     procedure setstopwalking(const Value: boolean);
+    procedure settexturedirises(const Value: boolean);
   public
     brains: TObjectList;
     actionlist: Tactionlist;
@@ -158,6 +160,7 @@ type
     property nodiaperchanges: boolean read fnodiaperchanges write setnodiaperchanges;
     property usenewphotonameformat: boolean read fusenewphotonameformat write setusenewphotonameformat;
     property stopwalking: boolean read fstopwalking write setstopwalking;
+    property texturedirises: boolean read ftexturedirises write settexturedirises;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -405,6 +408,57 @@ begin
   end;
 end;
 
+function mydrawiris(circlerenderblock: pointer): bool; stdcall;
+var thisptr: pointer;
+begin
+  asm
+    mov thisptr, ecx;
+  end;
+  thiscall(petza.eyeballdata.xballz, ptr($0048b33a), [cardinal(circlerenderblock),
+  cardinal(petza.eyeballdata.ballstate), cardinal(petza.eyeballdata.posrotinfo),
+  petza.eyeballdata.irisno]);
+  var t := thiscall(thisptr, ptr($004a5b8b), [cardinal(circlerenderblock)]);
+  result := boolean(t);
+end;
+
+procedure mydraweyeball(return, instance, drawportin, ballframeex, ballstatein: pointer;
+ballid: integer; outerrenderblock: pointer;
+ballsize: integer; center: pointer); stdcall; begin
+  var irisnox: integer;
+  var lnz := ppointer(classprop(instance, $184))^;
+  if(ballid = pinteger(classprop(lnz, $ac4))^) then
+    irisnox := pinteger(classprop(lnz, $acc))^
+  else
+    irisnox := pinteger(classprop(lnz, $ac8))^;
+  with petza.eyeballdata do begin
+    xballz := instance;
+    ballstate := ballstatein;
+    irisno := irisnox;
+    posrotinfo := classprop(ballframeex, $67c);
+  end;
+  draweyeballpatch.callorigproc(instance, [cardinal(drawportin), cardinal(ballframeex),
+  cardinal(ballstatein), ballid, cardinal(outerrenderblock), ballsize, cardinal(center)]);
+end;
+
+procedure TPetza.settexturedirises(const Value: boolean);
+begin
+  if value <> ftexturedirises then begin
+    ftexturedirises := Value;
+    if value then begin
+      retargetcall(ptr($0048f3c6), @mydrawiris);
+      retargetcall(ptr($0048e930), @mydrawiris);
+      if assigned(draweyeballpatch) then
+        draweyeballpatch.patch
+      else
+        draweyeballpatch := patchthiscall(rimports.xballz_draweyeball, @mydraweyeball);
+    end else begin
+      retargetcall(ptr($0048f3c6), ptr($004a5b8b));
+      retargetcall(ptr($0048e930), ptr($004a5b8b));
+      draweyeballpatch.restore;
+    end;
+  end;
+end;
+
 procedure TPetza.setusenewphotonameformat(const Value: boolean);
 begin
   fusenewphotonameformat := Value;
@@ -467,13 +521,14 @@ begin
       if reg.ValueExists('StopWalking') then
         stopwalking := reg.ReadBool('StopWalking');
 
-
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
       if reg.valueexists(pre + '-GameSpeed') then
         fgamespeed := reg.readinteger(pre + '-GameSpeed');
       if reg.valueexists(pre + '-UseProfiles') then
         profilemanager.useprofiles := reg.readbool(pre + '-UseProfiles');
+      if reg.ValueExists(pre + 'TexturedIrises') then
+        texturedirises := reg.ReadBool(pre + 'TexturedIrises');
     end;
   finally
     reg.free;
@@ -502,6 +557,7 @@ begin
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
       reg.writeinteger(pre + '-GameSpeed', fgamespeed);
       reg.writebool(pre + '-UseProfiles', profilemanager.useprofiles);
+      reg.WriteBool(pre + 'TexturedIrises', texturedirises);
     end;
   finally
     reg.free;
@@ -784,38 +840,6 @@ end;
 procedure tpetza.refreshadptpetwrap(sender: tobject);
 begin
   refreshadptpet(nil);
-end;
-
-function mydrawiris(circlerenderblock: pointer): bool; stdcall;
-var thisptr: pointer;
-begin
-  asm
-    mov thisptr, ecx;
-  end;
-  thiscall(petza.eyeballdata.xballz, ptr($0048b33a), [cardinal(circlerenderblock),
-  cardinal(petza.eyeballdata.ballstate), cardinal(petza.eyeballdata.posrotinfo),
-  petza.eyeballdata.irisno]);
-  var t := thiscall(thisptr, ptr($004a5b8b), [cardinal(circlerenderblock)]);
-  result := boolean(t);
-end;
-
-procedure mydraweyeball(return, instance, drawportin, ballframeex, ballstatein: pointer;
-ballid: integer; outerrenderblock: pointer;
-ballsize: integer; center: pointer); stdcall; begin
-  var irisnox: integer;
-  var lnz := ppointer(classprop(instance, $184))^;
-  if(ballid = pinteger(classprop(lnz, $ac4))^) then
-    irisnox := pinteger(classprop(lnz, $acc))^
-  else
-    irisnox := pinteger(classprop(lnz, $ac8))^;
-  with petza.eyeballdata do begin
-    xballz := instance;
-    ballstate := ballstatein;
-    irisno := irisnox;
-    posrotinfo := classprop(ballframeex, $67c);
-  end;
-  draweyeballpatch.callorigproc(instance, [cardinal(drawportin), cardinal(ballframeex),
-  cardinal(ballstatein), ballid, cardinal(outerrenderblock), ballsize, cardinal(center)]);
 end;
 
 function mywritedib(filename: PAnsiChar; dib: HGlobal): longword; cdecl;
@@ -1507,15 +1531,6 @@ begin
       end;
   end;
 
-  // Patch iris drawing for texturing
-  case cpetzver of
-    pvbabyz: begin
-      retargetcall(ptr($0048f3c6), @mydrawiris);
-      retargetcall(ptr($0048e930), @mydrawiris);
-      draweyeballpatch := patchthiscall(rimports.xballz_draweyeball, @mydraweyeball);
-    end;
-  end;
-
   installdispatchhook;
 
   patchcamera;
@@ -1915,11 +1930,11 @@ end;
 
 procedure handleareaclick(sender: TMyMenuItem);
 var area: pointer;
-  s: string;
+  s: ansistring;
 begin
   s := sender.name;
   if length(s) = 0 then exit;
-  area := pointer(thiscall(petzoberon, rimports.oberon_getarea, [cardinal(pchar(s))]));
+  area := pointer(thiscall(petzoberon, rimports.oberon_getarea, [cardinal(pansichar(s))]));
   if area = nil then
     showmessage('Sorry, the playscene (' + sender.name + ') hasn''t been loaded by Babyz, there must be a problem with it.')
   else
