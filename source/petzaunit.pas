@@ -1767,6 +1767,20 @@ begin
 //  frmDLLMain.memo1.lines.add('dog action: ' + inttostr(eax));
 end;
 
+procedure SendBabyzViavoiceEvent;
+var list: tobjectlist;
+t1: integer;
+baby: tpetzpetsprite;
+begin
+  list := tobjectlist.Create(false);
+  // for each baby, react
+  petzclassesman.findclassinstances(cnpetsprite, list);
+  for t1 := 0 to list.count - 1 do begin
+    baby := TPetzPetSprite(TPetzClassInstance(list[t1]).instance);
+    Thiscall(baby, rimports.babysprite_reacttovoiceinterpretation, [cardinal(0)]);
+  end;
+end;
+
 function dopetzmsghandler(hwnd: HWND; msg: longword; wparam: longint; lparam: longint): lresult; stdcall;
 const boringmessages: array[0..10] of integer = (wm_mousemove, wm_lbuttonup, wm_lbuttondown, wm_timer, wm_nchittest, wm_setcursor,
     wm_windowposchanging, wm_windowposchanged, wm_rbuttondown, wm_rbuttonup, wm_mouseleave);
@@ -1821,6 +1835,16 @@ begin
         end;
         result := 1;
       end;
+    WM_KEYDOWN: begin
+      case char(wparam) of
+        'Q': begin
+          SendBabyzViavoiceEvent;
+          result := 1;
+        end;
+        else
+          result := inheritedwnd;
+      end;
+    end;
   else
     result := inheritedwnd;
   end;
