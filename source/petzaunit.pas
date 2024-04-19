@@ -970,7 +970,10 @@ begin
   // delphi is doing something weird and always showing the hasbg bool as true
   bits := stage.activedrawport.bits;
   bitsnum := stage.activedrawport.numbits;
-  fillchar(bits^, bitsnum, 253);
+  if petza.transparentphotos then
+    fillchar(bits^, bitsnum, 253)
+  else
+    fillchar(bits^, bitsnum, 245);
   // Note that original func has also been patched not to fill rect
   result := drawphotopatch.callorigproc(stage, [cardinal(pt1), cardinal(pt2), cardinal(hasbg)]);
 end;
