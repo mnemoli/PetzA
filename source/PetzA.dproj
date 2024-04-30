@@ -98,7 +98,8 @@
         <DCC_DebugInfoInExe>false</DCC_DebugInfoInExe>
         <VerInfo_PreRelease>false</VerInfo_PreRelease>
         <VerInfo_MinorVer>2</VerInfo_MinorVer>
-        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=1.2.0.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=1.2.1.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_Release>1</VerInfo_Release>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_ExeOutput>C:\Babyz\Babyz Download\Resource\Toyz\</DCC_ExeOutput>
@@ -110,7 +111,8 @@
         <Debugger_CWD>C:\Babyz\Babyz Download</Debugger_CWD>
         <VerInfo_PreRelease>false</VerInfo_PreRelease>
         <VerInfo_MinorVer>2</VerInfo_MinorVer>
-        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=1.2.0.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=1.2.1.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_Release>1</VerInfo_Release>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">

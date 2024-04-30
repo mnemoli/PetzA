@@ -954,7 +954,7 @@ begin
     end;
     DateTimeToString(timestamp, 'yymmddhhnnsszzz', Now());
     var ext := RightStr(petza.fautopicsavepath, 4);
-    petza.fautopicsavepath := petzshlglobals.gamepath + '\BabyPix\' + names + '-' + timestamp + ext;
+    petza.fautopicsavepath := petzshlglobals.gamepath + '\BabyPix\' + names + '-' + timestamp + #0;
     strpcopy(strio, petza.fautopicsavepath);
     result := true;
   end
@@ -1014,9 +1014,9 @@ begin
   if cpetzver = pvbabyz then begin
 
     case fCameraFormat of //update the path for the autosave location for pics
-      cfBMP: fautopicsavepath := '%s\BabyPix\babyz%d.bmp';
-      cfGIF: fautopicsavepath := '%s\BabyPix\babyz%d.gif';
-      cfPNG: fautopicsavepath := '%s\BabyPix\babyz%d.png';
+      cfBMP: fautopicsavepath := '%s\BabyPix\babyz%d.bmp' + #0;
+      cfGIF: fautopicsavepath := '%s\BabyPix\babyz%d.gif' + #0;
+      cfPNG: fautopicsavepath := '%s\BabyPix\babyz%d.png' + #0;
     end;
   end else begin
 
@@ -1138,6 +1138,12 @@ begin
         patchcodebuf(ptr($4f675c), 1, 3, b);
         retargetcall(ptr($503F2B), @mypicgetsavefilename);
         retargetcall(ptr($503C03), @mywritedib);
+
+        // used in autosave when new name format off
+        p := ptr($503D33); //Babyz has a nice "Generate unique pic name" routine
+        VirtualProtect(p, 4, PAGE_EXECUTE_READWRITE, oldprotect);
+        ppointer(p)^ := @fautopicsavepath[1];
+
         photonamepatch := patchthiscall(ptr($503cd3), @setsavefilename);
       end;
   end;
@@ -1840,7 +1846,7 @@ begin
       end;
     WM_KEYDOWN: begin
       case char(wparam) of
-        'Q': begin
+        'Q', 'P': begin
           SendBabyzViavoiceEvent;
           result := 1;
         end;
