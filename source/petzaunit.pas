@@ -904,8 +904,8 @@ begin
           else begin
             bitmap.savetofile(filename);
             if (string(filename).Contains('Baby Book')) and (petza.fcameraformat <> TCameraFormat.cfBMP) then begin
-              var f := LeftStr(filename, length(filename)-3);
-              var x := string(RightStr(petza.fautopicsavepath, 4));
+              var f := LeftStr(filename, length(filename)-4);
+              var x := extractfileext(petza.fautopicsavepath);
               var a := f + x;
               var pp: ansistring := a;
               mywritedib(pansichar(pp), dib);
@@ -953,8 +953,8 @@ begin
       names := pet.name;
     end;
     DateTimeToString(timestamp, 'yymmddhhnnsszzz', Now());
-    var ext := RightStr(petza.fautopicsavepath, 4);
-    petza.fautopicsavepath := petzshlglobals.gamepath + '\BabyPix\' + names + '-' + timestamp + #0;
+    var ext := ExtractFileExt(petza.fautopicsavepath);
+    petza.fautopicsavepath := petzshlglobals.gamepath + '\BabyPix\' + names + '-' + timestamp + ext + #0;
     strpcopy(strio, petza.fautopicsavepath);
     result := true;
   end
