@@ -904,7 +904,7 @@ begin
           else begin
             bitmap.savetofile(filename);
             if (string(filename).Contains('Baby Book')) and (petza.fcameraformat <> TCameraFormat.cfBMP) then begin
-              var f := string(filename);
+              var f := LeftStr(filename, length(filename)-3);
               var x := string(RightStr(petza.fautopicsavepath, 4));
               var a := f + x;
               var pp: ansistring := a;
