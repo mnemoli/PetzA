@@ -1613,6 +1613,44 @@ begin
   end;
 end;
 
+function mymakepicturefrombuffer(rect: tpetzprect): hglobal; stdcall;
+var instance: tpetzdrawport;
+begin
+asm
+  mov instance, ecx;
+end;
+
+  var localrect := tpetzrect.create(0, 0, rect.x2 - rect.x1, rect.y2 - rect.y1);
+  var localdrawport := tpetzdrawport.makenew(@localrect, false, true, false);
+  localdrawport.SetOrigin(-rect.x1, -rect.y1);
+  instance.CopyBits(localdrawport, rect, rect);
+  // get next multiple of 4
+  var adjustedwidth: integer := ((rect.x2 - rect.x1) + 3) and $FFFC;
+
+  var bytes := (rect.y2 - rect.y1) * adjustedwidth + $13c8;
+  var datahandle := globalalloc($42, bytes);
+  if datahandle = 0 then
+    raise Exception.Create('Failed to allocate photo memory');
+
+  var lock := GlobalLock(datahandle);
+  var lockAsBitmapInfo := pBitmapInfo(lock);
+
+  lockAsBitmapInfo.bmiHeader.biWidth := rect.x2 - rect.x1;
+  lockAsBitmapInfo.bmiHeader.biHeight := rect.y2 - rect.y1;
+  lockAsBitmapInfo.bmiHeader.biSizeImage := adjustedwidth * lockAsBitmapInfo.bmiHeader.biHeight;
+  lockAsBitmapInfo.bmiHeader.biSize := 40;
+  lockAsBitmapInfo.bmiHeader.biPlanes := 1;
+  lockAsBitmapInfo.bmiHeader.biBitCount := 8;
+
+  copymemory(ptr(cardinal(lock) + 40), ptr($631398), 1024);
+  copymemory(ptr(cardinal(lock) + 40 + 1024), localdrawport.bits, lockAsBitmapInfo.bmiHeader.biSizeImage);
+
+  GlobalUnlock(datahandle);
+  localdrawport.Destroy;
+
+  result := datahandle;
+end;
+
 procedure mydrawfilmstrip(return, filmstrip: pointer; param1: short; drawport: TPetzDrawport; bounds1, bounds2: TPetzPRect; param5: integer; param6: byte); stdcall;
 var thismaskdrawport: TPetzDrawport;
 var localbounds: TPetzRect;
@@ -2082,10 +2120,8 @@ begin
   // Patch drawing for extra palettes
   drawdata := TStack<TDrawData>.Create();
   retargetcall(ptr($004c9c4f), @mydrawsprites);
-  //retargetcall(ptr($0048a2d5), @mydraw);
   drawfilmstrippatch := patchthiscall(ptr($00461d10), @mydrawfilmstrip);
   retargetcall(ptr($0047d3d7), @mydisplayballzframe);
-//  drawspritespatch := patchthiscall(ptr($00450bd0), @mydisplayballzframe);
   initstagepatch := patchthiscall(ptr($00489610), @myinitstage);
   drawstackedpatch := patchthiscall(ptr($00488b60), @mydrawstacked);
   retargetcall(ptr($004365f2), @mycopy8bit);
@@ -2094,6 +2130,8 @@ begin
   loadlnzpatch := patchthiscall(ptr($0046c390), @myloadlnz);
   // Load palettes
   loadpalettes;
+  // Make photos hicolor
+  retargetcall(ptr($0048a554), @mymakepicturefrombuffer);
 
   loadsettings; //pretty late in the peace so all objects are created
 

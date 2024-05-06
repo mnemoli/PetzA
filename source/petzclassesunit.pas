@@ -1526,18 +1526,19 @@ begin
     if width > 0 then begin
       for var y := 0 to height - 1 do begin
         for var x := 0 to width - 1 do begin
-          var maskcolor := maskbitsptr^;
-          //color :=  pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^;
-          if (maskcolor = 0) or (maskcolor = 253) then
-            color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^
-          else begin
-           var didgetpalette := palettes.TryGetValue(maskcolor - 1, palar);
-            if didgetpalette then
-              color := palar[bitsptr^]
-            else
-              color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^;
+          if bitsptr^ <> 253 then begin
+            var maskcolor := maskbitsptr^;
+            if (maskcolor = 0) or (maskcolor = 253) then
+              color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^
+            else begin
+             var didgetpalette := palettes.TryGetValue(maskcolor - 1, palar);
+              if didgetpalette then
+                color := palar[bitsptr^]
+              else
+                color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^;
+            end;
+            hibitsptr^ := color;
           end;
-          hibitsptr^ := color;
           bitsptr := bitsptr + 1;
           maskbitsptr := maskbitsptr + 1;
           hibitsptr := pointer(cardinal(hibitsptr) + 4);
