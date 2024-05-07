@@ -1116,7 +1116,7 @@ begin
   // delphi is doing something weird and always showing the hasbg bool as true
   bits := stage.activedrawport.bits;
   bitsnum := stage.activedrawport.numbits;
-  fillchar(bits^, bitsnum, 245);
+  fillchar(bits^, bitsnum, 200);
   result := drawphotopatch.callorigproc(stage, [cardinal(pt1), cardinal(pt2), cardinal(hasbg)]);
 end;
 
@@ -1127,7 +1127,7 @@ var bitsnum: cardinal;
 begin
   bits := stage.activedrawport.bits;
   bitsnum := stage.activedrawport.numbits;
-  fillchar(bits^, bitsnum, 245);
+  fillchar(bits^, bitsnum, 200);
   result := drawphotopatch.callorigproc(stage, [cardinal(pt1), cardinal(pt2)]);
 end;
 
@@ -1577,7 +1577,7 @@ begin
 asm
   mov port, ecx;
 end;
-  port.Copy8BitCustom(prect, petza.maskdrawport);
+  port.Copy8BitCustom(prect, prect, petza.maskdrawport);
 end;
 
 procedure myloadlnz(return, instance, path: pointer; param2: cardinal; xballz, cache: pointer); stdcall;
@@ -1621,13 +1621,19 @@ asm
 end;
 
   var localrect := tpetzrect.create(0, 0, rect.x2 - rect.x1, rect.y2 - rect.y1);
-  var localdrawport := tpetzdrawport.makenew(@localrect, false, true, false);
+  localrect.x2 := ((rect.x2 - rect.x1) + 3) and $FFFC;
+  var localdrawport := tpetzdrawport.makenew(@localrect, false, true, true);
   localdrawport.SetOrigin(-rect.x1, -rect.y1);
-  instance.CopyBits(localdrawport, rect, rect);
-  // get next multiple of 4
-  var adjustedwidth: integer := ((rect.x2 - rect.x1) + 3) and $FFFC;
 
-  var bytes := (rect.y2 - rect.y1) * adjustedwidth + $13c8;
+  // jiggle rect around to right position... bad magic numbers...
+  var adjustedrect := tpetzrect.create(rect.x1 + 128, rect.y1 + 128, rect.x1 + localrect.x2 + 128, rect.y1 + localrect.y2 + 128);
+  // fill out to the nearest multiple of 4
+  rect.x2 := rect.x1 + localrect.x2;
+
+  instance.CopyBits(localdrawport, rect, rect);
+  localdrawport.Copy8BitCustom(@localrect, @adjustedrect, petza.maskdrawport, true);
+
+  var bytes := (localrect.y2 * localrect.x2) * 4 + 40;
   var datahandle := globalalloc($42, bytes);
   if datahandle = 0 then
     raise Exception.Create('Failed to allocate photo memory');
@@ -1635,15 +1641,16 @@ end;
   var lock := GlobalLock(datahandle);
   var lockAsBitmapInfo := pBitmapInfo(lock);
 
-  lockAsBitmapInfo.bmiHeader.biWidth := rect.x2 - rect.x1;
-  lockAsBitmapInfo.bmiHeader.biHeight := rect.y2 - rect.y1;
-  lockAsBitmapInfo.bmiHeader.biSizeImage := adjustedwidth * lockAsBitmapInfo.bmiHeader.biHeight;
+  lockAsBitmapInfo.bmiHeader.biWidth := localrect.x2;
+  lockAsBitmapInfo.bmiHeader.biHeight := localrect.y2;
+  lockAsBitmapInfo.bmiHeader.biSizeImage := lockAsBitmapInfo.bmiHeader.biWidth * lockAsBitmapInfo.bmiHeader.biHeight;
   lockAsBitmapInfo.bmiHeader.biSize := 40;
   lockAsBitmapInfo.bmiHeader.biPlanes := 1;
-  lockAsBitmapInfo.bmiHeader.biBitCount := 8;
+  lockAsBitmapInfo.bmiHeader.biBitCount := 32;
 
-  copymemory(ptr(cardinal(lock) + 40), ptr($631398), 1024);
-  copymemory(ptr(cardinal(lock) + 40 + 1024), localdrawport.bits, lockAsBitmapInfo.bmiHeader.biSizeImage);
+  var hibitsptr := localdrawport.hibits;
+
+  copymemory(ptr(cardinal(lock) + 40), localdrawport.hibits, lockAsBitmapInfo.bmiHeader.biSizeImage * 4);
 
   GlobalUnlock(datahandle);
   localdrawport.Destroy;

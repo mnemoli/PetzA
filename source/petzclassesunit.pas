@@ -220,6 +220,7 @@ type
     function getbounds: TPetzRect;
     function getrowwidth: cardinal;
     function gethibits: pinteger;
+    procedure setscreenport(const Value: boolean);
   public
     property bits: pbyte read getbits;
     property hibits: pinteger read gethibits;
@@ -231,7 +232,7 @@ type
     procedure FillTransparent(bounds: TPetzPRect; color: byte);
     procedure CopyBitsTransparentMask(dstport: TPetzDrawport; psrcrect, pdstrect: TPetzPRect; maskvalue: integer);
     procedure CopyBits(dstport: TPetzDrawport; psrcrect, pdstrect: TPetzPRect);
-    procedure Copy8BitCustom(prect: TPetzPRect; maskdrawport: TPetzDrawport);
+    procedure Copy8BitCustom(prect, maskprect: TPetzPRect; maskdrawport: TPetzDrawport; forphoto: boolean = false);
     class function MakeNew(bounds: TPetzPRect; circledraw, locolor, hicolor: bool): TPetzDrawport;
   end;
 
@@ -1497,15 +1498,15 @@ end;
 
 { TPetzDrawport }
 
-procedure TPetzDrawport.Copy8BitCustom(prect: TPetzPRect; maskdrawport: TPetzDrawport);
+procedure TPetzDrawport.Copy8BitCustom(prect, maskprect: TPetzPRect; maskdrawport: TPetzDrawport; forphoto: boolean = false);
 var bitsptr, maskbitsptr: pbyte;
 var hibitsptr: pcardinal;
 var color: cardinal;
 var rgbpalette: pointer;
 var height, width, rowbytes: integer;
 var rect: TPetzRect;
-var startpos: integer;
-var rawrowbytes: integer;
+var startpos, startposmask: integer;
+var rawrowbytes, maskrawrowbytes: integer;
 var maskbounds: TPetzRect;
 var palar: tgamepalette;
 begin
@@ -1513,11 +1514,14 @@ begin
   height := rect.y2 - rect.y1;
   width := rect.x2 - rect.x1;
   rawrowbytes :=  pinteger(classprop(self, 28))^;
+  maskrawrowbytes :=  pinteger(classprop(maskdrawport, 28))^;
   rowbytes := (rect.x1 - rect.x2) + rawrowbytes;
+  var maskrowbytes := (maskprect.x1 - maskprect.x2) + maskrawrowbytes;
 
   startpos := ((bounds.y2 - rect.y2) * rawrowbytes) + rect.x1;
+  startposmask := ((maskdrawport.bounds.y2 - maskprect.y2) * maskrawrowbytes) + maskprect.x1;
   bitsptr := pbyte(cardinal(bits) + startpos);
-  maskbitsptr := pbyte(cardinal(maskdrawport.bits) + startpos);
+  maskbitsptr := pbyte(cardinal(maskdrawport.bits) + startposmask);
   hibitsptr := pointer(cardinal(hibits) + startpos * 4);
 
   rgbpalette := ppointer($00630d58)^;
@@ -1526,7 +1530,9 @@ begin
     if width > 0 then begin
       for var y := 0 to height - 1 do begin
         for var x := 0 to width - 1 do begin
-          if bitsptr^ <> 253 then begin
+          if (bitsptr^ = 200) and forphoto then
+                hibitsptr^ := $FFFE00
+          else if bitsptr^ <> 253 then begin
             var maskcolor := maskbitsptr^;
             if (maskcolor = 0) or (maskcolor = 253) then
               color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^
@@ -1545,7 +1551,7 @@ begin
         end;
         bitsptr := bitsptr + rowbytes;
         hibitsptr := pointer(cardinal(hibitsptr) + rowbytes * 4);
-        maskbitsptr := maskbitsptr + rowbytes;
+        maskbitsptr := maskbitsptr + maskrowbytes;
       end;
     end;
 end;
