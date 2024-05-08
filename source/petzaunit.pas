@@ -1026,7 +1026,7 @@ begin
                 // Create an extension to set the transparency flag
                 Ext := TGIFGraphicControlExtension.Create(gif.Images[0]);
                 Ext.Transparent := True;
-                Ext.TransparentColorIndex := 245;
+                Ext.TransparentColor := TColor($eeeeee);
               end;
               gif.SaveToFile(filename);
             finally
@@ -1045,7 +1045,7 @@ begin
                   png.CompressionLevel := 9;
                   png.Assign(bitmap);
                   if petza.transparentphotos then
-                    png.TransparentColor := TColor($00FEFF);
+                    png.TransparentColor := TColor($eeeeee);
                   png.SaveToFile(filename);
                 finally
                   png.free;
@@ -1658,6 +1658,63 @@ end;
   result := datahandle;
 end;
 
+function mymakepicturefrombufferbg(rect: tpetzprect): hglobal; cdecl;
+var instance: tpetzdrawport;
+begin
+  instance := tpetzdrawport(ptr($00631bc8)^);
+
+  // jiggle the screen drawport around to make it copyable
+  var boundsptr: tpetzprect := tpetzprect(classprop(instance, 12));
+  var bounds: tpetzrect := boundsptr^;
+  var dimensions := petzshlglobals.dimensions;
+  boundsptr.x2 := dimensions.x2 - dimensions.x1;
+  boundsptr.y2 := dimensions.y2 - dimensions.y1;
+  var nearestmultiple := (boundsptr.x2 + 3) and $FFFC;
+  var backup1 := pinteger(classprop(instance, 28))^;
+  var backup2 := pinteger(classprop(instance, 32))^;
+  pinteger(classprop(instance, 28))^ := nearestmultiple;
+  pinteger(classprop(instance, 32))^ := nearestmultiple * (boundsptr.y2);
+
+  var localrect := tpetzrect.create(0, 0, rect.x2 - rect.x1, rect.y2 - rect.y1);
+  localrect.x2 := ((rect.x2 - rect.x1) + 3) and $FFFC;
+  var localdrawport := tpetzdrawport.makenew(@localrect, false, true, true);
+  // set use hi color otherwise xcopybits doesn't work right
+  pinteger(classprop(localdrawport, 168))^ := 1;
+  localdrawport.SetOrigin(-rect.x1, -rect.y1);
+
+  instance.CopyBits(localdrawport, rect, rect);
+
+  // restore screen drawport settings
+  boundsptr.x1 := bounds.x1;
+  boundsptr.y1 := bounds.y1;
+  boundsptr.x2 := bounds.x2;
+  boundsptr.y2 := bounds.y2;
+  pinteger(classprop(instance, 28))^ := backup1;
+  pinteger(classprop(instance, 32))^ := backup2;
+
+  var bytes := (localrect.y2 * localrect.x2) * 4 + 40;
+  var datahandle := globalalloc($42, bytes);
+  if datahandle = 0 then
+    raise Exception.Create('Failed to allocate photo memory');
+
+  var lock := GlobalLock(datahandle);
+  var lockAsBitmapInfo := pBitmapInfo(lock);
+
+  lockAsBitmapInfo.bmiHeader.biWidth := localrect.x2;
+  lockAsBitmapInfo.bmiHeader.biHeight := localrect.y2;
+  lockAsBitmapInfo.bmiHeader.biSizeImage := lockAsBitmapInfo.bmiHeader.biWidth * lockAsBitmapInfo.bmiHeader.biHeight;
+  lockAsBitmapInfo.bmiHeader.biSize := 40;
+  lockAsBitmapInfo.bmiHeader.biPlanes := 1;
+  lockAsBitmapInfo.bmiHeader.biBitCount := 32;
+
+  copymemory(ptr(cardinal(lock) + 40), localdrawport.hibits, lockAsBitmapInfo.bmiHeader.biSizeImage * 4);
+
+  GlobalUnlock(datahandle);
+  localdrawport.Destroy;
+
+  result := datahandle;
+end;
+
 procedure mydrawfilmstrip(return, filmstrip: pointer; param1: short; drawport: TPetzDrawport; bounds1, bounds2: TPetzPRect; param5: integer; param6: byte); stdcall;
 var thismaskdrawport: TPetzDrawport;
 var localbounds: TPetzRect;
@@ -2139,6 +2196,7 @@ begin
   loadpalettes;
   // Make photos hicolor
   retargetcall(ptr($0048a554), @mymakepicturefrombuffer);
+  retargetcall(ptr($0048a4e7), @mymakepicturefrombufferbg);
 
   loadsettings; //pretty late in the peace so all objects are created
 

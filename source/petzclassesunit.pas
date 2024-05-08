@@ -162,15 +162,24 @@ type
 
   end;
 
+  TPetzRect = record
+    x1, y1, x2, y2: integer;
+    constructor create(px1, py1, px2, py2: integer);
+    class operator add(a, b: TPetzRect): TPetzRect;
+    class operator equal(a, b: TPetzRect): bool;
+  end;
+
   TPetzSHLGlobals = class
   private
     function getadoptername: ansistring;
     function getphotopet: TPetzPetSprite;
     procedure setadoptername(const Value: ansistring);
+    function getdimensions: tpetzrect;
   public
     function mainwindow: hwnd;
     property adoptername: ansistring read getadoptername write setadoptername;
     property photopet: TPetzPetSprite read getphotopet;
+    property dimensions: tpetzrect read getdimensions;
   end;
 
   TChangetype = (ctCreate, ctDestroy);
@@ -204,13 +213,6 @@ type
       property buttonindex: integer read getbuttonindex write setbuttonindex;
   end;
 
-  TPetzRect = record
-    x1, y1, x2, y2: integer;
-    constructor create(px1, py1, px2, py2: integer);
-    class operator add(a, b: TPetzRect): TPetzRect;
-    class operator equal(a, b: TPetzRect): bool;
-  end;
-
   TPetzPRect = ^TPetzRect;
 
   TPetzDrawport = class
@@ -220,7 +222,6 @@ type
     function getbounds: TPetzRect;
     function getrowwidth: cardinal;
     function gethibits: pinteger;
-    procedure setscreenport(const Value: boolean);
   public
     property bits: pbyte read getbits;
     property hibits: pinteger read gethibits;
@@ -646,6 +647,11 @@ end;
 function TPetzSHLGlobals.getadoptername: ansistring;
 begin
   result := pansichar(classprop(self, $240));
+end;
+
+function TPetzSHLGlobals.getdimensions: tpetzrect;
+begin
+  result := tpetzprect(classprop(self, 648))^;
 end;
 
 function TPetzSHLGlobals.getphotopet: TPetzPetSprite;
@@ -1531,7 +1537,7 @@ begin
       for var y := 0 to height - 1 do begin
         for var x := 0 to width - 1 do begin
           if (bitsptr^ = 200) and forphoto then
-                hibitsptr^ := $FFFE00
+                hibitsptr^ := $eeeeee
           else if bitsptr^ <> 253 then begin
             var maskcolor := maskbitsptr^;
             if (maskcolor = 0) or (maskcolor = 253) then
