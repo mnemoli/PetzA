@@ -1630,6 +1630,11 @@ end;
   // fill out to the nearest multiple of 4
   rect.x2 := rect.x1 + localrect.x2;
 
+  if (localrect.x2 <= 0) or (localrect.y2 <= 0) then begin
+    result := 0;
+    exit;
+  end;
+
   instance.CopyBits(localdrawport, rect, rect);
   localdrawport.Copy8BitCustom(@localrect, @adjustedrect, petza.maskdrawport, true);
 
@@ -1656,6 +1661,28 @@ end;
   localdrawport.Destroy;
 
   result := datahandle;
+end;
+
+procedure mysnapshot(ballstate, rect1, rect2: pointer; bgcolor: integer; sprite1, sprite2: pointer); stdcall;
+var xballz: pointer;
+palette: byte;
+originalpalette, newpalette: TGamePalette;
+begin
+asm
+  mov xballz, ecx;
+end;
+  lnzpalettecache.TryGetValue(xballz, palette);
+  if palette = 0 then begin
+    thiscall(xballz, ptr($00452440), [cardinal(ballstate), cardinal(rect1), cardinal(rect2), cardinal(bgcolor), cardinal(sprite1), cardinal(sprite2)]);
+    exit;
+  end;
+  // crummy code - would be better to swap a ptr here rather than copy vals
+  // but original code looks directly at static address
+  originalpalette := pgamepalette($631398)^;
+  palettes.TryGetValue(palette - 1, newpalette);
+  pgamepalette($631398)^ := newpalette;
+  thiscall(xballz, ptr($00452440), [cardinal(ballstate), cardinal(rect1), cardinal(rect2), cardinal(bgcolor), cardinal(sprite1), cardinal(sprite2)]);
+  pgamepalette($631398)^ := originalpalette;
 end;
 
 function mymakepicturefrombufferbg(rect: tpetzprect): hglobal; cdecl;
@@ -1786,11 +1813,23 @@ end;
   inrect := TPetzPRect(bounds)^;
   localbounds.x1 := 0;
   localbounds.y1 := 0;
-  localbounds.x2 := inrect.x2 - inrect.x1;
-  localbounds.y2 := inrect.y2 - inrect.y1;
+
+  if (inrect.x1 > inrect.x2) or (inrect.y1 > inrect.y2) then begin
+    localbounds.x2 := inrect.x2 - inrect.x1;
+    localbounds.y2 := inrect.y2 - inrect.y1;
+  end else begin
+    localbounds.x2 := inrect.x2 - inrect.x1;
+    localbounds.y2 := inrect.y2 - inrect.y1;
+  end;
+
+  if (localbounds.x2 < 0) or (localbounds.y2 < 0) then
+    localbounds.x2 := -localbounds.x2;
 
   lnz := ppointer(classprop(xballz, 388))^;
   lnzpalettecache.TryGetValue(xballz, palette);
+
+  if (localbounds.x2 <= 0) or (localbounds.y2 <= 0) then
+    exit;
 
   // create new small drawport big enough for the pet
   thismaskdrawport := TPetzDrawport.MakeNew(@localbounds, true, true, false);
@@ -2197,6 +2236,9 @@ begin
   // Make photos hicolor
   retargetcall(ptr($0048a554), @mymakepicturefrombuffer);
   retargetcall(ptr($0048a4e7), @mymakepicturefrombufferbg);
+  // Make headshots palettised
+  retargetcall(ptr($004cefc5), @mysnapshot);
+  retargetcall(ptr($004CED8D), @mysnapshot);
 
   loadsettings; //pretty late in the peace so all objects are created
 
