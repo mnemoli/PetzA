@@ -196,7 +196,7 @@ var petza: tpetza;
   hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation,
   hresetstack, reacttocamerapatch, deliveroffspringpatch,
   draweyeballpatch, inittoypatch, drawphotopatch, drawspritespatch, initstagepatch,
-  loadlnzpatch, drawfilmstrippatch, drawstackedpatch: TPatchThiscall;
+  loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, byte>;
 var  logging: Boolean;
 procedure dolog(const message: string);
@@ -1580,6 +1580,12 @@ end;
   port.Copy8BitCustom(prect, prect, petza.maskdrawport);
 end;
 
+procedure mydesxballz(return, instance: pointer); stdcall;
+begin
+  lnzpalettecache.Remove(instance);
+  desxballzpatch.callorigproc(instance, []);
+end;
+
 procedure myloadlnz(return, instance, path: pointer; param2: cardinal; xballz, cache: pointer); stdcall;
 var lnzdict: pointer;
 const categorytitle: pansichar = '[Palette]';
@@ -2232,9 +2238,10 @@ begin
   initstagepatch := patchthiscall(ptr($00489610), @myinitstage);
   drawstackedpatch := patchthiscall(ptr($00488b60), @mydrawstacked);
   retargetcall(ptr($004365f2), @mycopy8bit);
-  // Patch lnz loading for extra palettes
+  // Patch lnz loading and unloading for extra palettes
   lnzpalettecache := TDictionary<pointer, byte>.Create();
   loadlnzpatch := patchthiscall(ptr($0046c390), @myloadlnz);
+  desxballzpatch := patchthiscall(ptr($0044b6d0), @mydesxballz);
   // Load palettes
   loadpalettes;
   // Make photos hicolor
