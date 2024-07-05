@@ -1540,7 +1540,7 @@ begin
                 hibitsptr^ := $eeeeee
           else if bitsptr^ <> 253 then begin
             var maskcolor := maskbitsptr^;
-            if (maskcolor = 0) or (maskcolor = 253) then
+            if maskcolor = 0 then
               color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^
             else begin
              var didgetpalette := palettes.TryGetValue(maskcolor, palar);

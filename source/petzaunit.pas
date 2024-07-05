@@ -1602,6 +1602,9 @@ begin
     // get next line
     palettename := pansichar(thiscall(lnzdict, ptr($00431fe0), []));
     if length(palettename) > 0 then begin
+      var gotpalette := paletteindexes.TryGetValue(palettename, paletteidx);
+      if not gotpalette then
+        exit;
       paletteidx := paletteindexes[palettename];
       lnzpalettecache.AddOrSetValue(xballz, paletteidx);
     end;
@@ -1984,7 +1987,7 @@ end;
   boundsrect.y1 := boundsrect.y1 - 128;
   boundsrect.x2 := boundsrect.x2 + 128;
   boundsrect.y2 := boundsrect.y2 + 128;
-  petza.maskdrawport.FillTransparent(@boundsrect, 253);
+  petza.maskdrawport.FillTransparent(@boundsrect, 0);
   port := instance.activedrawport;
   pboolean(classprop(port, 168))^ := true;
   pinteger(classprop(port, 164))^ := 1;

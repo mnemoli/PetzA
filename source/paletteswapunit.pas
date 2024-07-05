@@ -16,6 +16,8 @@ procedure loadpalettes;
 begin
   palettes := TDictionary<byte, TgamePalette>.Create();
   paletteindexes := TDictionary<string, byte>.Create();
+  if not TDirectory.Exists(extractfilepath(ParamStr(0)) + '/palettes') then
+    exit;
   getmem(fpal, sizeof(tlogpalette) + sizeof(tpaletteentry)*255);
   fpal.palNumEntries := 256;
   fpal.palVersion := $300;
