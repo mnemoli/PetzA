@@ -1584,17 +1584,21 @@ procedure myloadlnz(return, instance, path: pointer; param2: cardinal; xballz, c
 var lnzdict: pointer;
 const categorytitle: pansichar = '[Palette]';
 var palette: integer;
-var gotpalette, gotsection: bool;
+var gotsection: bool;
+var palettename: pansichar;
+var paletteidx: byte;
 begin
   loadlnzpatch.callorigproc(instance, [cardinal(path), param2, cardinal(xballz), cardinal(cache)]);
   lnzdict := classprop(cache, 380);
   // set file position
   gotsection := bool(thiscall(lnzdict, ptr($00431f30), [cardinal(categorytitle)]));
   if gotsection then begin
-    // get 1 int line
-    gotpalette := bool(thiscall(cache, ptr($432d10), [cardinal(@palette)]));
-    if gotpalette then
-      lnzpalettecache.AddOrSetValue(xballz, palette);
+    // get next line
+    palettename := pansichar(thiscall(lnzdict, ptr($00431fe0), []));
+    if length(palettename) > 0 then begin
+      paletteidx := paletteindexes[palettename];
+      lnzpalettecache.AddOrSetValue(xballz, paletteidx);
+    end;
   end;
 end;
 
@@ -1671,15 +1675,15 @@ begin
 asm
   mov xballz, ecx;
 end;
-  lnzpalettecache.TryGetValue(xballz, palette);
-  if palette = 0 then begin
+  var gotpalette := lnzpalettecache.TryGetValue(xballz, palette);
+  if not gotpalette then begin
     thiscall(xballz, ptr($00452440), [cardinal(ballstate), cardinal(rect1), cardinal(rect2), cardinal(bgcolor), cardinal(sprite1), cardinal(sprite2)]);
     exit;
   end;
   // crummy code - would be better to swap a ptr here rather than copy vals
   // but original code looks directly at static address
   originalpalette := pgamepalette($631398)^;
-  palettes.TryGetValue(palette - 1, newpalette);
+  palettes.TryGetValue(palette, newpalette);
   pgamepalette($631398)^ := newpalette;
   thiscall(xballz, ptr($00452440), [cardinal(ballstate), cardinal(rect1), cardinal(rect2), cardinal(bgcolor), cardinal(sprite1), cardinal(sprite2)]);
   pgamepalette($631398)^ := originalpalette;

@@ -5,7 +5,7 @@ library PetzA;
 
 
 
-{$R *.dres}
+
 
 uses
   madExcept,

@@ -1543,7 +1543,7 @@ begin
             if (maskcolor = 0) or (maskcolor = 253) then
               color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^
             else begin
-             var didgetpalette := palettes.TryGetValue(maskcolor - 1, palar);
+             var didgetpalette := palettes.TryGetValue(maskcolor, palar);
               if didgetpalette then
                 color := palar[bitsptr^]
               else
