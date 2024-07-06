@@ -246,12 +246,18 @@ uses dllformunit, petzcommon1, petzaunit;
 
 function tpetzpetzapp.getpetmodule: tpetzpetmodule;
 begin
-  result := ppointer(classprop(self, $1C))^;
+  if cpetzver = pvpetz3 then
+    result := ppointer(classprop(self, $10))^
+  else
+    result := ppointer(classprop(self, $1C))^;
 end;
 
 procedure tpetzpetzapp.setpetmodule(value: tpetzpetmodule);
 begin
-  ppointer(classprop(self, $1C))^ := value;
+if cpetzver = pvpetz3 then
+    ppointer(classprop(self, $10))^ := value
+  else
+    ppointer(classprop(self, $1C))^ := value;
 end;
 
 function tpetzpetzapp.getdrawready: integer;
@@ -264,7 +270,10 @@ end;
 
 procedure tpetzpetzapp.setdrawready(value: integer);
 begin
-  pinteger(classprop(self, $10))^ := value;
+  if cpetzver = pvpetz3 then
+    pinteger(classprop(self, $4))^ := value
+  else
+    pinteger(classprop(self, $10))^ := value;
 end;
 
 function tpetzpetzapp.getaccel: haccel;
