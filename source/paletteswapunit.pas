@@ -11,16 +11,13 @@ implementation
 
 procedure loadpalettes;
   var palettebmp: TBitmap;
-  var fpal: plogpalette;
+  var ppal: array [0..255] of tpaletteentry;
   var palettefiles: TArray<string>;
 begin
   palettes := TDictionary<byte, TgamePalette>.Create();
   paletteindexes := TDictionary<string, byte>.Create();
   if not TDirectory.Exists(extractfilepath(ParamStr(0)) + '/palettes') then
     exit;
-  getmem(fpal, sizeof(tlogpalette) + sizeof(tpaletteentry)*255);
-  fpal.palNumEntries := 256;
-  fpal.palVersion := $300;
   palettebmp := TBitmap.Create();
   palettefiles := TDirectory.GetFiles(extractfilepath(ParamStr(0)) + '/palettes', '*.bmp', TSearchOption.soAllDirectories);
   if length(palettefiles) > 256 then
@@ -28,10 +25,10 @@ begin
   for var i := 0 to length(palettefiles) - 1 do begin
     var thispalette: tgamepalette;
     palettebmp.LoadFromFile(palettefiles[i]);
-    GetPaletteEntries(palettebmp.Palette, 0, 256, fpal.palPalEntry[0]);
+    GetPaletteEntries(palettebmp.Palette, 0, 256, ppal);
     for var j := 0 to 255 do
       begin
-        var color := fpal.palPalEntry[j];
+        var color := ppal[j];
         thispalette[j] := color.peRed shl 16 + color.peGreen shl 8 + color.peBlue;
       end;
     var palettename := tpath.GetFileNameWithoutExtension(extractfilename(palettefiles[i]));

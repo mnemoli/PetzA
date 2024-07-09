@@ -3,10 +3,6 @@ library PetzA;
 {$WARN SYMBOL_PLATFORM OFF}
 {$WARN UNIT_PLATFORM OFF}
 
-
-
-
-
 uses
   madExcept,
   madLinkDisAsm,

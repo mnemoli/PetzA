@@ -1998,6 +1998,49 @@ end;
   pinteger(classprop(port, 164))^ := 0;
 end;
 
+function mycreatepalette: hpalette; cdecl;
+  var logpalette: plogpalette;
+begin
+  // set up logpalette needed to return an hpalette
+  var sz := sizeof(TLogPalette) + (255) * sizeof(TPaletteEntry);
+  getmem(logpalette, sz);
+  logpalette.palVersion := $300;
+  logpalette.palNumEntries := $100;
+
+  // load the palette bmp
+  var path: ansistring := '\\Art\\palette.bmp';
+  var read: ansistring := 'rb';
+  var xmem := rimports.petzallocmem($20);
+  thiscall(xmem, ptr($439590), [cardinal(0)]);
+  var palettefile := thiscall(xmem, ptr($4398d0), [cardinal(path), cardinal(read), cardinal(0), cardinal(false)]);
+
+  if palettefile = 0 then begin
+    thiscall(xmem, ptr($043a250), [cardinal(false), cardinal(false)]);
+    var xmemptr := pcardinal(pcardinal(cardinal(xmem) + 4)^ + 54);
+    var paletteptr := pcardinal($631398);
+    var paletteptr2 := pbitmapinfo(paletteptr);
+
+    // fill colours in two places... thanks petz...
+    for var i := 0 to 255 do begin
+      paletteptr^ := xmemptr^;
+      var color := paletteptr2.bmiColors[i];
+      logpalette.palPalEntry[i].peRed := color.rgbRed;
+      logpalette.palPalEntry[i].peGreen := color.rgbGreen shr 8;
+      logpalette.palPalEntry[i].peBlue := color.rgbRed shr 16;
+      paletteptr := pcardinal(cardinal(paletteptr) + 4);
+      xmemptr := pcardinal(cardinal(xmemptr) + 4);
+    end;
+  end;
+
+  // free stuff
+  thiscall(xmem, ptr($43a2a0), []);
+  if (xmem <> nil) then
+    thiscall(xmem, ppointer(pcardinal(xmem)^)^, [cardinal(1)]);
+  freemem(logpalette, sz);
+
+  result := createpalette(logpalette);
+end;
+
 procedure tpetza.patchcustomuserprofile;
 begin
   deliveroffspringpatch := patchthiscall(rimports.petsprite_deliveroffspring, @customdeliveroffspring);
@@ -2247,12 +2290,24 @@ begin
   desxballzpatch := patchthiscall(ptr($0044b6d0), @mydesxballz);
   // Load palettes
   loadpalettes;
+  retargetcall(ptr($4359a9), @mycreatepalette);
+  retargetcall(ptr($4359da), @mycreatepalette);
+  retargetcall(ptr($435a01), @mycreatepalette);
   // Make photos hicolor
   retargetcall(ptr($0048a554), @mymakepicturefrombuffer);
   retargetcall(ptr($0048a4e7), @mymakepicturefrombufferbg);
   // Make headshots palettised
   retargetcall(ptr($004cefc5), @mysnapshot);
   retargetcall(ptr($004CED8D), @mysnapshot);
+  // Cheapo: map all palette indexes to themselves
+  b := $0;
+  patchcodebuf(ptr($45c865), 1, 1, b);
+  b := 255;
+  patchcodebuf(ptr($45c872), 1, 1, b);
+  // Remap this colour - used as menu background colour
+  b := 201;
+  patchcodebuf(ptr($4a94ac), 1, 1, b);
+  patchcodebuf(ptr($4aabbe), 1, 1, b);
 
   loadsettings; //pretty late in the peace so all objects are created
 
