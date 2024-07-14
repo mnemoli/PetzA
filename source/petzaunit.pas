@@ -1028,11 +1028,11 @@ begin
               gif.DitherMode := dmFloydSteinberg;
               gif.ColorReduction := rmQuantize;
               gif.Assign(bitmap);
-              if petza.transparentphotos then begin
+              if petza.transparentphotos and not petzshlglobals.photohasbg then begin
                 // Create an extension to set the transparency flag
                 Ext := TGIFGraphicControlExtension.Create(gif.Images[0]);
                 Ext.Transparent := True;
-                Ext.TransparentColor := TColor($eeeeee);
+                Ext.TransparentColor := TColor($fefefe);
               end;
               gif.SaveToFile(filename);
             finally
@@ -1050,8 +1050,8 @@ begin
                 try
                   png.CompressionLevel := 9;
                   png.Assign(bitmap);
-                  if petza.transparentphotos then
-                    png.TransparentColor := TColor($eeeeee);
+                  if petza.transparentphotos and not petzshlglobals.photohasbg then
+                    png.TransparentColor := TColor($fefefe);
                   png.SaveToFile(filename);
                 finally
                   png.free;

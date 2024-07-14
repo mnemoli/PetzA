@@ -175,11 +175,13 @@ type
     function getphotopet: TPetzPetSprite;
     procedure setadoptername(const Value: ansistring);
     function getdimensions: tpetzrect;
+    function getphotohasbg: boolean;
   public
     function mainwindow: hwnd;
     property adoptername: ansistring read getadoptername write setadoptername;
     property photopet: TPetzPetSprite read getphotopet;
     property dimensions: tpetzrect read getdimensions;
+    property photohasbg: boolean read getphotohasbg;
   end;
 
   TChangetype = (ctCreate, ctDestroy);
@@ -652,6 +654,14 @@ end;
 function TPetzSHLGlobals.getdimensions: tpetzrect;
 begin
   result := tpetzprect(classprop(self, 648))^;
+end;
+
+function TPetzSHLGlobals.getphotohasbg: boolean;
+begin
+  case cpetzver of
+    pvpetz4: result := pboolean(classprop(self, $889))^;
+    else result := false;
+  end;
 end;
 
 function TPetzSHLGlobals.getphotopet: TPetzPetSprite;
@@ -1536,8 +1546,8 @@ begin
     if width > 0 then begin
       for var y := 0 to height - 1 do begin
         for var x := 0 to width - 1 do begin
-          if (bitsptr^ = 200) and forphoto then
-                hibitsptr^ := $eeeeee
+          if (bitsptr^ = 200) and forphoto and petza.transparentphotos and not petzshlglobals.photohasbg then
+                hibitsptr^ := $fefefe
           else if bitsptr^ <> 253 then begin
             var maskcolor := maskbitsptr^;
             if maskcolor = 0 then
