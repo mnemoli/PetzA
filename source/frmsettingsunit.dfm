@@ -194,4 +194,13 @@ object frmSettings: TfrmSettings
     Enabled = False
     TabOrder = 13
   end
+  object chkUnlockPalette: TCheckBox
+    Left = 231
+    Top = 119
+    Width = 97
+    Height = 17
+    Caption = 'Unlock palette'
+    TabOrder = 14
+    OnClick = chkUnlockPaletteClick
+  end
 end
