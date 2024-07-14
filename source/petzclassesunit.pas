@@ -659,7 +659,7 @@ end;
 function TPetzSHLGlobals.getphotohasbg: boolean;
 begin
   case cpetzver of
-    pvpetz4: result := pboolean(classprop(self, $889))^;
+    pvpetz4: result := pboolean(classprop(self, $379))^;
     else result := false;
   end;
 end;
@@ -1536,6 +1536,7 @@ begin
   var maskrowbytes := (maskprect.x1 - maskprect.x2) + maskrawrowbytes;
 
   startpos := ((bounds.y2 - rect.y2) * rawrowbytes) + rect.x1;
+  outofbounds := false;
   if (maskdrawport.bounds.y1 - 128 > maskprect.y1) or (maskdrawport.bounds.x1 - 128 > maskprect.x1)
   or (maskdrawport.bounds.y2 + 128 < maskprect.y2) or (maskdrawport.bounds.x2 + 128 < maskprect.x2) then
     outofbounds := true;
