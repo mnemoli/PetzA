@@ -1536,8 +1536,8 @@ begin
   var maskrowbytes := (maskprect.x1 - maskprect.x2) + maskrawrowbytes;
 
   startpos := ((bounds.y2 - rect.y2) * rawrowbytes) + rect.x1;
-  if (maskdrawport.bounds.y1 > maskprect.y1) or (maskdrawport.bounds.x1 > maskprect.x1)
-  or (maskdrawport.bounds.y2 < maskprect.y2) or (maskdrawport.bounds.x2 < maskprect.x2) then
+  if (maskdrawport.bounds.y1 - 128 > maskprect.y1) or (maskdrawport.bounds.x1 - 128 > maskprect.x1)
+  or (maskdrawport.bounds.y2 + 128 < maskprect.y2) or (maskdrawport.bounds.x2 + 128 < maskprect.x2) then
     outofbounds := true;
   startposmask := ((maskdrawport.bounds.y2 - maskprect.y2) * maskrawrowbytes) + maskprect.x1;
   bitsptr := pbyte(cardinal(bits) + startpos);
