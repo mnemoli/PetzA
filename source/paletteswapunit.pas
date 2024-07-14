@@ -45,13 +45,17 @@ begin
     exit;
   palettebmp := TBitmap.Create();
   palettefiles := TDirectory.GetFiles(extractfilepath(ParamStr(0)) + 'palettes', '*.bmp', TSearchOption.soAllDirectories);
-  if length(palettefiles) > 256 then
-    raise Exception.Create('You have more than 256 palettes!');
-  for var i := 0 to length(palettefiles) - 1 do begin
-    var thispalette := getgamepalettefrombmp(palettefiles[i]);
-    var palettename := tpath.GetFileNameWithoutExtension(extractfilename(palettefiles[i]));
-    palettes.AddOrSetValue(i + 1, thispalette);
-    paletteindexes.AddOrSetValue(palettename, i + 1);
+  if length(palettefiles) > 255 then
+    raise Exception.Create('You have more than 255 palettes!');
+  var paletteindex := 1;
+  for var palettepath in palettefiles do begin
+    var palettename := tpath.GetFileNameWithoutExtension(extractfilename(palettepath));
+    if palettename = 'petz' then
+      continue;
+    var thispalette := getgamepalettefrombmp(palettepath);
+    palettes.AddOrSetValue(paletteindex, thispalette);
+    paletteindexes.AddOrSetValue(palettename, paletteindex);
+    paletteindex := paletteindex + 1;
   end;
 end;
 

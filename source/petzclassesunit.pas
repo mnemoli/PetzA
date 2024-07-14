@@ -1525,6 +1525,7 @@ var startpos, startposmask: integer;
 var rawrowbytes, maskrawrowbytes: integer;
 var maskbounds: TPetzRect;
 var palar: tgamepalette;
+var outofbounds: boolean;
 begin
   rect := prect^;
   height := rect.y2 - rect.y1;
@@ -1535,6 +1536,9 @@ begin
   var maskrowbytes := (maskprect.x1 - maskprect.x2) + maskrawrowbytes;
 
   startpos := ((bounds.y2 - rect.y2) * rawrowbytes) + rect.x1;
+  if (maskdrawport.bounds.y1 > maskprect.y1) or (maskdrawport.bounds.x1 > maskprect.x1)
+  or (maskdrawport.bounds.y2 < maskprect.y2) or (maskdrawport.bounds.x2 < maskprect.x2) then
+    outofbounds := true;
   startposmask := ((maskdrawport.bounds.y2 - maskprect.y2) * maskrawrowbytes) + maskprect.x1;
   bitsptr := pbyte(cardinal(bits) + startpos);
   maskbitsptr := pbyte(cardinal(maskdrawport.bits) + startposmask);
@@ -1549,7 +1553,9 @@ begin
           if (bitsptr^ = 200) and forphoto and petza.transparentphotos and not petzshlglobals.photohasbg then
                 hibitsptr^ := $fefefe
           else if bitsptr^ <> 253 then begin
-            var maskcolor := maskbitsptr^;
+            var maskcolor := 0;
+            if not outofbounds then
+              maskcolor := maskbitsptr^;
             if maskcolor = 0 then
               color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^
             else begin
