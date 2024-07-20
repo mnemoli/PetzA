@@ -1020,13 +1020,11 @@ begin
         bitmap := TNakedBitmapLoader.create;
         fileext := uppercase(ExtractFileExt(filename));
         try
-          bitmap.LoadNakedFromStream(stream, petza.transparentphotos and (fileext = '.PNG'));
+          bitmap.LoadNakedFromStream(stream);
 
           if fileext = '.GIF' then begin
             gif := TGIFImage.Create;
             try
-              gif.DitherMode := dmFloydSteinberg;
-              gif.ColorReduction := rmQuantize;
               gif.Assign(bitmap);
               if petza.transparentphotos and not petzshlglobals.photohasbg then begin
                 // Create an extension to set the transparency flag
@@ -1040,12 +1038,7 @@ begin
             end;
           end else
             if fileext = '.PNG' then begin
-              gif := TGIFImage.Create;
               try
-                gif.DitherMode := dmFloydSteinberg;
-                gif.ColorReduction := rmQuantize;
-                gif.Assign(bitmap);
-                bitmap.assign(gif);
                 png := TPNGImage.Create;
                 try
                   png.CompressionLevel := 9;
@@ -1715,20 +1708,34 @@ begin
   var dimensions := petzshlglobals.dimensions;
   boundsptr.x2 := dimensions.x2 - dimensions.x1;
   boundsptr.y2 := dimensions.y2 - dimensions.y1;
-  var nearestmultiple := (boundsptr.x2 + 3) and $FFFC;
+  var nearestmultiple := (boundsptr.x2 + 3) and $fffffffc;
   var backup1 := pinteger(classprop(instance, 28))^;
   var backup2 := pinteger(classprop(instance, 32))^;
   pinteger(classprop(instance, 28))^ := nearestmultiple;
   pinteger(classprop(instance, 32))^ := nearestmultiple * (boundsptr.y2);
 
-  var localrect := tpetzrect.create(0, 0, rect.x2 - rect.x1, rect.y2 - rect.y1);
-  localrect.x2 := ((rect.x2 - rect.x1) + 3) and $FFFC;
+  // stop blowups from pet being offscreen
+  var inrectadjusted := tpetzrect.create(rect.x1, rect.y1, rect.x2, rect.y2);
+  if inrectadjusted.x1 = inrectadjusted.x2 then
+    if inrectadjusted.x2 = 0 then
+      inrectadjusted.x2 := 1
+    else
+      inrectadjusted.x1 := inrectadjusted.x1 - 1;
+
+  if inrectadjusted.y1 = inrectadjusted.y2 then
+    if inrectadjusted.y2 = 0 then
+      inrectadjusted.y2 := 1
+    else
+      inrectadjusted.y1 := inrectadjusted.y1 - 1;
+  inrectadjusted.x2 := (inrectadjusted.x2 + 3) and $fffffffc;
+
+  var localrect := tpetzrect.create(0, 0, inrectadjusted.x2 - inrectadjusted.x1, inrectadjusted.y2 - inrectadjusted.y1);
   var localdrawport := tpetzdrawport.makenew(@localrect, false, true, true);
   // set use hi color otherwise xcopybits doesn't work right
   pinteger(classprop(localdrawport, 168))^ := 1;
-  localdrawport.SetOrigin(-rect.x1, -rect.y1);
+  localdrawport.SetOrigin(-inrectadjusted.x1, -inrectadjusted.y1);
 
-  instance.CopyBits(localdrawport, rect, rect);
+  instance.CopyBits(localdrawport, @inrectadjusted, @inrectadjusted);
 
   // restore screen drawport settings
   boundsptr.x1 := bounds.x1;
@@ -1746,9 +1753,9 @@ begin
   var lock := GlobalLock(datahandle);
   var lockAsBitmapInfo := pBitmapInfo(lock);
 
-  lockAsBitmapInfo.bmiHeader.biWidth := localrect.x2;
-  lockAsBitmapInfo.bmiHeader.biHeight := localrect.y2;
-  lockAsBitmapInfo.bmiHeader.biSizeImage := lockAsBitmapInfo.bmiHeader.biWidth * lockAsBitmapInfo.bmiHeader.biHeight;
+  lockAsBitmapInfo.bmiHeader.biWidth := inrectadjusted.x2 - inrectadjusted.x1;
+  lockAsBitmapInfo.bmiHeader.biHeight := inrectadjusted.y2 - inrectadjusted.y1;
+  lockAsBitmapInfo.bmiHeader.biSizeImage := localrect.x2 * lockAsBitmapInfo.bmiHeader.biHeight;
   lockAsBitmapInfo.bmiHeader.biSize := 40;
   lockAsBitmapInfo.bmiHeader.biPlanes := 1;
   lockAsBitmapInfo.bmiHeader.biBitCount := 32;
@@ -1762,40 +1769,36 @@ begin
 end;
 
 procedure mydrawfilmstrip(return, filmstrip: pointer; param1: short; drawport: TPetzDrawport; bounds1, bounds2: TPetzPRect; param5: integer; param6: byte); stdcall;
-var thismaskdrawport: TPetzDrawport;
+var thisdrawport: TPetzDrawport;
 var localbounds: TPetzRect;
-var inrect: TPetzRect;
-//var filmstrip: pointer;
 begin
-asm
-  mov filmstrip, ecx;
-end;
-  if pcardinal(drawport)^ <> $58dea4 then begin
-    // if this is a texture and not a drawport, do original
+  if (pcardinal(drawport)^ <> $58dea4) or (pinteger(classprop(filmstrip, 8))^ > 8) then begin
+    // if this is a texture and not a drawport
+    // or it's hi colormode
+    // do original
     drawfilmstrippatch.callorigproc(filmstrip, [cardinal(param1), cardinal(drawport), cardinal(bounds1), cardinal(bounds2), cardinal(param5), cardinal(param6)]);
     exit;
   end;
 
-  inrect := bounds1^;
   localbounds.x1 := 0;
   localbounds.y1 := 0;
-  localbounds.x2 := inrect.x2 - inrect.x1;
-  localbounds.y2 := inrect.y2 - inrect.y1;
+  localbounds.x2 := bounds1.x2 - bounds1.x1;
+  localbounds.y2 := bounds1.y2 - bounds1.y1;
   if (localbounds.x2 = 0) and (localbounds.y2 = 0) then
     exit;
  // create new small drawport big enough for the filmstrip
-  thismaskdrawport := TPetzDrawport.MakeNew(@localbounds, false, true, false);
+  thisdrawport := TPetzDrawport.MakeNew(@localbounds, false, true, false);
   // set origin
-  thismaskdrawport.setorigin(-inrect.x1, -inrect.y1);
+  thisdrawport.setorigin(-bounds1.x1, -bounds1.y1);
   // fill with transparent
-  thismaskdrawport.FillTransparent(@inrect, 253);
+  thisdrawport.FillTransparent(bounds1, 253);
   // draw on small drawport
-  drawfilmstrippatch.callorigproc(filmstrip, [cardinal(param1), cardinal(thismaskdrawport), cardinal(@inrect), cardinal(bounds2), cardinal(param5), cardinal(param6)]);
+  drawfilmstrippatch.callorigproc(filmstrip, [cardinal(param1), cardinal(thisdrawport), cardinal(bounds1), cardinal(bounds2), cardinal(param5), cardinal(param6)]);
   // copy to original drawport
-  thismaskdrawport.CopyBitsTransparentMask(drawport, @inrect, @inrect, -1);
-  // set filmstrip bits to 0, all filmstrips will just use palette 0
-  thismaskdrawport.CopyBitsTransparentMask(petza.maskdrawport, @inrect, @inrect, 0);
-  thismaskdrawport.Destroy;
+  thisdrawport.CopyBitsTransparentMask(drawport, bounds1, bounds1, -1);
+  // set filmstrip mask bits to 0, all filmstrips will just use palette 0
+  thisdrawport.CopyBitsTransparentMask(petza.maskdrawport, bounds1, bounds1, 0);
+  thisdrawport.Destroy;
 end;
 
 procedure mydrawstacked(return, sprite: pointer; drawport: TPetzDrawport; stackdraw: integer); stdcall;
@@ -1819,7 +1822,7 @@ end;
 
 procedure mydisplayballzframe(port, bounds, ballstate: pointer); stdcall;
 var xballz: pointer;
-var thismaskdrawport: TPetzDrawport;
+var thisdrawport: TPetzDrawport;
 var localbounds: TPetzRect;
 var inrect: TPetzRect;
 var lnz: pointer;
@@ -1851,26 +1854,26 @@ end;
     exit;
 
   // create new small drawport big enough for the pet
-  thismaskdrawport := TPetzDrawport.MakeNew(@localbounds, true, true, false);
+  thisdrawport := TPetzDrawport.MakeNew(@localbounds, true, true, false);
   // set origin
-  thismaskdrawport.setorigin(-inrect.x1, -inrect.y1);
+  thisdrawport.setorigin(-inrect.x1, -inrect.y1);
   //petza.maskdrawport.SetOrigin(128, 128);
   // fill with transparent
-  thismaskdrawport.FillTransparent(@inrect, 253);
-  dd.miniport := thismaskdrawport;
+  thisdrawport.FillTransparent(@inrect, 253);
+  dd.miniport := thisdrawport;
   dd.originalport := port;
   dd.bounds := inrect;
   dd.palette := palette;
   petza.drawdata.Push(dd);
   // draw onto the small drawport
-  thiscall(xballz, ptr($00450bd0), [cardinal(thismaskdrawport), cardinal(@inrect), cardinal(ballstate)]);
+  thiscall(xballz, ptr($00450bd0), [cardinal(thisdrawport), cardinal(@inrect), cardinal(ballstate)]);
   //drawspritespatch.callorigproc(xballz, [cardinal(thismaskdrawport), cardinal(@inrect), cardinal(ballstate)]);
   // copy from small drawport to main drawport with transparency
-  thismaskdrawport.CopyBitsTransparentMask(port, @inrect, @inrect, -1);
+  thisdrawport.CopyBitsTransparentMask(port, @inrect, @inrect, -1);
   // copy from small drawport to mask drawport
-  thismaskdrawport.CopyBitsTransparentMask(petza.maskdrawport, @inrect, @inrect, palette);
+  thisdrawport.CopyBitsTransparentMask(petza.maskdrawport, @inrect, @inrect, palette);
   // destruct
-  thismaskdrawport.Destroy;
+  thisdrawport.Destroy;
 
   petza.lastmaskvalue := palette;
   petza.drawdata.Pop;
@@ -1945,19 +1948,8 @@ end;
     if (regionrect.x1 <> 0) or (regionrect.y1 <> 0) or (regionrect.x2 <> 0) or (regionrect.y2 <> 0) then begin
       isstacked := pbyte(classprop(sprite, 312))^;
       if (isstacked <> 0) or (localrect1 = localrect2) then begin
-        //portbounds := TPetzRect.create(0, 0, localrect1.x2 - localrect1.x1, localrect1.y2 - localrect1.y1);
-        //if ((portbounds.x1 = 0) and (portbounds.x2 = 0) and (portbounds.y1 = 0) and (portbounds.y2 = 0)) then
-          //exit;
-        //thisdrawport := TPetzDrawport.MakeNew(@portbounds, true, true, false);
-        //thisdrawport.SetOrigin(-localrect1.x1, -localrect1.y1);
-        //thisdrawport.FillTransparent(@spriterect, 253);
         petza.lastmaskvalue := 0;
         thiscall(sprite, ppointer(vftable + $74)^, [cardinal(@localrect1), cardinal(@spriterect), cardinal(port), cardinal(0)]);
-        // drawing when something is entirely inside...
-        // bug here because entire sprite palette swaps when palette swapped pet is inside
-        //thisdrawport.CopyBitsTransparentMask(port, @spriterect, @spriterect, -1);
-        //thisdrawport.CopyBitsTransparentMask(petza.maskdrawport, @spriterect, @spriterect, petza.lastmaskvalue);
-        //thisdrawport.Destroy;
         thiscall(sprite, ppointer(vftable + $50)^, []);
         exit;
       end;
