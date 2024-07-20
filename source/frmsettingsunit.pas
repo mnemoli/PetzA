@@ -27,6 +27,7 @@ type
     chkDisableNeglect: TCheckBox;
     chkTexturedIrises: TCheckBox;
     chkUnlockPalette: TCheckBox;
+    chkEnablePalettes: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -87,10 +88,11 @@ begin
   petza.transparentphotos := chktransparentphotos.checked;
   petza.neglectdisabled := chkdisableneglect.Checked;
   petza.texturedirises := chktexturedirises.Checked;
-  if petza.unlockpalette <> chkunlockpalette.Checked then
+  if (petza.unlockpalette <> chkunlockpalette.Checked) or
+  (petza.enablepalettes <> chkEnablePalettes.Checked) then
     showmessage('Please restart Petz to apply your changes!');
   petza.unlockpalette := chkunlockpalette.Checked;
-
+  petza.enablepalettes := chkEnablePalettes.Checked;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -111,6 +113,7 @@ begin
   chktransparentphotos.Checked := petza.transparentphotos;
   chkdisableneglect.Checked := petza.neglectdisabled;
   chktexturedirises.Checked := petza.texturedirises;
+  chkEnablePalettes.Checked := petza.enablepalettes;
   // stupid workaround
   chkunlockpalette.OnClick := nil;
   chkunlockpalette.checked := petza.unlockpalette;
@@ -127,6 +130,7 @@ begin
   chkdisableneglect.Enabled := cpetzver in verNametags;
   chktexturedirises.Enabled := cpetzver = pvpetz4;
   chkunlockpalette.Enabled := cpetzver = pvpetz4;
+  chkEnablePalettes.Enabled := cpetzver = pvpetz4;
 end;
 
 end.

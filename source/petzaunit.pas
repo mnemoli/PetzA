@@ -127,6 +127,7 @@ type
     facpetsadult: boolean;
     ftexturedirises: boolean;
     funlockpalette: boolean;
+    fenablepalettes: boolean;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -190,6 +191,7 @@ type
     property ACpetsadult: boolean read facpetsadult write setacpetsadult;
     property texturedirises: boolean read ftexturedirises write settexturedirises;
     property unlockpalette: boolean read funlockpalette write funlockpalette;
+    property enablepalettes: boolean read fenablepalettes write fenablepalettes;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -532,7 +534,8 @@ begin
         ownername := reg.ReadString('OwnerName');
       if reg.ValueExists('UnlockPalette') then
         unlockpalette := reg.ReadBool('UnlockPalette');
-
+      if reg.ValueExists('EnablePalettes') then
+        enablepalettes := reg.ReadBool('EnablePalettes');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -575,6 +578,7 @@ begin
       reg.WriteBool('TexturedIrises', texturedirises);
       reg.WriteString('OwnerName', ownername);
       reg.WriteBool('UnlockPalette', unlockpalette);
+      reg.WriteBool('EnablePalettes', enablepalettes);
     end;
   finally
     reg.free;
@@ -1772,9 +1776,9 @@ procedure mydrawfilmstrip(return, filmstrip: pointer; param1: short; drawport: T
 var thisdrawport: TPetzDrawport;
 var localbounds: TPetzRect;
 begin
-  if (pcardinal(drawport)^ <> $58dea4) or (pinteger(classprop(filmstrip, 8))^ > 8) then begin
+  if (pcardinal(drawport)^ <> $58dea4) or (pinteger(classprop(filmstrip, $124))^ > 8) then begin
     // if this is a texture and not a drawport
-    // or it's hi colormode
+    // or it's hi colormode filmstrip
     // do original
     drawfilmstrippatch.callorigproc(filmstrip, [cardinal(param1), cardinal(drawport), cardinal(bounds1), cardinal(bounds2), cardinal(param5), cardinal(param6)]);
     exit;
@@ -1987,13 +1991,15 @@ end;
   boundsrect.y2 := boundsrect.y2 + 128;
   petza.maskdrawport.FillTransparent(@boundsrect, 0);
   port := instance.activedrawport;
+  var backup1 := pboolean(classprop(port, 168))^;
+  var backup2 := pinteger(classprop(port, 164))^;
   pboolean(classprop(port, 168))^ := true;
   pinteger(classprop(port, 164))^ := 1;
   // call orig
   thiscall(instance, ptr($00489c50), [cardinal(sprites)]);
   // set values back
-  pboolean(classprop(port, 168))^ := false;
-  pinteger(classprop(port, 164))^ := 0;
+  pboolean(classprop(port, 168))^ := backup1;
+  pinteger(classprop(port, 164))^ := backup2;
 end;
 
 function mycreatepalette: hpalette; cdecl;
@@ -2315,29 +2321,30 @@ begin
   fbreedingtimer := 0;
   fbatchbreedcountdefault := 10;
 
-  // Patch drawing for extra palettes
-  drawdata := TStack<TDrawData>.Create();
-  retargetcall(ptr($004c9c4f), @mydrawsprites);
-  drawfilmstrippatch := patchthiscall(ptr($00461d10), @mydrawfilmstrip);
-  retargetcall(ptr($0047d3d7), @mydisplayballzframe);
-  initstagepatch := patchthiscall(ptr($00489610), @myinitstage);
-  drawstackedpatch := patchthiscall(ptr($00488b60), @mydrawstacked);
-  retargetcall(ptr($004365f2), @mycopy8bit);
-  // Patch lnz loading and unloading for extra palettes
-  lnzpalettecache := TDictionary<pointer, byte>.Create();
-  loadlnzpatch := patchthiscall(ptr($0046c390), @myloadlnz);
-  desxballzpatch := patchthiscall(ptr($0044b6d0), @mydesxballz);
-  // Load palettes
-  loadpalettes;
-  // Make photos hicolor
-  retargetcall(ptr($0048a554), @mymakepicturefrombuffer);
-  retargetcall(ptr($0048a4e7), @mymakepicturefrombufferbg);
-  // Make headshots palettised
-  retargetcall(ptr($004cefc5), @mysnapshot);
-  retargetcall(ptr($004CED8D), @mysnapshot);
-
-
   loadsettings; //pretty late in the peace so all objects are created
+
+  if (enablepalettes) and (cpetzver = pvpetz4) then begin
+    // Patch drawing for extra palettes
+    drawdata := TStack<TDrawData>.Create();
+    retargetcall(ptr($004c9c4f), @mydrawsprites);
+    drawfilmstrippatch := patchthiscall(ptr($00461d10), @mydrawfilmstrip);
+    retargetcall(ptr($0047d3d7), @mydisplayballzframe);
+    initstagepatch := patchthiscall(ptr($00489610), @myinitstage);
+    drawstackedpatch := patchthiscall(ptr($00488b60), @mydrawstacked);
+    retargetcall(ptr($004365f2), @mycopy8bit);
+    // Patch lnz loading and unloading for extra palettes
+    lnzpalettecache := TDictionary<pointer, byte>.Create();
+    loadlnzpatch := patchthiscall(ptr($0046c390), @myloadlnz);
+    desxballzpatch := patchthiscall(ptr($0044b6d0), @mydesxballz);
+    // Load palettes
+    loadpalettes;
+    // Make photos hicolor
+    retargetcall(ptr($0048a554), @mymakepicturefrombuffer);
+    retargetcall(ptr($0048a4e7), @mymakepicturefrombufferbg);
+    // Make headshots palettised
+    retargetcall(ptr($004cefc5), @mysnapshot);
+    retargetcall(ptr($004CED8D), @mysnapshot);
+  end;
 
   if unlockpalette then begin
     // Load palette without windows colours
