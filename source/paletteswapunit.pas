@@ -31,7 +31,7 @@ end;
 
 function loadpetzpaletteifexists: tgamepalette;
 begin
-  result := getgamepalettefrombmp(extractfilepath(ParamStr(0)) + 'palettes/petz.bmp');
+  result := getgamepalettefrombmp(extractfilepath(ParamStr(0)) + 'resource/palettes/petz.bmp');
 end;
 
 procedure loadpalettes;
@@ -41,10 +41,10 @@ procedure loadpalettes;
 begin
   palettes := TDictionary<byte, TgamePalette>.Create();
   paletteindexes := TDictionary<string, byte>.Create();
-  if not TDirectory.Exists(extractfilepath(ParamStr(0)) + 'palettes') then
+  if not TDirectory.Exists(extractfilepath(ParamStr(0)) + 'resource/palettes') then
     exit;
   palettebmp := TBitmap.Create();
-  palettefiles := TDirectory.GetFiles(extractfilepath(ParamStr(0)) + 'palettes', '*.bmp', TSearchOption.soAllDirectories);
+  palettefiles := TDirectory.GetFiles(extractfilepath(ParamStr(0)) + 'resource/palettes', '*.bmp', TSearchOption.soAllDirectories);
   if length(palettefiles) > 255 then
     raise Exception.Create('You have more than 255 palettes!');
   var paletteindex := 1;
