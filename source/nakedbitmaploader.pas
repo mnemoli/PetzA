@@ -7,13 +7,13 @@ uses sysutils, Classes, windows, graphics, math;
 type
   TNakedBitmapLoader = class(TBitmap)
   public
-    procedure LoadNakedFromStream(stream: TStream);
+    procedure LoadNakedFromStream(stream: TStream; replacebackground: boolean);
     procedure LoadNakedFromBuffer(buffer: Pointer; size: integer);
   end;
 
 implementation
 
-procedure TNakedBitmapLoader.LoadNakedFromStream(stream: TStream);
+procedure TNakedBitmapLoader.LoadNakedFromStream(stream: TStream; replacebackground: boolean);
 var
   header: BITMAPINFOHEADER;
   size: longword;
@@ -47,10 +47,18 @@ begin
     palette.palNumEntries := header.biClrUsed;
 
     for t1 := 0 to header.biClrUsed - 1 do begin
-      stream.read(palette.palPalEntry[t1].peBlue, 1);
-      stream.read(palette.palPalEntry[t1].peGreen, 1);
-      stream.read(palette.palPalEntry[t1].peRed, 1);
-      stream.read(palette.palPalEntry[t1].peFlags, 1);
+      if (t1 = 200) and replacebackground then begin
+        palette.palPalEntry[t1].peBlue := $fe;
+        palette.palPalEntry[t1].peGreen := $fe;
+        palette.palPalEntry[t1].peRed := $fe;
+        stream.Seek(3, TSeekOrigin.soCurrent);
+        stream.read(palette.palPalEntry[t1].peFlags, 1);
+      end else begin
+        stream.read(palette.palPalEntry[t1].peBlue, 1);
+        stream.read(palette.palPalEntry[t1].peGreen, 1);
+        stream.read(palette.palPalEntry[t1].peRed, 1);
+        stream.read(palette.palPalEntry[t1].peFlags, 1);
+      end;
     end;
 
     self.Palette := CreatePalette(plogpalette(@palette)^); //nasty, nasty typecast. Stupid delphi :)

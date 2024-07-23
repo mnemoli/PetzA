@@ -1024,12 +1024,17 @@ begin
         bitmap := TNakedBitmapLoader.create;
         fileext := uppercase(ExtractFileExt(filename));
         try
-          bitmap.LoadNakedFromStream(stream);
+          // If palettes are on, colour replacing will be handled by copy8bit
+          // If off, replace colour index 200 here with fefefe
+          // when no bg
+          bitmap.LoadNakedFromStream(stream, petza.transparentphotos and (fileext <> '.BMP') and (not petza.enablepalettes) and (not petzshlglobals.photohasbg));
 
           if fileext = '.GIF' then begin
             gif := TGIFImage.Create;
             try
               gif.Assign(bitmap);
+              // GIFs may still have issues with transparency
+              // when palettes are on, since they're limited to 256 colours
               if petza.transparentphotos and not petzshlglobals.photohasbg then begin
                 // Create an extension to set the transparency flag
                 Ext := TGIFGraphicControlExtension.Create(gif.Images[0]);
