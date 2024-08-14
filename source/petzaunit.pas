@@ -226,7 +226,7 @@ type TFlavor = (
 implementation
 
 uses setchildrenunit, mymessageunit, debugunit, gamespeedunit, typinfo, frmsettingsunit, userprofileunit,
-  nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit, controls, System.StrUtils;
+  nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit, controls, ansistrings, System.StrUtils;
 
 {$WARN SYMBOL_PLATFORM OFF}
 {$WARN UNIT_PLATFORM OFF}
@@ -1105,7 +1105,7 @@ begin
       names := pet.name;
     end;
     DateTimeToString(timestamp, 'yymmddhhnnss', Now());
-    var ext := RightStr(petza.fautopicsavepath, 4);
+    var ext := ansistrings.RightStr(petza.fautopicsavepath, 4);
     petza.fautopicsavepath := '%s\PetzPix\' + names + '-' + timestamp + '-%d.' + ext;
   end;
   rimports.xdrawport_closescreendrawport;
@@ -1129,7 +1129,6 @@ begin
 end;
 
 function mydrawphotop3(return: pointer; stage: TPetzStage; pt1, pt2: pointer): cardinal; stdcall;
-var port: pointer;
 var bits: pbyte;
 var bitsnum: cardinal;
 begin
@@ -1158,7 +1157,7 @@ begin
   end;
 
   s := stripfileext(opfn.lpstrFile);
-  StrPCopy(opfn.lpstrFile, s); //has to go into the buffer that the caller supplied
+  ansistrings.StrPCopy(opfn.lpstrFile, s); //has to go into the buffer that the caller supplied
 
   opfn.lpstrFilter := 'GIF Image'#0'*.gif'#0'Windows Bitmap'#0'*.bmp'#0'PNG Image'#0'*.png'#0; // ie. terminated by 2 nulls}
   result := GetSaveFileNamea(opfn);
@@ -1597,7 +1596,6 @@ end;
 procedure myloadlnz(return, instance, path: pointer; param2: cardinal; xballz, cache: pointer); stdcall;
 var lnzdict: pointer;
 const categorytitle: pansichar = '[Palette]';
-var palette: integer;
 var gotsection: bool;
 var palettename: pansichar;
 var paletteidx: byte;
@@ -1673,8 +1671,6 @@ end;
   lockAsBitmapInfo.bmiHeader.biSize := 40;
   lockAsBitmapInfo.bmiHeader.biPlanes := 1;
   lockAsBitmapInfo.bmiHeader.biBitCount := 32;
-
-  var hibitsptr := localdrawport.hibits;
 
   copymemory(ptr(cardinal(lock) + 40), localdrawport.hibits, lockAsBitmapInfo.bmiHeader.biSizeImage * 4);
 
@@ -1834,7 +1830,6 @@ var xballz: pointer;
 var thisdrawport: TPetzDrawport;
 var localbounds: TPetzRect;
 var inrect: TPetzRect;
-var lnz: pointer;
 var palette: byte;
 var dd: TDrawData;
 begin
@@ -1856,7 +1851,6 @@ end;
   if (localbounds.x2 < 0) or (localbounds.y2 < 0) then
     localbounds.x2 := -localbounds.x2;
 
-  lnz := ppointer(classprop(xballz, 388))^;
   lnzpalettecache.TryGetValue(xballz, palette);
 
   if (localbounds.x2 <= 0) or (localbounds.y2 <= 0) then
@@ -2131,7 +2125,7 @@ var oldprotect: cardinal;
   p: PByte;
   b: byte;
   action: TAction;
-var thispalette: tgamepalette;
+
 begin
   Application.HelpFile := locatehelpfile;
   foldwndproc := nil;

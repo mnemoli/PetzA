@@ -91,8 +91,7 @@ end;
 
 function matebystateconceive(female, male: TPetzPetSprite): boolean;
 var state: Pointer;
-var offspring: TPetzPetSprite;
-  old: TPetzPetSprite;
+  var old: TPetzPetSprite;
   old90: longword;
   buffer: array[0..100] of byte;
 begin
@@ -102,8 +101,6 @@ begin
 
     old90 := female.stateflag;
     female.stateflag := 1;
-
-    var buttonindex := pinteger(classprop(petzcase, $3d2c));
 
     try
       state := pointer(thiscall(@buffer[0], rimports.stateconceive_stateconceive, []));
@@ -119,8 +116,7 @@ begin
 end;
 
 procedure deliveroffspring(female: TPetzPetSprite);
-  var data: array[0..2] of byte;
-  offspring: TPetzPetSprite;
+  var offspring: TPetzPetSprite;
   motherid: uint;
 begin
   patchbreedingcalls;

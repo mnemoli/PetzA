@@ -35,15 +35,12 @@ begin
 end;
 
 procedure loadpalettes;
-  var palettebmp: TBitmap;
-  var ppal: array [0..255] of tpaletteentry;
   var palettefiles: TArray<string>;
 begin
   palettes := TDictionary<byte, TgamePalette>.Create();
   paletteindexes := TDictionary<string, byte>.Create();
   if not TDirectory.Exists(extractfilepath(ParamStr(0)) + 'resource/palettes') then
     exit;
-  palettebmp := TBitmap.Create();
   palettefiles := TDirectory.GetFiles(extractfilepath(ParamStr(0)) + 'resource/palettes', '*.bmp', TSearchOption.soAllDirectories);
   if length(palettefiles) > 255 then
     raise Exception.Create('You have more than 255 palettes!');

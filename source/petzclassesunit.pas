@@ -268,7 +268,7 @@ type TRPetzApp = record
 var petzclassesman: tpetzclassesman;
 
 implementation
-uses dllformunit, petzcommon1, petzaunit;
+uses dllformunit, petzcommon1, petzaunit, ansistrings;
 
 function tpetzpetzapp.getpetmodule: tpetzpetmodule;
 begin
@@ -686,7 +686,7 @@ end;
 
 procedure TPetzSHLGlobals.setadoptername(const Value: ansistring);
 begin
-  strpcopy(pansichar(classprop(self, $240)), value);
+  ansistrings.strpcopy(pansichar(classprop(self, $240)), value);
 end;
 
 function petzdlgglobals: Tpetzdlgglobals;
@@ -1523,7 +1523,6 @@ var height, width, rowbytes: integer;
 var rect: TPetzRect;
 var startpos, startposmask: integer;
 var rawrowbytes, maskrawrowbytes: integer;
-var maskbounds: TPetzRect;
 var palar: tgamepalette;
 var outofbounds: boolean;
 begin
