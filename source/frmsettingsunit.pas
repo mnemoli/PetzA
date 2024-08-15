@@ -26,10 +26,13 @@ type
     chkTransparentPhotos: TCheckBox;
     chkDisableNeglect: TCheckBox;
     chkTexturedIrises: TCheckBox;
+    chkUnlockPalette: TCheckBox;
+    chkEnablePalettes: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure chkUnlockPaletteClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -60,6 +63,18 @@ begin
   end;
 end;
 
+procedure TfrmSettings.chkUnlockPaletteClick(Sender: TObject);
+begin
+  if chkUnlockPalette.checked then begin
+    var result := MessageDlg('Unlocking the palette will let you use more colours when ' +
+                             'making your own palettes. However, it may change some ' +
+                             'basegame colours. ' +
+                             'You can create a petz.bmp palette to customise basegame colours.',
+                             mtConfirmation, mbOKCancel, 0);
+    chkUnlockPalette.Checked := result = mrOK;
+  end;
+end;
+
 procedure TfrmSettings.btnOkClick(Sender: TObject);
 begin
   petza.showheart := chkshowheart.checked;
@@ -73,6 +88,11 @@ begin
   petza.transparentphotos := chktransparentphotos.checked;
   petza.neglectdisabled := chkdisableneglect.Checked;
   petza.texturedirises := chktexturedirises.Checked;
+  if (petza.unlockpalette <> chkunlockpalette.Checked) or
+  (petza.enablepalettes <> chkEnablePalettes.Checked) then
+    showmessage('Please restart Petz to apply your changes!');
+  petza.unlockpalette := chkunlockpalette.Checked;
+  petza.enablepalettes := chkEnablePalettes.Checked;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -93,6 +113,11 @@ begin
   chktransparentphotos.Checked := petza.transparentphotos;
   chkdisableneglect.Checked := petza.neglectdisabled;
   chktexturedirises.Checked := petza.texturedirises;
+  chkEnablePalettes.Checked := petza.enablepalettes;
+  // stupid workaround
+  chkunlockpalette.OnClick := nil;
+  chkunlockpalette.checked := petza.unlockpalette;
+  chkunlockpalette.OnClick := chkUnlockPaletteClick;
 
   chkshowheart.enabled := cpetzver in verBreeding;
   chkNameTags.Enabled := cpetzver in verNametags;
@@ -104,6 +129,8 @@ begin
   chkadultac.Enabled := cpetzver in verNametags;
   chkdisableneglect.Enabled := cpetzver in verNametags;
   chktexturedirises.Enabled := cpetzver = pvpetz4;
+  chkunlockpalette.Enabled := cpetzver = pvpetz4;
+  chkEnablePalettes.Enabled := cpetzver = pvpetz4;
 end;
 
 end.

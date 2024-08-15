@@ -3,7 +3,7 @@ unit petzclassesunit;
 interface
 
 uses sysutils, windows, graphics, classes, contnrs, dialogs, bndpetz,
-  dllpatchunit;
+  dllpatchunit, Generics.Collections, petzpaletteunit, paletteswapunit;
 
 var notagain: boolean;
 
@@ -162,15 +162,26 @@ type
 
   end;
 
+  TPetzRect = record
+    x1, y1, x2, y2: integer;
+    constructor create(px1, py1, px2, py2: integer);
+    class operator add(a, b: TPetzRect): TPetzRect;
+    class operator equal(a, b: TPetzRect): bool;
+  end;
+
   TPetzSHLGlobals = class
   private
     function getadoptername: ansistring;
     function getphotopet: TPetzPetSprite;
     procedure setadoptername(const Value: ansistring);
+    function getdimensions: tpetzrect;
+    function getphotohasbg: boolean;
   public
     function mainwindow: hwnd;
     property adoptername: ansistring read getadoptername write setadoptername;
     property photopet: TPetzPetSprite read getphotopet;
+    property dimensions: tpetzrect read getdimensions;
+    property photohasbg: boolean read getphotohasbg;
   end;
 
   TChangetype = (ctCreate, ctDestroy);
@@ -204,13 +215,28 @@ type
       property buttonindex: integer read getbuttonindex write setbuttonindex;
   end;
 
+  TPetzPRect = ^TPetzRect;
+
   TPetzDrawport = class
   private
     function getbits: pbyte;
     function getnumbits: cardinal;
+    function getbounds: TPetzRect;
+    function getrowwidth: cardinal;
+    function gethibits: pinteger;
   public
     property bits: pbyte read getbits;
+    property hibits: pinteger read gethibits;
     property numbits: cardinal read getnumbits;
+    property bounds: TPetzRect read getbounds;
+    property rowwidth: cardinal read getrowwidth;
+    procedure Destroy();
+    procedure SetOrigin(x, y: integer);
+    procedure FillTransparent(bounds: TPetzPRect; color: byte);
+    procedure CopyBitsTransparentMask(dstport: TPetzDrawport; psrcrect, pdstrect: TPetzPRect; maskvalue: integer);
+    procedure CopyBits(dstport: TPetzDrawport; psrcrect, pdstrect: TPetzPRect);
+    procedure Copy8BitCustom(prect, maskprect: TPetzPRect; maskdrawport: TPetzDrawport; forphoto: boolean = false);
+    class function MakeNew(bounds: TPetzPRect; circledraw, locolor, hicolor: bool): TPetzDrawport;
   end;
 
   TPetzStage = class
@@ -242,7 +268,7 @@ type TRPetzApp = record
 var petzclassesman: tpetzclassesman;
 
 implementation
-uses dllformunit, petzcommon1, petzaunit;
+uses dllformunit, petzcommon1, petzaunit, ansistrings;
 
 function tpetzpetzapp.getpetmodule: tpetzpetmodule;
 begin
@@ -634,6 +660,19 @@ begin
   result := pansichar(classprop(self, $240));
 end;
 
+function TPetzSHLGlobals.getdimensions: tpetzrect;
+begin
+  result := tpetzprect(classprop(self, 648))^;
+end;
+
+function TPetzSHLGlobals.getphotohasbg: boolean;
+begin
+  case cpetzver of
+    pvpetz4: result := pboolean(classprop(self, $379))^;
+    else result := false;
+  end;
+end;
+
 function TPetzSHLGlobals.getphotopet: TPetzPetSprite;
 begin
   case cpetzver of
@@ -656,7 +695,7 @@ end;
 
 procedure TPetzSHLGlobals.setadoptername(const Value: ansistring);
 begin
-  strpcopy(pansichar(classprop(self, $240)), value);
+  ansistrings.strpcopy(pansichar(classprop(self, $240)), value);
 end;
 
 function petzdlgglobals: Tpetzdlgglobals;
@@ -1484,14 +1523,239 @@ end;
 
 { TPetzDrawport }
 
+procedure TPetzDrawport.Copy8BitCustom(prect, maskprect: TPetzPRect; maskdrawport: TPetzDrawport; forphoto: boolean = false);
+var bitsptr, maskbitsptr: pbyte;
+var hibitsptr: pcardinal;
+var color: cardinal;
+var rgbpalette: pointer;
+var height, width, rowbytes: integer;
+var rect: TPetzRect;
+var startpos, startposmask: integer;
+var rawrowbytes, maskrawrowbytes: integer;
+var palar: tgamepalette;
+var outofbounds: boolean;
+begin
+  rect := prect^;
+  height := rect.y2 - rect.y1;
+  width := rect.x2 - rect.x1;
+  rawrowbytes :=  pinteger(classprop(self, 28))^;
+  maskrawrowbytes :=  pinteger(classprop(maskdrawport, 28))^;
+  rowbytes := (rect.x1 - rect.x2) + rawrowbytes;
+  var maskrowbytes := (maskprect.x1 - maskprect.x2) + maskrawrowbytes;
+
+  startpos := ((bounds.y2 - rect.y2) * rawrowbytes) + rect.x1;
+  outofbounds := false;
+  if (maskdrawport.bounds.y1 - 128 > maskprect.y1) or (maskdrawport.bounds.x1 - 128 > maskprect.x1)
+  or (maskdrawport.bounds.y2 + 128 < maskprect.y2) or (maskdrawport.bounds.x2 + 128 < maskprect.x2) then
+    outofbounds := true;
+  startposmask := ((maskdrawport.bounds.y2 - maskprect.y2) * maskrawrowbytes) + maskprect.x1;
+  bitsptr := pbyte(cardinal(bits) + startpos);
+  maskbitsptr := pbyte(cardinal(maskdrawport.bits) + startposmask);
+  hibitsptr := pointer(cardinal(hibits) + startpos * 4);
+
+  rgbpalette := ppointer($00630d58)^;
+
+  if height > 0 then
+    if width > 0 then begin
+      for var y := 0 to height - 1 do begin
+        for var x := 0 to width - 1 do begin
+          if (bitsptr^ = 200) and forphoto and petza.transparentphotos and not petzshlglobals.photohasbg then
+                hibitsptr^ := $fefefe
+          else if bitsptr^ <> 253 then begin
+            var maskcolor := 0;
+            if not outofbounds then
+              maskcolor := maskbitsptr^;
+            if maskcolor = 0 then
+              color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^
+            else begin
+             var didgetpalette := palettes.TryGetValue(maskcolor, palar);
+              if didgetpalette then
+                color := palar[bitsptr^]
+              else
+                color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^;
+            end;
+            hibitsptr^ := color;
+          end;
+          bitsptr := bitsptr + 1;
+          maskbitsptr := maskbitsptr + 1;
+          hibitsptr := pointer(cardinal(hibitsptr) + 4);
+        end;
+        bitsptr := bitsptr + rowbytes;
+        hibitsptr := pointer(cardinal(hibitsptr) + rowbytes * 4);
+        maskbitsptr := maskbitsptr + maskrowbytes;
+      end;
+    end;
+end;
+
+procedure TPetzDrawport.CopyBits(dstport: TPetzDrawport; psrcrect,
+  pdstrect: TPetzPRect);
+begin
+  thiscall(self, ptr($004361a0), [cardinal(dstport), cardinal(psrcrect), cardinal(pdstrect), cardinal(0)]);
+end;
+
+procedure TPetzDrawport.CopyBitsTransparentMask(dstport: TPetzDrawport; psrcrect,
+  pdstrect: TPetzPRect; maskvalue: integer);
+var srcbits, dstbits: pbyte;
+var srcsize, dstsize: TPetzRect;
+var srcrect, dstrect: TPetzRect;
+var srcrowwidth, dstrowwidth: integer;
+begin
+  srcsize := bounds;
+  dstsize := dstport.bounds;
+
+  srcrect := TPetzPRect(psrcrect)^;
+  srcrect.x1 := srcrect.x1 + srcsize.x1;
+  srcrect.x2 := srcrect.x2 + srcsize.x1;
+  srcrect.y1 := srcrect.y1 + srcsize.y1;
+  srcrect.y2 := srcrect.y2 + srcsize.y1;
+  dstrect := TPetzPRect(pdstrect)^;
+  dstrect.x1 := dstrect.x1 + dstsize.x1;
+  dstrect.x2 := dstrect.x2 + dstsize.x1;
+  dstrect.y1 := dstrect.y1 + dstsize.y1;
+  dstrect.y2 := dstrect.y2 + dstsize.y1;
+
+  if srcrect.x1 < 0 then begin
+    dstrect.x1 := dstrect.x1 - srcrect.x1;
+    srcrect.x1 := 0;
+  end;
+  if srcrect.y1 < 0 then begin
+    dstrect.y1 := dstrect.y1 - srcrect.y1;
+    srcrect.y1 := 0;
+  end;
+  if srcsize.x2 < srcrect.x2 then begin
+    dstrect.x2 := dstrect.x2 + (srcsize.x2 - srcrect.x2);
+    srcrect.x2 := srcsize.x2;
+  end;
+  if srcsize.y2 < srcrect.y2 then begin
+    dstrect.y2 := dstrect.y2 + (srcsize.y2 - srcrect.y2);
+    srcrect.y2 := srcsize.y2;
+  end;
+
+  if dstrect.x1 < 0 then begin
+    srcrect.x1 := srcrect.x1 - dstrect.x1;
+    dstrect.x1 := 0;
+  end;
+  if dstrect.y1 < 0 then begin
+    srcrect.y1 := srcrect.y1 - dstrect.y1;
+    dstrect.y1 := 0;
+  end;
+  if dstsize.x2 < dstrect.x2 then begin
+    srcrect.x2 := srcrect.x2 + (dstsize.x2 - dstrect.x2);
+    dstrect.x2 := dstsize.x2;
+  end;
+  if dstsize.y2 < dstrect.y2 then begin
+    srcrect.y2 := srcrect.y2 + (dstsize.y2 - dstrect.y2);
+    dstrect.y2 := dstsize.y2;
+  end;
+
+  srcrowwidth := rowwidth;
+  dstrowwidth := dstport.rowwidth;
+
+  var startpos := ((srcsize.y2 - srcrect.y2) * srcrowwidth) + srcrect.x1;
+
+  srcbits := pbyte(cardinal(bits) + startpos);
+
+  startpos := ((dstsize.y2 - dstrect.y2) * dstrowwidth) + dstrect.x1;
+
+  dstbits := pbyte(cardinal(dstport.bits) + startpos);
+
+  for var y := srcrect.y1 to srcrect.y2 - 1 do begin
+    for var x := srcrect.x1 to srcrect.x2 - 1 do begin
+    if srcbits^ <> 253 then
+      if maskvalue <> -1 then
+        dstbits^ := maskvalue
+      else
+        dstbits^ := srcbits^;
+      dstbits := dstbits + 1;
+      srcbits := srcbits + 1;
+    end;
+    srcbits := srcbits + (srcrowwidth - (srcrect.x2 - srcrect.x1));
+    dstbits := dstbits + (dstrowwidth - (dstrect.x2 - dstrect.x1));
+  end;
+end;
+
+class function TPetzDrawport.MakeNew(bounds: TPetzPRect; circledraw, locolor,
+  hicolor: bool): TPetzDrawport;
+begin
+  var mem: TPetzDrawport;
+  mem := rimports.petzallocmem(172);
+  thiscall(mem, ptr($0045bbf0), []);
+  thiscall(mem, ptr($0045bd40), [cardinal(bounds), cardinal(8), cardinal(circledraw), cardinal(locolor), cardinal(hicolor)]);
+  result := mem;
+end;
+
+procedure TPetzDrawport.Destroy;
+begin
+  thiscall(self, ptr($0045bca0), []);
+  rimports.petzdeletemem(self);
+end;
+
+procedure TPetzDrawport.FillTransparent(bounds: TPetzPRect; color: byte);
+begin
+  thiscall(self, ptr($00436e90), [cardinal(bounds), cardinal(color)]);
+end;
+
 function TPetzDrawport.getbits: pbyte;
 begin
   result := ppointer(classprop(self, 148))^;
 end;
 
+function TPetzDrawport.getbounds: TPetzRect;
+begin
+  result := TPetzPRect(classprop(self, 12))^;
+end;
+
+function TPetzDrawport.gethibits: pinteger;
+begin
+  result := ppointer(classprop(self, 152))^;
+end;
+
 function TPetzDrawport.getnumbits: cardinal;
 begin
   result := pcardinal(classprop(self, 32))^;
+end;
+
+function TPetzDrawport.getrowwidth: cardinal;
+begin
+  result := pcardinal(classprop(self, 28))^;
+end;
+
+procedure TPetzDrawport.SetOrigin(x, y: integer);
+begin
+  thiscall(self, ptr($00460740), [cardinal(x), cardinal(y)]);
+end;
+
+{ TPetzRect }
+
+class operator TPetzRect.add(a, b: TPetzRect): TPetzRect;
+var output: TPetzRect;
+begin
+  output.x1 := b.x1;
+  if a.x1 <= b.x1 then
+    output.x1 := a.x1;
+  output.y1 := b.y1;
+  if a.y1 <= b.y1 then
+    output.y1 := a.y1;
+  output.x2 := b.x2;
+  if b.x2 <= a.x2 then
+    output.x2 := a.x2;
+  output.y2 := b.y2;
+  if b.y2 <= a.y2 then
+    output.y2 := a.y2;
+  result := output;
+end;
+
+constructor TPetzRect.create(px1, py1, px2, py2: integer);
+begin
+  x1 := px1;
+  x2 := px2;
+  y1 := py1;
+  y2 := py2;
+end;
+
+class operator TPetzRect.equal(a, b: TPetzRect): bool;
+begin
+  result := (a.x1 = b.x1) and (a.y1 = b.y1) and (a.x2 = b.x2) and (a.y2 = b.y2);
 end;
 
 end.

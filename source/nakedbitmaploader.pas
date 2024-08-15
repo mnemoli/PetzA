@@ -48,16 +48,16 @@ begin
 
     for t1 := 0 to header.biClrUsed - 1 do begin
       if (t1 = 200) and replacebackground then begin
-      palette.palPalEntry[t1].peBlue := $00;
-      palette.palPalEntry[t1].peGreen := $fe;
-      palette.palPalEntry[t1].peRed := $ff;
-      stream.Seek(3, TSeekOrigin.soCurrent);
-      stream.read(palette.palPalEntry[t1].peFlags, 1);
+        palette.palPalEntry[t1].peBlue := $fe;
+        palette.palPalEntry[t1].peGreen := $fe;
+        palette.palPalEntry[t1].peRed := $fe;
+        stream.Seek(3, TSeekOrigin.soCurrent);
+        stream.read(palette.palPalEntry[t1].peFlags, 1);
       end else begin
-      stream.read(palette.palPalEntry[t1].peBlue, 1);
-      stream.read(palette.palPalEntry[t1].peGreen, 1);
-      stream.read(palette.palPalEntry[t1].peRed, 1);
-      stream.read(palette.palPalEntry[t1].peFlags, 1);
+        stream.read(palette.palPalEntry[t1].peBlue, 1);
+        stream.read(palette.palPalEntry[t1].peGreen, 1);
+        stream.read(palette.palPalEntry[t1].peRed, 1);
+        stream.read(palette.palPalEntry[t1].peFlags, 1);
       end;
     end;
 

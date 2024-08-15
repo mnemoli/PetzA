@@ -4,8 +4,8 @@ object frmSettings: TfrmSettings
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'PetzA Settings'
-  ClientHeight = 183
-  ClientWidth = 410
+  ClientHeight = 200
+  ClientWidth = 400
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,16 +15,17 @@ object frmSettings: TfrmSettings
   Position = poScreenCenter
   OnCreate = FormCreate
   DesignSize = (
-    410
-    183)
+    400
+    200)
   TextHeight = 13
   object Bevel1: TBevel
     Left = 0
-    Top = 142
-    Width = 410
+    Top = 159
+    Width = 400
     Height = 41
     Align = alBottom
     Shape = bsTopLine
+    ExplicitTop = 142
     ExplicitWidth = 396
   end
   object lblCameraFormat: TLabel
@@ -35,8 +36,8 @@ object frmSettings: TfrmSettings
     Caption = 'Camera picture format:'
   end
   object btnCancel: TButton
-    Left = 260
-    Top = 150
+    Left = 250
+    Top = 167
     Width = 67
     Height = 25
     Anchors = [akRight, akBottom]
@@ -48,8 +49,8 @@ object frmSettings: TfrmSettings
     ExplicitTop = 149
   end
   object btnOk: TButton
-    Left = 188
-    Top = 150
+    Left = 178
+    Top = 167
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
@@ -72,8 +73,8 @@ object frmSettings: TfrmSettings
     TabOrder = 0
   end
   object Button3: TButton
-    Left = 12
-    Top = 150
+    Left = 2
+    Top = 167
     Width = 169
     Height = 25
     Anchors = [akRight, akBottom]
@@ -92,8 +93,8 @@ object frmSettings: TfrmSettings
     TabOrder = 1
   end
   object btnHelp: TButton
-    Left = 332
-    Top = 150
+    Left = 322
+    Top = 167
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
@@ -193,5 +194,22 @@ object frmSettings: TfrmSettings
     Caption = 'Enable textured irises'
     Enabled = False
     TabOrder = 13
+  end
+  object chkUnlockPalette: TCheckBox
+    Left = 231
+    Top = 136
+    Width = 97
+    Height = 17
+    Caption = 'Unlock palette'
+    TabOrder = 14
+    OnClick = chkUnlockPaletteClick
+  end
+  object chkEnablePalettes: TCheckBox
+    Left = 231
+    Top = 120
+    Width = 130
+    Height = 17
+    Caption = 'Enable palette swaps'
+    TabOrder = 15
   end
 end
