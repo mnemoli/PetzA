@@ -200,10 +200,12 @@ var petza: tpetza;
   hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation,
   hresetstack, reacttocamerapatch, deliveroffspringpatch,
   draweyeballpatch, inittoypatch, drawphotopatch, drawspritespatch, initstagepatch,
-  loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch: TPatchThiscall;
+  loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
+  popupwndprocpatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, byte>;
 var  logging: Boolean;
 procedure dolog(const message: string);
+var pickapetmenusearchstring: ansistring;
 
 type TAdjective = (
   AlpoType, Chrz, Toyz, Prop, Part, ThreeD, Color, Flavor, Size, Mass, Friction,
@@ -1003,6 +1005,171 @@ procedure myinittoy(return, instance: pointer; b: boolean; host: pointer); stdca
     end;
   end;
   end;
+end;
+
+procedure mycreateheadshot(return: pointer; instance: tpetzpetsprite; colortypes: integer); stdcall;
+  var newmenuitem: menuiteminfoa;
+begin
+  createheadshotpatch.callorigproc(instance, [colortypes]);
+  var winmenu := cardinal(ppointer($6279f0)^);
+  var popuphwnd := hwnd(ppointer(winmenu + $38)^);
+  if (petzshlglobals.pickapetmenu <> 0) and (popuphwnd <> 0) then begin
+    var menu := petzshlglobals.pickapetmenu;
+    newmenuitem.cbsize := sizeof(menuiteminfo);
+    newmenuitem.fmask := MIIM_CHECKMARKS + MIIM_STATE;
+    newmenuitem.hbmpChecked := hbitmap(thiscall(instance.petinfo.headshot, ptr($456fb0), []));
+    newmenuitem.hbmpUnchecked := thiscall(ptr($639128), ptr($4d25d0), [cardinal(instance.loadinfo)]);
+    newmenuitem.fState := 0;
+    setmenuiteminfoa(menu, instance.id, false, newmenuitem);
+    var cachedmenuitems := cardinal(ppointer(winmenu + $20)^);
+    var cachedmenusize := pinteger(winmenu + $24)^;
+    for var i := 0 to cachedmenusize-1 do begin
+      var cachedmenuitem := PMenuItemInfoA(cachedmenuitems + i * 44);
+      if cachedmenuitem.wID = instance.id then
+        cachedmenuitem.fstate := 0;
+    end;
+    invalidaterect(popuphwnd, nil, false);
+    updatewindow(popuphwnd);
+  end;
+end;
+
+procedure mymeasuremenu(return: pointer; instance: tpetzwinmenu; hwnd: hwnd); stdcall;
+type measureinfo = record
+  unknown1: integer;
+  unknown2: integer;
+  wid: integer;
+  width: integer;
+  height: integer;
+end;
+
+begin
+  invalidaterect(hwnd, nil, false);
+  instance.rectcount := 0;
+  var lasty := 0;
+  var lastrect := 0;
+  var firstrect := -1;
+  
+  for var i := 0 to instance.menuitemcount-1 do begin
+    var menuitem := instance.menuitems[i];
+    var thestr: array[0..256] of ansichar;
+    getmenustringa(petzshlglobals.pickapetmenu, menuitem.wid, @thestr, $100, 0);
+    if (length(pickapetmenusearchstring) > 0) and (not system.strutils.containstext(thestr, pickapetmenusearchstring)) then begin
+      instance.rects[i].x1 := 0;
+      instance.rects[i].x2 := 0;
+      instance.rects[i].y1 := 0;
+      instance.rects[i].y2 := 0;
+      continue;
+    end;
+
+    if firstrect = -1 then
+      firstrect := i;
+
+    var mi: measureinfo;
+    mi.wid := menuitem.wid;
+    // do measure item
+    thiscall(instance, ptr($408b90), [cardinal(instance.mainwindow), cardinal(instance.selectedidx = i), cardinal(@mi)]);
+    if instance.width < mi.width then
+      instance.width := mi.width;
+    instance.rects[i].x1 := 0;
+    instance.rects[i].x2 := mi.width;
+    instance.rects[i].y1 := lasty;
+    instance.rects[i].y2 := lasty + mi.height;
+
+    // some if happens here
+
+    lasty := instance.rects[i].y2;
+    lastrect := i;
+  end;
+
+  instance.rectcount := lastrect;
+  instance.rectfirst := firstrect;
+
+  for var i := 0 to instance.menuitemcount - 1 do begin
+    if instance.rects[i].x2 > 0 then
+      instance.rects[i].x2 := instance.width;
+  end;
+
+  // some clipping stuff here
+
+  var maxheight := instance.rects[instance.rectcount].y2 - instance.rects[instance.rectfirst].y1 + instance.drawrect.y2;
+  movewindow(hwnd, instance.drawrect.x1, instance.drawrect.y1, instance.drawrect.x2 + instance.width, maxheight, true);
+  var r: trect;
+  getclientrect(hwnd, &r);
+end;
+
+function mymenuhandleevents(hwnd: hwnd; param2, param3: cardinal; menustruct: PPetzMenuStruct): long; stdcall;
+  var instance: tpetzwinmenu;
+begin
+  asm
+    mov instance, ecx;
+  end;
+  // need to check here for the correct wids later
+  var outstr: array[0..256] of ansichar;
+  getmenustringa(petzshlglobals.pickapetmenu, menustruct.wid, @outstr, $100, 0);
+  if (length(pickapetmenusearchstring) = 0) or (system.strutils.containstext(outstr, pickapetmenusearchstring)) then begin
+    result := thiscall(instance, ptr($4089b0), [cardinal(hwnd), param2, param3, cardinal(menustruct)]);
+  end else
+    result := 0;
+end;
+
+function mypopupwndproc(return: pointer; instance: tpetzwinmenu; hwnd: hwnd; msg, wparam: integer; lparam: long): long; stdcall;
+type tpetzbanner = record
+  text: array[0..259] of ansichar;
+  text2: array[0..259] of ansichar;
+  vars: array[0..13] of integer;
+end;
+begin
+  if msg = $100 then begin
+    if (wparam >= $30) and (wparam <= $5a) then begin
+      pickapetmenusearchstring := pickapetmenusearchstring + ansichar(MapVirtualKeyExA(wparam, 2, 0));
+      instance.measuremenu;
+      var newbanner: tpetzbanner;
+      ansistrings.StrPCopy(newbanner.text, pickapetmenusearchstring);
+      ansistrings.strpcopy(newbanner.text2, 'X');
+      fillchar(newbanner.vars, sizeof(newbanner.vars), #0);
+      newbanner.vars[4] := -1;
+      newbanner.vars[5] := -1;
+      newbanner.vars[6] := -1;
+      newbanner.vars[7] := -1;
+      newbanner.vars[8] := -1;
+      newbanner.vars[9] := -1;
+      newbanner.vars[10] := 1;  
+      newbanner.vars[11] := 1;
+      newbanner.vars[12] := 30;
+      // copy to bevent
+      copymemory(ptr($61a770), @newbanner, sizeof(newbanner));  
+      // force bannersprite to update NOW
+      var bannersprite := cardinal(ppointer($638990)^);
+      pinteger(bannersprite + $3eb0)^ := 1;
+      result := 0;
+      exit;
+    end;
+    if (wparam = VK_BACK) then begin
+      setlength(pickapetmenusearchstring, length(pickapetmenusearchstring)-1);
+      instance.measuremenu;        
+      var newbanner: tpetzbanner;
+      ansistrings.StrPCopy(newbanner.text, pickapetmenusearchstring);
+      ansistrings.strpcopy(newbanner.text2, 'X');
+      fillchar(newbanner.vars, sizeof(newbanner.vars), #0);
+      newbanner.vars[4] := -1;
+      newbanner.vars[5] := -1;
+      newbanner.vars[6] := -1;
+      newbanner.vars[7] := -1;
+      newbanner.vars[8] := -1;
+      newbanner.vars[9] := -1;
+      newbanner.vars[10] := 1;  
+      newbanner.vars[11] := 1;
+      newbanner.vars[12] := 30;
+      // copy to bevent
+      copymemory(ptr($61a770), @newbanner, sizeof(newbanner));  
+      // force bannersprite to update NOW
+      var bannersprite := cardinal(ppointer($638990)^);
+      pinteger(bannersprite + $3eb0)^ := 1;
+      result := 0;
+      exit;  
+    end;
+  end;
+  result := popupwndprocpatch.callorigproc(instance, [cardinal(hwnd), msg, wparam, lparam]);
 end;
 
 function mywritedib(filename: PAnsiChar; dib: HGlobal): longword; cdecl;
@@ -2289,6 +2456,16 @@ begin
   case cpetzver of
     pvpetz4, pvpetz3: begin
       inittoypatch := patchthiscall(rimports.toysprite_inittoy, @myinittoy);
+    end;
+  end;
+
+  // Patch CreateHeadShot to stop giant white pick-a-pet menu bug
+  case cpetzver of
+    pvpetz4: begin
+      createheadshotpatch := patchthiscall(rimports.petsprite_createheadshot, @mycreateheadshot);
+      patchthiscall(ptr($40a060), @mymeasuremenu);
+      retargetcall(ptr($40a4f6), @mymenuhandleevents);
+      popupwndprocpatch := patchthiscall(ptr($40a580), @mypopupwndproc);
     end;
   end;
 
