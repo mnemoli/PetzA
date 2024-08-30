@@ -1047,7 +1047,6 @@ begin
   instance.rectcount := 0;
   var lasty := 0;
   var lastrect := 0;
-  var firstrect := -1;
   
   for var i := 0 to instance.menuitemcount-1 do begin
     var menuitem := instance.menuitems[i];
@@ -1058,11 +1057,10 @@ begin
       instance.rects[i].x2 := 0;
       instance.rects[i].y1 := 0;
       instance.rects[i].y2 := 0;
+      if instance.rectfirst = i then
+        instance.rectfirst := i + 1;
       continue;
     end;
-
-    if firstrect = -1 then
-      firstrect := i;
 
     var mi: measureinfo;
     mi.wid := menuitem.wid;
@@ -1075,24 +1073,37 @@ begin
     instance.rects[i].y1 := lasty;
     instance.rects[i].y2 := lasty + mi.height;
 
-    // some if happens here
-
     lasty := instance.rects[i].y2;
+
+    if (instance.rectfirst < i) and (instance.rectcount = 0) and (petzshlglobals.fullscreenrect.y2 - petzshlglobals.fullscreenrect.y1 <= instance.rects[i].y2 - instance.rects[instance.rectfirst].y1) then
+      instance.rectcount := i;
+
     lastrect := i;
   end;
 
-  instance.rectcount := lastrect;
-  instance.rectfirst := firstrect;
+  if instance.rectcount = 0 then
+    instance.rectcount := lastrect;
 
   for var i := 0 to instance.menuitemcount - 1 do begin
     if instance.rects[i].x2 > 0 then
       instance.rects[i].x2 := instance.width;
   end;
 
-  // some clipping stuff here
-
+  var maxwidth := instance.drawrect.x2 + instance.width;
+  if (petzshlglobals.fullscreenrect.x2) < (instance.drawrect.x1 + maxwidth) then
+    instance.drawrect.x1 := petzshlglobals.fullscreenrect.x2 - maxwidth;
   var maxheight := instance.rects[instance.rectcount].y2 - instance.rects[instance.rectfirst].y1 + instance.drawrect.y2;
-  movewindow(hwnd, instance.drawrect.x1, instance.drawrect.y1, instance.drawrect.x2 + instance.width, maxheight, true);
+  if (petzshlglobals.fullscreenrect.y2 < instance.drawrect.y1 + maxheight) then begin
+    instance.drawrect.y1 := petzshlglobals.fullscreenrect.y2 - maxheight;
+  end;
+  if instance.drawrect.x1 < 0 then
+    instance.drawrect.x1 := 0;
+
+  var halfheight := instance.drawrect.y2 div -2;
+  if instance.drawrect.y1 < halfheight then
+    instance.drawrect.y1 := -halfheight;
+
+  movewindow(hwnd, instance.drawrect.x1, instance.drawrect.y1, maxwidth, maxheight, true);
   var r: trect;
   getclientrect(hwnd, &r);
 end;
@@ -1120,9 +1131,9 @@ type tpetzbanner = record
 end;
 begin
   if msg = $100 then begin
-    if (wparam >= $30) and (wparam <= $5a) then begin
+    if ((wparam >= $30) and (wparam <= $5a)) or (wparam = VK_SPACE) then begin
       pickapetmenusearchstring := pickapetmenusearchstring + ansichar(MapVirtualKeyExA(wparam, 2, 0));
-      instance.measuremenu;
+      instance.recreatemenu;
       var newbanner: tpetzbanner;
       ansistrings.StrPCopy(newbanner.text, pickapetmenusearchstring);
       ansistrings.strpcopy(newbanner.text2, 'X');
@@ -1137,7 +1148,7 @@ begin
       newbanner.vars[11] := 1;
       newbanner.vars[12] := 30;
       // copy to bevent
-      copymemory(ptr($61a770), @newbanner, sizeof(newbanner));  
+      copymemory(ptr($61a770), @newbanner, sizeof(newbanner));
       // force bannersprite to update NOW
       var bannersprite := cardinal(ppointer($638990)^);
       pinteger(bannersprite + $3eb0)^ := 1;
@@ -1146,7 +1157,7 @@ begin
     end;
     if (wparam = VK_BACK) then begin
       setlength(pickapetmenusearchstring, length(pickapetmenusearchstring)-1);
-      instance.measuremenu;        
+      instance.recreatemenu;
       var newbanner: tpetzbanner;
       ansistrings.StrPCopy(newbanner.text, pickapetmenusearchstring);
       ansistrings.strpcopy(newbanner.text2, 'X');

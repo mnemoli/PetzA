@@ -171,6 +171,8 @@ type
     class operator equal(a, b: TPetzRect): bool;
   end;
 
+  TPetzPRect = ^TPetzRect;
+
   TPetzSHLGlobals = class
   private
     function getadoptername: ansistring;
@@ -179,6 +181,7 @@ type
     function getdimensions: tpetzrect;
     function getphotohasbg: boolean;
     function getpickapetmenu: hmenu;
+    function getfullscreenrect: tpetzprect;
   public
     function mainwindow: hwnd;
     property adoptername: ansistring read getadoptername write setadoptername;
@@ -186,6 +189,7 @@ type
     property dimensions: tpetzrect read getdimensions;
     property photohasbg: boolean read getphotohasbg;
     property pickapetmenu: hmenu read getpickapetmenu;
+    property fullscreenrect: tpetzprect read getfullscreenrect;
   end;
 
   TChangetype = (ctCreate, ctDestroy);
@@ -218,8 +222,6 @@ type
       procedure loadpetz(sessionid: ushort; buttonidx: integer);
       property buttonindex: integer read getbuttonindex write setbuttonindex;
   end;
-
-  TPetzPRect = ^TPetzRect;
 
   TPetzDrawport = class
   private
@@ -265,17 +267,18 @@ type
     function getrectfirst: integer;
     function gethwnd: hwnd;
     procedure setrectfirst(const Value: integer);
+    procedure setselectedidx(const Value: integer);
   public
     property menuitemcount: integer read getmenuitemcount;
     property rectfirst: integer read getrectfirst write setrectfirst;
     property rectcount: integer read getrectcount write setrectcount;
     property menuitems[index: integer]: pmenuiteminfoa read getmenuitem;
     property mainwindow: hwnd read getmainwindow;
-    property selectedidx: integer read getselectedidx;
+    property selectedidx: integer read getselectedidx write setselectedidx;
     property width: integer read getwidth write setwidth;
     property rects[index: integer]: tpetzprect read getrect;
     property drawrect: tpetzprect read getdrawrect;
-    procedure measuremenu;
+    procedure recreatemenu;
   end;
 
   TPetzMenuStruct = record
@@ -709,6 +712,11 @@ end;
 function TPetzSHLGlobals.getdimensions: tpetzrect;
 begin
   result := tpetzprect(classprop(self, 648))^;
+end;
+
+function TPetzSHLGlobals.getfullscreenrect: tpetzprect;
+begin
+  result := tpetzprect(classprop(self, $29c));
 end;
 
 function TPetzSHLGlobals.getphotohasbg: boolean;
@@ -1868,11 +1876,10 @@ begin
   result := pinteger(classprop(self, $30))^;
 end;
 
-procedure TPetzWinMenu.measuremenu;
+procedure TPetzWinMenu.recreatemenu;
 begin
-  thiscall(self, ptr($40a060), [cardinal(self.gethwnd)]);
-  invalidaterect(gethwnd, nil, true);
-  updatewindow(gethwnd);
+  thiscall(self, ptr($409f70), [cardinal(self.gethwnd)]);
+  thiscall(petzcase, ptr($04dd980), [cardinal(petzcase.buttonindex)]);
 end;
 
 procedure TPetzWinMenu.setrectcount(const Value: integer);
@@ -1883,6 +1890,11 @@ end;
 procedure TPetzWinMenu.setrectfirst(const Value: integer);
 begin
   pinteger(classprop(self, $28))^ := value;
+end;
+
+procedure TPetzWinMenu.setselectedidx(const Value: integer);
+begin
+  pinteger(classprop(self, $40))^ := -1;
 end;
 
 procedure TPetzWinMenu.setwidth(const Value: integer);
