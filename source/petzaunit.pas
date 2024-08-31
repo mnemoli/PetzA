@@ -128,6 +128,7 @@ type
     ftexturedirises: boolean;
     funlockpalette: boolean;
     fenablepalettes: boolean;
+    ftweakeyelidcolours: boolean;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -152,6 +153,7 @@ type
     procedure setusenewphotonameformat(const Value: boolean);
     procedure setacpetsadult(const Value: boolean);
     procedure settexturedirises(const Value: boolean);
+    procedure settweakeyelidcolours(const Value: boolean);
 
   public
     brains: TObjectList;
@@ -192,6 +194,7 @@ type
     property texturedirises: boolean read ftexturedirises write settexturedirises;
     property unlockpalette: boolean read funlockpalette write funlockpalette;
     property enablepalettes: boolean read fenablepalettes write fenablepalettes;
+    property tweakeyelidcolours: boolean read ftweakeyelidcolours write settweakeyelidcolours;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -538,6 +541,8 @@ begin
         unlockpalette := reg.ReadBool('UnlockPalette');
       if reg.ValueExists('EnablePalettes') then
         enablepalettes := reg.ReadBool('EnablePalettes');
+      if reg.ValueExists('TweakEyelidColours') then
+        tweakeyelidcolours := reg.ReadBool('TweakEyelidColours');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -581,6 +586,7 @@ begin
       reg.WriteString('OwnerName', ownername);
       reg.WriteBool('UnlockPalette', unlockpalette);
       reg.WriteBool('EnablePalettes', enablepalettes);
+      reg.WriteBool('TweakEyelidColours', tweakeyelidcolours);
     end;
   finally
     reg.free;
@@ -934,6 +940,25 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TPetza.settweakeyelidcolours(const Value: boolean);
+begin
+  if value <> ftweakeyelidcolours then begin
+    ftweakeyelidcolours := Value;
+    var newval1 := 45;
+    var newval2 := 115;
+    if value = true then begin
+      patchcodebuf(ptr($58E270), 4, 4, newval1);
+      patchcodebuf(ptr($58E288), 4, 4, newval2);
+    end else begin
+      newval1 := 30;
+      newval2 := 91;
+      patchcodebuf(ptr($58E270), 4, 4, newval1);
+      patchcodebuf(ptr($58E288), 4, 4, newval2);
+    end;
+  end;
+
 end;
 
 function getattrvalfromtext(attr: integer; text: string): integer;
