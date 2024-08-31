@@ -2719,7 +2719,11 @@ begin
             brain.show;
           end else
             if sender.name = 'sexchange' then begin
-              pet.petinfo.isfemale := not pet.petinfo.isfemale;
+              var newgender := byte(not pet.petinfo.isfemale);
+              if newgender > 1 then
+                newgender := 1;
+              pet.petinfo.isfemale := boolean(newgender);
+
               if pet.petinfo.isfemale then
                 nonmodalmessage('Successfully switched ' + pet.name + ' to a female.', 'SexChangeSuccess') else
                 nonmodalmessage('Successfully switched ' + pet.name + ' to a male.', 'SexChangeSuccess');
