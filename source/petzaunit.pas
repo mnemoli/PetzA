@@ -1155,6 +1155,10 @@ type tpetzbanner = record
   vars: array[0..13] of integer;
 end;
 begin
+  if hwnd <> petzshlglobals.pickapetmenu then
+    result := popupwndprocpatch.callorigproc(instance, [cardinal(hwnd), msg, wparam, lparam]);
+    exit;  
+  
   if msg = $100 then begin
     if ((wparam >= $30) and (wparam <= $5a)) or (wparam = VK_SPACE) then begin
       pickapetmenusearchstring := pickapetmenusearchstring + ansichar(MapVirtualKeyExA(wparam, 2, 0));
