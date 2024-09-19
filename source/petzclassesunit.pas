@@ -1878,6 +1878,8 @@ end;
 
 procedure TPetzWinMenu.recreatemenu;
 begin
+  // prevent selected pet being called out when menu is closed
+  selectedidx := -1;
   thiscall(self, ptr($409f70), [cardinal(self.gethwnd)]);
   thiscall(petzcase, ptr($04dd980), [cardinal(petzcase.buttonindex)]);
 end;

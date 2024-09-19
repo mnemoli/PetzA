@@ -1155,10 +1155,12 @@ type tpetzbanner = record
   vars: array[0..13] of integer;
 end;
 begin
-  if hwnd <> petzshlglobals.pickapetmenu then
+
+  if petzshlglobals.pickapetmenu = 0 then begin
     result := popupwndprocpatch.callorigproc(instance, [cardinal(hwnd), msg, wparam, lparam]);
-    exit;  
-  
+    exit;
+  end;
+
   if msg = $100 then begin
     if ((wparam >= $30) and (wparam <= $5a)) or (wparam = VK_SPACE) then begin
       pickapetmenusearchstring := pickapetmenusearchstring + ansichar(MapVirtualKeyExA(wparam, 2, 0));
@@ -1173,7 +1175,7 @@ begin
       newbanner.vars[7] := -1;
       newbanner.vars[8] := -1;
       newbanner.vars[9] := -1;
-      newbanner.vars[10] := 1;  
+      newbanner.vars[10] := 1;
       newbanner.vars[11] := 1;
       newbanner.vars[12] := 30;
       // copy to bevent
@@ -1201,12 +1203,12 @@ begin
       newbanner.vars[11] := 1;
       newbanner.vars[12] := 30;
       // copy to bevent
-      copymemory(ptr($61a770), @newbanner, sizeof(newbanner));  
+      copymemory(ptr($61a770), @newbanner, sizeof(newbanner));
       // force bannersprite to update NOW
       var bannersprite := cardinal(ppointer($638990)^);
       pinteger(bannersprite + $3eb0)^ := 1;
       result := 0;
-      exit;  
+      exit;
     end;
   end;
   result := popupwndprocpatch.callorigproc(instance, [cardinal(hwnd), msg, wparam, lparam]);
@@ -2749,8 +2751,6 @@ begin
           end else
             if sender.name = 'sexchange' then begin
               var newgender := byte(not pet.petinfo.isfemale);
-              if newgender > 1 then
-                newgender := 1;
               pet.petinfo.isfemale := boolean(newgender);
 
               if pet.petinfo.isfemale then
