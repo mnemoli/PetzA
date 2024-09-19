@@ -29,6 +29,8 @@ type
     chkUnlockPalette: TCheckBox;
     chkEnablePalettes: TCheckBox;
     chkTweakEyelidColours: TCheckBox;
+    cmbDefaultPalette: TComboBox;
+    lblDefaultPalette: TLabel;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -45,7 +47,7 @@ var
   frmSettings: TfrmSettings;
 
 implementation
-uses petzaunit;
+uses petzaunit, paletteswapunit;
 {$R *.DFM}
 
 procedure TfrmSettings.Button3Click(Sender: TObject);
@@ -103,11 +105,13 @@ begin
   petza.neglectdisabled := chkdisableneglect.Checked;
   petza.texturedirises := chktexturedirises.Checked;
   if (petza.unlockpalette <> chkunlockpalette.Checked) or
-  (petza.enablepalettes <> chkEnablePalettes.Checked) then
+  (petza.enablepalettes <> chkEnablePalettes.Checked) or
+  (petza.defaultpalette <> cmbDefaultPalette.items[cmbdefaultpalette.ItemIndex]) then
     showmessage('Please restart Petz to apply your changes!');
   petza.unlockpalette := chkunlockpalette.Checked;
   petza.enablepalettes := chkEnablePalettes.Checked;
   petza.tweakeyelidcolours := chkTweakEyelidColours.Checked;
+  petza.defaultpalette := cmbDefaultPalette.items[cmbdefaultpalette.itemindex];
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -150,6 +154,13 @@ begin
   chkunlockpalette.Enabled := cpetzver = pvpetz4;
   chkEnablePalettes.Enabled := cpetzver = pvpetz4;
   chkTweakEyelidColours.Enabled := cpetzver = pvpetz4;
+
+  for var k in paletteswapunit.paletteindexes do begin
+    cmbDefaultPalette.AddItem(k.Key, nil);
+  end;
+  cmbDefaultPalette.ItemIndex := cmbDefaultPalette.items.indexOf(petza.defaultpalette);
+  cmbDefaultPalette.Enabled := petza.enablepalettes and (cpetzver = pvpetz4);
+
 end;
 
 end.

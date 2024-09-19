@@ -129,6 +129,7 @@ type
     funlockpalette: boolean;
     fenablepalettes: boolean;
     ftweakeyelidcolours: boolean;
+    fdefaultpalette: string;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -195,6 +196,7 @@ type
     property unlockpalette: boolean read funlockpalette write funlockpalette;
     property enablepalettes: boolean read fenablepalettes write fenablepalettes;
     property tweakeyelidcolours: boolean read ftweakeyelidcolours write settweakeyelidcolours;
+    property defaultpalette: string read fdefaultpalette write fdefaultpalette;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -543,6 +545,8 @@ begin
         enablepalettes := reg.ReadBool('EnablePalettes');
       if reg.ValueExists('TweakEyelidColours') then
         tweakeyelidcolours := reg.ReadBool('TweakEyelidColours');
+      if reg.ValueExists('DefaultPalette') then
+        defaultpalette := reg.ReadString('DefaultPalette');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -587,6 +591,7 @@ begin
       reg.WriteBool('UnlockPalette', unlockpalette);
       reg.WriteBool('EnablePalettes', enablepalettes);
       reg.WriteBool('TweakEyelidColours', tweakeyelidcolours);
+      reg.WriteString('DefaultPalette', defaultpalette)
     end;
   finally
     reg.free;
@@ -1077,7 +1082,7 @@ begin
     var menuitem := instance.menuitems[i];
     var thestr: array[0..256] of ansichar;
     getmenustringa(petzshlglobals.pickapetmenu, menuitem.wid, @thestr, $100, 0);
-    if (length(pickapetmenusearchstring) > 0) and (not system.strutils.containstext(thestr, pickapetmenusearchstring)) then begin
+    if (petzshlglobals.dialogsopen = 0) and (length(pickapetmenusearchstring) > 0) and (not system.strutils.containstext(thestr, pickapetmenusearchstring)) then begin
       instance.rects[i].x1 := 0;
       instance.rects[i].x2 := 0;
       instance.rects[i].y1 := 0;
@@ -1139,7 +1144,10 @@ begin
   asm
     mov instance, ecx;
   end;
-  // need to check here for the correct wids later
+  if petzshlglobals.dialogsopen > 0 then begin
+    result := thiscall(instance, ptr($4089b0), [cardinal(hwnd), param2, param3, cardinal(menustruct)]);
+    exit;
+  end;
   var outstr: array[0..256] of ansichar;
   getmenustringa(petzshlglobals.pickapetmenu, menustruct.wid, @outstr, $100, 0);
   if (length(pickapetmenusearchstring) = 0) or (system.strutils.containstext(outstr, pickapetmenusearchstring)) then begin
@@ -1156,7 +1164,7 @@ type tpetzbanner = record
 end;
 begin
 
-  if petzshlglobals.pickapetmenu = 0 then begin
+  if (petzshlglobals.pickapetmenu = 0) or (petzshlglobals.dialogsopen > 0) then begin
     result := popupwndprocpatch.callorigproc(instance, [cardinal(hwnd), msg, wparam, lparam]);
     exit;
   end;
@@ -1810,19 +1818,28 @@ var palettename: pansichar;
 var paletteidx: byte;
 begin
   loadlnzpatch.callorigproc(instance, [cardinal(path), param2, cardinal(xballz), cardinal(cache)]);
+  if (cardinal(xballz) = -1) or (xballz = nil) then
+    exit;
+  if lnzpalettecache.ContainsKey(xballz) then
+    exit;
   lnzdict := classprop(cache, 380);
   // set file position
   gotsection := bool(thiscall(lnzdict, ptr($00431f30), [cardinal(categorytitle)]));
-  if gotsection then begin
+  if not gotsection then begin
+    if petza.defaultpalette.Length = 0 then
+        exit;
+    palettename := pansichar(ansistring(petza.defaultpalette));
+  end else begin
     // get next line
     palettename := pansichar(thiscall(lnzdict, ptr($00431fe0), []));
-    if length(palettename) > 0 then begin
-      var gotpalette := paletteindexes.TryGetValue(palettename, paletteidx);
-      if not gotpalette then
-        exit;
-      paletteidx := paletteindexes[palettename];
-      lnzpalettecache.AddOrSetValue(xballz, paletteidx);
-    end;
+  end;
+
+  if length(palettename) > 0 then begin
+    var gotpalette := paletteindexes.TryGetValue(palettename, paletteidx);
+    if not gotpalette then
+      exit;
+    paletteidx := paletteindexes[palettename];
+    lnzpalettecache.AddOrSetValue(xballz, paletteidx);
   end;
 end;
 
@@ -2556,6 +2573,9 @@ begin
     desxballzpatch := patchthiscall(ptr($0044b6d0), @mydesxballz);
     // Load palettes
     loadpalettes;
+    if (defaultpalette.Length > 0) and not paletteswapunit.paletteindexes.ContainsKey(defaultpalette) then
+      defaultpalette := string.Empty;
+
     // Make photos hicolor
     retargetcall(ptr($0048a554), @mymakepicturefrombuffer);
     retargetcall(ptr($0048a4e7), @mymakepicturefrombufferbg);

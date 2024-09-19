@@ -182,6 +182,7 @@ type
     function getphotohasbg: boolean;
     function getpickapetmenu: hmenu;
     function getfullscreenrect: tpetzprect;
+    function getdialogsopen: integer;
   public
     function mainwindow: hwnd;
     property adoptername: ansistring read getadoptername write setadoptername;
@@ -190,6 +191,7 @@ type
     property photohasbg: boolean read getphotohasbg;
     property pickapetmenu: hmenu read getpickapetmenu;
     property fullscreenrect: tpetzprect read getfullscreenrect;
+    property dialogsopen: integer read getdialogsopen;
   end;
 
   TChangetype = (ctCreate, ctDestroy);
@@ -707,6 +709,11 @@ end;
 function TPetzSHLGlobals.getadoptername: ansistring;
 begin
   result := pansichar(classprop(self, $240));
+end;
+
+function TPetzSHLGlobals.getdialogsopen: integer;
+begin
+  result := pinteger(classprop(self, $4d8))^;
 end;
 
 function TPetzSHLGlobals.getdimensions: tpetzrect;
