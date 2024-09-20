@@ -951,8 +951,8 @@ procedure TPetza.settweakeyelidcolours(const Value: boolean);
 begin
   if value <> ftweakeyelidcolours then begin
     ftweakeyelidcolours := Value;
-    var newval1 := 45;
-    var newval2 := 115;
+    var newval1 := 115;
+    var newval2 := 45;
     if value = true then begin
       patchcodebuf(ptr($58E270), 4, 4, newval1);
       patchcodebuf(ptr($58E288), 4, 4, newval2);
@@ -2768,27 +2768,31 @@ begin
             brain := TfrmSliderBrain.create(nil, petza.brainslidersontop, false, pet.id);
             petza.brains.add(brain);
             brain.show;
-          end else
-            if sender.name = 'sexchange' then begin
-              var newgender := byte(not pet.petinfo.isfemale);
-              pet.petinfo.isfemale := boolean(newgender);
+          end
+          else if sender.name = 'sexchange' then begin
+            pet.petinfo.isfemale := not pet.petinfo.isfemale;
 
-              if pet.petinfo.isfemale then
-                nonmodalmessage('Successfully switched ' + pet.name + ' to a female.', 'SexChangeSuccess') else
-                nonmodalmessage('Successfully switched ' + pet.name + ' to a male.', 'SexChangeSuccess');
-            end else
-              if sender.name = 'neuter' then begin
-                pet.petinfo.neutered := not pet.petinfo.neutered;
-                if pet.petinfo.neutered then
-                  nonmodalmessage('Successfully neutered ' + pet.name + '!', 'NeuterSuccess') else
-                  nonmodalmessage('Successfully unneutered ' + pet.name + '!', 'NeuterSuccess');
-              end else
-                if sender.name = 'trimtree' then begin
-                  frm := tfrmtrimfamilytree.create(application);
-                  frm.petid := pet.id;
-                  frm.petname := pet.name;
-                  frm.Show;
-                end;
+            if pet.petinfo.isfemale then
+              nonmodalmessage('Successfully switched ' + pet.name + ' to a female.', 'SexChangeSuccess') else
+              nonmodalmessage('Successfully switched ' + pet.name + ' to a male.', 'SexChangeSuccess');
+          end
+          else if sender.name = 'neuter' then begin
+            pet.petinfo.neutered := not pet.petinfo.neutered;
+            if pet.petinfo.neutered then
+              nonmodalmessage('Successfully neutered ' + pet.name + '!', 'NeuterSuccess') else
+              nonmodalmessage('Successfully unneutered ' + pet.name + '!', 'NeuterSuccess');
+          end
+          else if sender.name = 'trimtree' then begin
+            frm := tfrmtrimfamilytree.create(application);
+            frm.petid := pet.id;
+            frm.petname := pet.name;
+            frm.Show;
+          end
+          else if sender.name = 'nonbinary' then begin
+            var newgender: byte := 255;
+            pet.petinfo.rawgender := newgender;
+            nonmodalmessage('Successfully switched ' + pet.name + ' to nonbinary.', 'SexChangeSuccess')
+          end;
         break;
       end;
     end;
@@ -2839,6 +2843,7 @@ begin
 
       if cpetzver in verBreeding then begin
         menumanager.additem(pet, 'sexchange', 'Sex change', petsprite.id, petoptionshandler);
+        menumanager.additem(pet, 'nonbinary', 'Make nonbinary', petsprite.id, petoptionshandler);
         menumanager.additem(pet, 'neuter', 'Neuter/Unneuter', petsprite.id, petoptionshandler);
         menumanager.additem(pet, 'trimtree', 'Trim family tree...', petsprite.id, petoptionshandler);
       end;

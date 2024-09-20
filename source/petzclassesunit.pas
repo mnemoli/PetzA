@@ -79,11 +79,14 @@ type
     procedure setancestryinfo(value: tpetzancestryinfo);
     function getcomment: pointer;
     function getheadshot: pointer;
+    function getgender: byte;
+    procedure setgender(const Value: byte);
   public
     function pregnant: boolean;
     function conceivetime: longword;
     property ancestryinfo: TPetzAncestryInfo read getancestryinfo write setancestryinfo;
     property isfemale: boolean read getfemale write setfemale;
+    property rawgender: byte read getgender write setgender;
     property neutered: boolean read getneutered write setneutered;
     property commenttext: pointer read getcomment;
     property headshot: pointer read getheadshot;
@@ -1083,31 +1086,44 @@ end;
 
 procedure tpetzpetinfo.setfemale(value: boolean);
 begin
+  var b: byte := 0;
+  if value then
+    b := 1;
+  rawgender := b;
+end;
+
+procedure TPetzPetinfo.setgender(const Value: byte);
+begin
   case cpetzver of
-    pvPetz5: pbytebool(integer(self) + $5BBB0)^ := value;
-    pvPetz4: pbytebool(integer(self) + $5BBA0)^ := value;
-    pvPetz3, pvpetz3german: pbytebool(integer(self) + $5BBA0)^ := value;
-    pvBabyz: pbytebool(integer(self) + $953D8)^ := value;
+    pvPetz5: pbyte(integer(self) + $5BBB0)^ := Value;
+    pvPetz4: pbyte(integer(self) + $5BBA0)^ := Value;
+    pvPetz3, pvpetz3german: pbyte(integer(self) + $5BBA0)^ := Value;
+    pvBabyz: pbyte(integer(self) + $953D8)^ := Value;
   else begin
-      showmessage('Setfemale: Unsupported!');
+      showmessage('Setgender: Unsupported!');
     end;
   end;
 
   if ancestryinfo <> nil then begin
-    ancestryinfo.isfemale := value;
+    ancestryinfo.isfemale := bool(value);
   end;
 end;
 
 function tpetzpetinfo.getfemale: boolean;
 begin
+  result := bytebool(rawgender);
+end;
+
+function TPetzPetinfo.getgender: byte;
+begin
   case cpetzver of
-    pvPetz5: result := pbytebool(integer(self) + $5BBB0)^;
-    pvpetz4: result := pbytebool(integer(Self) + $5BBA0)^;
-    pvpetz3, pvpetz3german: result := pbytebool(integer(Self) + $5BBA0)^;
-    pvBabyz: result := pbytebool(integer(self) + $953D8)^;
+    pvPetz5: result := pbyte(integer(self) + $5BBB0)^;
+    pvpetz4: result := pbyte(integer(Self) + $5BBA0)^;
+    pvpetz3, pvpetz3german: result := pbyte(integer(Self) + $5BBA0)^;
+    pvBabyz: result := pbyte(integer(self) + $953D8)^;
   else begin
-      showmessage('Isfemale: Unsupported!');
-      result := false;
+      showmessage('GetGender: Unsupported!');
+      result := 0;
     end;
   end;
 end;
