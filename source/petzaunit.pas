@@ -1222,6 +1222,26 @@ begin
   result := popupwndprocpatch.callorigproc(instance, [cardinal(hwnd), msg, wparam, lparam]);
 end;
 
+procedure mygetgenderstring(uid: integer; lpbuffer: pansichar; max: integer); cdecl;
+type
+  TGetPetzString = procedure(uid: integer; lpbuffer: pansichar; max: integer); cdecl;
+var
+  myproc : TGetPetzString;
+begin
+  myproc := ptr($439560);
+  var idx := pinteger($627a14)^;
+  var listloc := ppointer($6391d0)^;
+  var ptrloc := cardinal(listloc) + idx * $10;
+  var gender := TPetzPetInfo(ppointer(ptrloc + $c)^).rawgender;
+  if (gender = 0) or (gender = 1) then
+    myproc(uid, lpbuffer, max)
+  else begin
+    var g := 'Nonbinary';
+    ansistrings.strpcopy(lpbuffer, g);
+  end;
+
+end;
+
 function mywritedib(filename: PAnsiChar; dib: HGlobal): longword; cdecl;
 var stream: TMemoryStream;
   p: pointer;
@@ -2525,6 +2545,13 @@ begin
       patchthiscall(ptr($40a060), @mymeasuremenu);
       retargetcall(ptr($40a4f6), @mymenuhandleevents);
       popupwndprocpatch := patchthiscall(ptr($40a580), @mypopupwndproc);
+    end;
+  end;
+
+  // Patch gender on profile
+  case cpetzver of
+    pvpetz4: begin
+        retargetcall(ptr($41518c), @mygetgenderstring);
     end;
   end;
 

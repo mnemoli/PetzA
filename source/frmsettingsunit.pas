@@ -155,6 +155,7 @@ begin
   chkEnablePalettes.Enabled := cpetzver = pvpetz4;
   chkTweakEyelidColours.Enabled := cpetzver = pvpetz4;
 
+  cmbDefaultPalette.AddItem('', nil);
   for var k in paletteswapunit.paletteindexes do begin
     cmbDefaultPalette.AddItem(k.Key, nil);
   end;

@@ -52,7 +52,6 @@ object frmSettings: TfrmSettings
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 6
-    ExplicitTop = 167
   end
   object btnOk: TButton
     Left = 178
@@ -65,7 +64,6 @@ object frmSettings: TfrmSettings
     ModalResult = 1
     TabOrder = 5
     OnClick = btnOkClick
-    ExplicitTop = 167
   end
   object chkBrainSliders: TCheckBox
     Left = 8
@@ -86,7 +84,6 @@ object frmSettings: TfrmSettings
     Caption = 'Reset hidden warning messages'
     TabOrder = 8
     OnClick = Button3Click
-    ExplicitTop = 167
   end
   object chkNameTags: TCheckBox
     Left = 8
@@ -105,7 +102,6 @@ object frmSettings: TfrmSettings
     Caption = 'Help'
     TabOrder = 7
     OnClick = btnHelpClick
-    ExplicitTop = 167
   end
   object GroupBox1: TGroupBox
     Left = 8
