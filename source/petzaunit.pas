@@ -932,6 +932,7 @@ begin
       pvpetz4: begin  
         if value then begin
           retargetcall(ptr($451fb4), @mydrawiris);
+          retargetcall(ptr($04518b5), @mydrawiris);
           if assigned(draweyeballpatch) then
             draweyeballpatch.patch
           else
