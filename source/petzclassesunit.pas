@@ -283,7 +283,7 @@ type
     property width: integer read getwidth write setwidth;
     property rects[index: integer]: tpetzprect read getrect;
     property drawrect: tpetzprect read getdrawrect;
-    procedure recreatemenu;
+    procedure recreatepickapetmenu;
   end;
 
   TPetzMenuStruct = record
@@ -1899,7 +1899,7 @@ begin
   result := pinteger(classprop(self, $30))^;
 end;
 
-procedure TPetzWinMenu.recreatemenu;
+procedure TPetzWinMenu.recreatepickapetmenu;
 begin
   // prevent selected pet being called out when menu is closed
   selectedidx := -1;

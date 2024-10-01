@@ -950,7 +950,7 @@ end;
 
 procedure TPetza.settweakeyelidcolours(const Value: boolean);
 begin
-  if value <> ftweakeyelidcolours then begin
+  if value <> ftweakeyelidcolours and (cpetzver = pvpetz4) then begin
     ftweakeyelidcolours := Value;
     var newval1 := 115;
     var newval2 := 45;
@@ -1088,8 +1088,9 @@ begin
       instance.rects[i].x2 := 0;
       instance.rects[i].y1 := 0;
       instance.rects[i].y2 := 0;
-      if instance.rectfirst = i then
+      if instance.rectfirst = i then begin
         instance.rectfirst := i + 1;
+      end;
       continue;
     end;
 
@@ -1139,24 +1140,6 @@ begin
   getclientrect(hwnd, &r);
 end;
 
-function mymenuhandleevents(hwnd: hwnd; param2, param3: cardinal; menustruct: PPetzMenuStruct): long; stdcall;
-  var instance: tpetzwinmenu;
-begin
-  asm
-    mov instance, ecx;
-  end;
-  if petzshlglobals.dialogsopen > 0 then begin
-    result := thiscall(instance, ptr($4089b0), [cardinal(hwnd), param2, param3, cardinal(menustruct)]);
-    exit;
-  end;
-  var outstr: array[0..256] of ansichar;
-  getmenustringa(petzshlglobals.pickapetmenu, menustruct.wid, @outstr, $100, 0);
-  if (length(pickapetmenusearchstring) = 0) or (system.strutils.containstext(outstr, pickapetmenusearchstring)) then begin
-    result := thiscall(instance, ptr($4089b0), [cardinal(hwnd), param2, param3, cardinal(menustruct)]);
-  end else
-    result := 0;
-end;
-
 function mypopupwndproc(return: pointer; instance: tpetzwinmenu; hwnd: hwnd; msg, wparam: integer; lparam: long): long; stdcall;
 type tpetzbanner = record
   text: array[0..259] of ansichar;
@@ -1173,7 +1156,7 @@ begin
   if msg = $100 then begin
     if ((wparam >= $30) and (wparam <= $5a)) or (wparam = VK_SPACE) then begin
       pickapetmenusearchstring := pickapetmenusearchstring + ansichar(MapVirtualKeyExA(wparam, 2, 0));
-      instance.recreatemenu;
+      instance.recreatepickapetmenu;
       var newbanner: tpetzbanner;
       ansistrings.StrPCopy(newbanner.text, pickapetmenusearchstring);
       ansistrings.strpcopy(newbanner.text2, 'X');
@@ -1197,7 +1180,7 @@ begin
     end;
     if (wparam = VK_BACK) then begin
       setlength(pickapetmenusearchstring, length(pickapetmenusearchstring)-1);
-      instance.recreatemenu;
+      instance.recreatepickapetmenu;
       var newbanner: tpetzbanner;
       ansistrings.StrPCopy(newbanner.text, pickapetmenusearchstring);
       ansistrings.strpcopy(newbanner.text2, 'X');
@@ -2540,12 +2523,12 @@ begin
   end;
 
   // Patch CreateHeadShot to stop giant white pick-a-pet menu bug
+  // Patch measuremenu/popupproc to enable menu filtering - buggy
   case cpetzver of
     pvpetz4: begin
       createheadshotpatch := patchthiscall(rimports.petsprite_createheadshot, @mycreateheadshot);
-      patchthiscall(ptr($40a060), @mymeasuremenu);
-      retargetcall(ptr($40a4f6), @mymenuhandleevents);
-      popupwndprocpatch := patchthiscall(ptr($40a580), @mypopupwndproc);
+     // patchthiscall(ptr($40a060), @mymeasuremenu);
+     // popupwndprocpatch := patchthiscall(ptr($40a580), @mypopupwndproc);
     end;
   end;
 

@@ -155,11 +155,13 @@ begin
   chkEnablePalettes.Enabled := cpetzver = pvpetz4;
   chkTweakEyelidColours.Enabled := cpetzver = pvpetz4;
 
-  cmbDefaultPalette.AddItem('', nil);
-  for var k in paletteswapunit.paletteindexes do begin
-    cmbDefaultPalette.AddItem(k.Key, nil);
+  if petza.enablepalettes and (cpetzver = pvpetz4) then begin
+    cmbDefaultPalette.AddItem('', nil);
+    for var k in paletteswapunit.paletteindexes do begin
+      cmbDefaultPalette.AddItem(k.Key, nil);
+    end;
+    cmbDefaultPalette.ItemIndex := cmbDefaultPalette.items.indexOf(petza.defaultpalette);
   end;
-  cmbDefaultPalette.ItemIndex := cmbDefaultPalette.items.indexOf(petza.defaultpalette);
   cmbDefaultPalette.Enabled := petza.enablepalettes and (cpetzver = pvpetz4);
 
 end;
