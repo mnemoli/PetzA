@@ -78,13 +78,18 @@ type
     function getancestryinfo: tpetzancestryinfo;
     procedure setancestryinfo(value: tpetzancestryinfo);
     function getcomment: pointer;
+    function getheadshot: pointer;
+    function getgender: byte;
+    procedure setgender(const Value: byte);
   public
     function pregnant: boolean;
     function conceivetime: longword;
     property ancestryinfo: TPetzAncestryInfo read getancestryinfo write setancestryinfo;
     property isfemale: boolean read getfemale write setfemale;
+    property rawgender: byte read getgender write setgender;
     property neutered: boolean read getneutered write setneutered;
     property commenttext: pointer read getcomment;
+    property headshot: pointer read getheadshot;
   end;
 
   TPetzLoadInfo = class
@@ -169,6 +174,8 @@ type
     class operator equal(a, b: TPetzRect): bool;
   end;
 
+  TPetzPRect = ^TPetzRect;
+
   TPetzSHLGlobals = class
   private
     function getadoptername: ansistring;
@@ -176,12 +183,18 @@ type
     procedure setadoptername(const Value: ansistring);
     function getdimensions: tpetzrect;
     function getphotohasbg: boolean;
+    function getpickapetmenu: hmenu;
+    function getfullscreenrect: tpetzprect;
+    function getdialogsopen: integer;
   public
     function mainwindow: hwnd;
     property adoptername: ansistring read getadoptername write setadoptername;
     property photopet: TPetzPetSprite read getphotopet;
     property dimensions: tpetzrect read getdimensions;
     property photohasbg: boolean read getphotohasbg;
+    property pickapetmenu: hmenu read getpickapetmenu;
+    property fullscreenrect: tpetzprect read getfullscreenrect;
+    property dialogsopen: integer read getdialogsopen;
   end;
 
   TChangetype = (ctCreate, ctDestroy);
@@ -215,8 +228,6 @@ type
       property buttonindex: integer read getbuttonindex write setbuttonindex;
   end;
 
-  TPetzPRect = ^TPetzRect;
-
   TPetzDrawport = class
   private
     function getbits: pbyte;
@@ -246,6 +257,48 @@ type
     property activedrawport: TPetzDrawport read getactivedrawport;
   end;
 
+  TPetzWinMenu = class
+  private
+    function getmenuitemcount: integer;
+    function getrectcount: integer;
+    procedure setrectcount(const Value: integer);
+    function getmenuitem(index: integer): pmenuiteminfoa;
+    function getmainwindow: hwnd;
+    function getselectedidx: integer;
+    function getwidth: integer;
+    procedure setwidth(const Value: integer);
+    function getrect(index: integer): tpetzprect;
+    function getdrawrect: tpetzprect;
+    function getrectfirst: integer;
+    function gethwnd: hwnd;
+    procedure setrectfirst(const Value: integer);
+    procedure setselectedidx(const Value: integer);
+  public
+    property menuitemcount: integer read getmenuitemcount;
+    property rectfirst: integer read getrectfirst write setrectfirst;
+    property rectcount: integer read getrectcount write setrectcount;
+    property menuitems[index: integer]: pmenuiteminfoa read getmenuitem;
+    property mainwindow: hwnd read getmainwindow;
+    property selectedidx: integer read getselectedidx write setselectedidx;
+    property width: integer read getwidth write setwidth;
+    property rects[index: integer]: tpetzprect read getrect;
+    property drawrect: tpetzprect read getdrawrect;
+    procedure recreatepickapetmenu;
+  end;
+
+  TPetzMenuStruct = record
+    sz: integer;
+    mask: integer;
+    wid: integer;
+    disabled: integer;
+    flags: integer;
+    unknown: integer;
+    hdc: hdc;
+    rect: trect;
+  end;
+
+  PPetzMenuStruct = ^TPetzMenuStruct;
+
 (*procedure mypetzapp_dodrawframe(ecx: pointer); stdcall;*)
 procedure createmainwindow(return, instance: pointer); stdcall;
 procedure mypetzapp_dodrawframe(return, instance: pointer); stdcall;
@@ -260,6 +313,7 @@ function petzcase: TPetzCase;
 function petzapp: TPetzPetzApp;
 function getxscreen: pointer;
 function getxstage: pointer;
+procedure mydrawtext(xstage, xdrawport: pointer; text: ansistring; x, y: integer; forecolour, backcolour: integer; size: integer);
 
 type TRPetzApp = record
     drawready, petmodule: integer;
@@ -660,9 +714,19 @@ begin
   result := pansichar(classprop(self, $240));
 end;
 
+function TPetzSHLGlobals.getdialogsopen: integer;
+begin
+  result := pinteger(classprop(self, $4d8))^;
+end;
+
 function TPetzSHLGlobals.getdimensions: tpetzrect;
 begin
   result := tpetzprect(classprop(self, 648))^;
+end;
+
+function TPetzSHLGlobals.getfullscreenrect: tpetzprect;
+begin
+  result := tpetzprect(classprop(self, $29c));
 end;
 
 function TPetzSHLGlobals.getphotohasbg: boolean;
@@ -678,6 +742,11 @@ begin
   case cpetzver of
     pvpetz4,pvpetz3: result := TPetzPetSprite(classprop(self, $2c8)^)
   end;
+end;
+
+function TPetzSHLGlobals.getpickapetmenu: hmenu;
+begin
+  result := hmenu(classprop(self, $6e0)^);
 end;
 
 function tpetzshlglobals.mainwindow: hwnd;
@@ -880,6 +949,7 @@ begin
          //thiscall(xtileport, rimports.xdrawport_xfillrect, [cardinal(@r), 00000000]);
       if petza.shownametags then
         drawpetnametags(xstage, getxscreen);
+
 {        if not notagain then begin
         displayport(xtileport,'c:\dumptile.raw');
         displayport(xsaveport,'c:\dumpsave.raw');
@@ -1016,33 +1086,51 @@ end;
 
 procedure tpetzpetinfo.setfemale(value: boolean);
 begin
+  var b: byte := 0;
+  if value then
+    b := 1;
+  rawgender := b;
+end;
+
+procedure TPetzPetinfo.setgender(const Value: byte);
+begin
   case cpetzver of
-    pvPetz5: pbytebool(integer(self) + $5BBB0)^ := value;
-    pvPetz4: pbytebool(integer(self) + $5BBA0)^ := value;
-    pvPetz3, pvpetz3german: pbytebool(integer(self) + $5BBA0)^ := value;
-    pvBabyz: pbytebool(integer(self) + $953D8)^ := value;
+    pvPetz5: pbyte(integer(self) + $5BBB0)^ := Value;
+    pvPetz4: pbyte(integer(self) + $5BBA0)^ := Value;
+    pvPetz3, pvpetz3german: pbyte(integer(self) + $5BBA0)^ := Value;
+    pvBabyz: pbyte(integer(self) + $953D8)^ := Value;
   else begin
-      showmessage('Setfemale: Unsupported!');
+      showmessage('Setgender: Unsupported!');
     end;
   end;
 
   if ancestryinfo <> nil then begin
-    ancestryinfo.isfemale := value;
+    ancestryinfo.isfemale := bool(value);
   end;
 end;
 
 function tpetzpetinfo.getfemale: boolean;
 begin
+  result := bytebool(rawgender);
+end;
+
+function TPetzPetinfo.getgender: byte;
+begin
   case cpetzver of
-    pvPetz5: result := pbytebool(integer(self) + $5BBB0)^;
-    pvpetz4: result := pbytebool(integer(Self) + $5BBA0)^;
-    pvpetz3, pvpetz3german: result := pbytebool(integer(Self) + $5BBA0)^;
-    pvBabyz: result := pbytebool(integer(self) + $953D8)^;
+    pvPetz5: result := pbyte(integer(self) + $5BBB0)^;
+    pvpetz4: result := pbyte(integer(Self) + $5BBA0)^;
+    pvpetz3, pvpetz3german: result := pbyte(integer(Self) + $5BBA0)^;
+    pvBabyz: result := pbyte(integer(self) + $953D8)^;
   else begin
-      showmessage('Isfemale: Unsupported!');
-      result := false;
+      showmessage('GetGender: Unsupported!');
+      result := 0;
     end;
   end;
+end;
+
+function TPetzPetinfo.getheadshot: pointer;
+begin
+  result := ppointer(classprop(self, $1404))^;
 end;
 
 function tpetzpetinfo.conceivetime: longword;
@@ -1756,6 +1844,87 @@ end;
 class operator TPetzRect.equal(a, b: TPetzRect): bool;
 begin
   result := (a.x1 = b.x1) and (a.y1 = b.y1) and (a.x2 = b.x2) and (a.y2 = b.y2);
+end;
+
+{ TPetzWinMenu }
+
+function TPetzWinMenu.getdrawrect: tpetzprect;
+begin
+  result := tpetzprect(classprop(self, $48));
+end;
+
+function TPetzWinMenu.gethwnd: hwnd;
+begin
+  result := hwnd(classprop(self, $38)^);
+end;
+
+function TPetzWinMenu.getmainwindow: hwnd;
+begin
+  result := hwnd(classprop(self, $34));
+end;
+
+function TPetzWinMenu.getmenuitem(index: integer): pmenuiteminfoa;
+begin
+  result := pmenuiteminfoa(cardinal(ppointer(classprop(self, $20))^) + (index * 44))
+end;
+
+function TPetzWinMenu.getmenuitemcount: integer;
+begin
+  result := pinteger(classprop(self, $24))^;
+end;
+
+function TPetzWinMenu.getrect(index: integer): tpetzprect;
+begin
+  var root := cardinal(ppointer(classprop(self, $1c)^));
+  result := tpetzprect(root + (index * 16));
+end;
+
+function TPetzWinMenu.getrectcount: integer;
+begin
+  result := pinteger(classprop(self, $2c))^;
+end;
+
+function TPetzWinMenu.getrectfirst: integer;
+begin
+  result := pinteger(classprop(self, $28))^;
+end;
+
+function TPetzWinMenu.getselectedidx: integer;
+begin
+  result := pinteger(classprop(self, $40))^;
+end;
+
+function TPetzWinMenu.getwidth: integer;
+begin
+  result := pinteger(classprop(self, $30))^;
+end;
+
+procedure TPetzWinMenu.recreatepickapetmenu;
+begin
+  // prevent selected pet being called out when menu is closed
+  selectedidx := -1;
+  thiscall(self, ptr($409f70), [cardinal(self.gethwnd)]);
+  thiscall(petzcase, ptr($04dd980), [cardinal(petzcase.buttonindex)]);
+end;
+
+procedure TPetzWinMenu.setrectcount(const Value: integer);
+begin
+  pinteger(classprop(self, $2c))^ := value;
+end;
+
+procedure TPetzWinMenu.setrectfirst(const Value: integer);
+begin
+  pinteger(classprop(self, $28))^ := value;
+end;
+
+procedure TPetzWinMenu.setselectedidx(const Value: integer);
+begin
+  pinteger(classprop(self, $40))^ := -1;
+end;
+
+procedure TPetzWinMenu.setwidth(const Value: integer);
+begin
+  pinteger(classprop(self, $30))^ := value;
 end;
 
 end.

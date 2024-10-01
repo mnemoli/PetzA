@@ -128,6 +128,8 @@ type
     ftexturedirises: boolean;
     funlockpalette: boolean;
     fenablepalettes: boolean;
+    ftweakeyelidcolours: boolean;
+    fdefaultpalette: string;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -152,6 +154,7 @@ type
     procedure setusenewphotonameformat(const Value: boolean);
     procedure setacpetsadult(const Value: boolean);
     procedure settexturedirises(const Value: boolean);
+    procedure settweakeyelidcolours(const Value: boolean);
 
   public
     brains: TObjectList;
@@ -192,6 +195,8 @@ type
     property texturedirises: boolean read ftexturedirises write settexturedirises;
     property unlockpalette: boolean read funlockpalette write funlockpalette;
     property enablepalettes: boolean read fenablepalettes write fenablepalettes;
+    property tweakeyelidcolours: boolean read ftweakeyelidcolours write settweakeyelidcolours;
+    property defaultpalette: string read fdefaultpalette write fdefaultpalette;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -200,10 +205,12 @@ var petza: tpetza;
   hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation,
   hresetstack, reacttocamerapatch, deliveroffspringpatch,
   draweyeballpatch, inittoypatch, drawphotopatch, drawspritespatch, initstagepatch,
-  loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch: TPatchThiscall;
+  loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
+  popupwndprocpatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, byte>;
 var  logging: Boolean;
 procedure dolog(const message: string);
+var pickapetmenusearchstring: ansistring;
 
 type TAdjective = (
   AlpoType, Chrz, Toyz, Prop, Part, ThreeD, Color, Flavor, Size, Mass, Friction,
@@ -536,6 +543,10 @@ begin
         unlockpalette := reg.ReadBool('UnlockPalette');
       if reg.ValueExists('EnablePalettes') then
         enablepalettes := reg.ReadBool('EnablePalettes');
+      if reg.ValueExists('TweakEyelidColours') then
+        tweakeyelidcolours := reg.ReadBool('TweakEyelidColours');
+      if reg.ValueExists('DefaultPalette') then
+        defaultpalette := reg.ReadString('DefaultPalette');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -579,6 +590,8 @@ begin
       reg.WriteString('OwnerName', ownername);
       reg.WriteBool('UnlockPalette', unlockpalette);
       reg.WriteBool('EnablePalettes', enablepalettes);
+      reg.WriteBool('TweakEyelidColours', tweakeyelidcolours);
+      reg.WriteString('DefaultPalette', defaultpalette)
     end;
   finally
     reg.free;
@@ -919,6 +932,7 @@ begin
       pvpetz4: begin  
         if value then begin
           retargetcall(ptr($451fb4), @mydrawiris);
+          retargetcall(ptr($04518b5), @mydrawiris);
           if assigned(draweyeballpatch) then
             draweyeballpatch.patch
           else
@@ -932,6 +946,25 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TPetza.settweakeyelidcolours(const Value: boolean);
+begin
+  if value <> ftweakeyelidcolours and (cpetzver = pvpetz4) then begin
+    ftweakeyelidcolours := Value;
+    var newval1 := 115;
+    var newval2 := 45;
+    if value = true then begin
+      patchcodebuf(ptr($58E270), 4, 4, newval1);
+      patchcodebuf(ptr($58E288), 4, 4, newval2);
+    end else begin
+      newval1 := 30;
+      newval2 := 91;
+      patchcodebuf(ptr($58E270), 4, 4, newval1);
+      patchcodebuf(ptr($58E288), 4, 4, newval2);
+    end;
+  end;
+
 end;
 
 function getattrvalfromtext(attr: integer; text: string): integer;
@@ -1003,6 +1036,194 @@ procedure myinittoy(return, instance: pointer; b: boolean; host: pointer); stdca
     end;
   end;
   end;
+end;
+
+procedure mycreateheadshot(return: pointer; instance: tpetzpetsprite; colortypes: integer); stdcall;
+  var newmenuitem: menuiteminfoa;
+begin
+  createheadshotpatch.callorigproc(instance, [colortypes]);
+  var winmenu := cardinal(ppointer($6279f0)^);
+  var popuphwnd := hwnd(ppointer(winmenu + $38)^);
+  if (petzshlglobals.pickapetmenu <> 0) and (popuphwnd <> 0) then begin
+    var menu := petzshlglobals.pickapetmenu;
+    newmenuitem.cbsize := sizeof(menuiteminfo);
+    newmenuitem.fmask := MIIM_CHECKMARKS + MIIM_STATE;
+    newmenuitem.hbmpChecked := hbitmap(thiscall(instance.petinfo.headshot, ptr($456fb0), []));
+    newmenuitem.hbmpUnchecked := thiscall(ptr($639128), ptr($4d25d0), [cardinal(instance.loadinfo)]);
+    newmenuitem.fState := 0;
+    setmenuiteminfoa(menu, instance.id, false, newmenuitem);
+    var cachedmenuitems := cardinal(ppointer(winmenu + $20)^);
+    var cachedmenusize := pinteger(winmenu + $24)^;
+    for var i := 0 to cachedmenusize-1 do begin
+      var cachedmenuitem := PMenuItemInfoA(cachedmenuitems + i * 44);
+      if cachedmenuitem.wID = instance.id then
+        cachedmenuitem.fstate := 0;
+    end;
+    invalidaterect(popuphwnd, nil, false);
+    updatewindow(popuphwnd);
+  end;
+end;
+
+procedure mymeasuremenu(return: pointer; instance: tpetzwinmenu; hwnd: hwnd); stdcall;
+type measureinfo = record
+  unknown1: integer;
+  unknown2: integer;
+  wid: integer;
+  width: integer;
+  height: integer;
+end;
+
+begin
+  invalidaterect(hwnd, nil, false);
+  instance.rectcount := 0;
+  var lasty := 0;
+  var lastrect := 0;
+  
+  for var i := 0 to instance.menuitemcount-1 do begin
+    var menuitem := instance.menuitems[i];
+    var thestr: array[0..256] of ansichar;
+    getmenustringa(petzshlglobals.pickapetmenu, menuitem.wid, @thestr, $100, 0);
+    if (petzshlglobals.dialogsopen = 0) and (length(pickapetmenusearchstring) > 0) and (not system.strutils.containstext(thestr, pickapetmenusearchstring)) then begin
+      instance.rects[i].x1 := 0;
+      instance.rects[i].x2 := 0;
+      instance.rects[i].y1 := 0;
+      instance.rects[i].y2 := 0;
+      if instance.rectfirst = i then begin
+        instance.rectfirst := i + 1;
+      end;
+      continue;
+    end;
+
+    var mi: measureinfo;
+    mi.wid := menuitem.wid;
+    // do measure item
+    thiscall(instance, ptr($408b90), [cardinal(instance.mainwindow), cardinal(instance.selectedidx = i), cardinal(@mi)]);
+    if instance.width < mi.width then
+      instance.width := mi.width;
+    instance.rects[i].x1 := 0;
+    instance.rects[i].x2 := mi.width;
+    instance.rects[i].y1 := lasty;
+    instance.rects[i].y2 := lasty + mi.height;
+
+    lasty := instance.rects[i].y2;
+
+    if (instance.rectfirst < i) and (instance.rectcount = 0) and (petzshlglobals.fullscreenrect.y2 - petzshlglobals.fullscreenrect.y1 <= instance.rects[i].y2 - instance.rects[instance.rectfirst].y1) then
+      instance.rectcount := i;
+
+    lastrect := i;
+  end;
+
+  if instance.rectcount = 0 then
+    instance.rectcount := lastrect;
+
+  for var i := 0 to instance.menuitemcount - 1 do begin
+    if instance.rects[i].x2 > 0 then
+      instance.rects[i].x2 := instance.width;
+  end;
+
+  var maxwidth := instance.drawrect.x2 + instance.width;
+  if (petzshlglobals.fullscreenrect.x2) < (instance.drawrect.x1 + maxwidth) then
+    instance.drawrect.x1 := petzshlglobals.fullscreenrect.x2 - maxwidth;
+  var maxheight := instance.rects[instance.rectcount].y2 - instance.rects[instance.rectfirst].y1 + instance.drawrect.y2;
+  if (petzshlglobals.fullscreenrect.y2 < instance.drawrect.y1 + maxheight) then begin
+    instance.drawrect.y1 := petzshlglobals.fullscreenrect.y2 - maxheight;
+  end;
+  if instance.drawrect.x1 < 0 then
+    instance.drawrect.x1 := 0;
+
+  var halfheight := instance.drawrect.y2 div -2;
+  if instance.drawrect.y1 < halfheight then
+    instance.drawrect.y1 := -halfheight;
+
+  movewindow(hwnd, instance.drawrect.x1, instance.drawrect.y1, maxwidth, maxheight, true);
+  var r: trect;
+  getclientrect(hwnd, &r);
+end;
+
+function mypopupwndproc(return: pointer; instance: tpetzwinmenu; hwnd: hwnd; msg, wparam: integer; lparam: long): long; stdcall;
+type tpetzbanner = record
+  text: array[0..259] of ansichar;
+  text2: array[0..259] of ansichar;
+  vars: array[0..13] of integer;
+end;
+begin
+
+  if (petzshlglobals.pickapetmenu = 0) or (petzshlglobals.dialogsopen > 0) then begin
+    result := popupwndprocpatch.callorigproc(instance, [cardinal(hwnd), msg, wparam, lparam]);
+    exit;
+  end;
+
+  if msg = $100 then begin
+    if ((wparam >= $30) and (wparam <= $5a)) or (wparam = VK_SPACE) then begin
+      pickapetmenusearchstring := pickapetmenusearchstring + ansichar(MapVirtualKeyExA(wparam, 2, 0));
+      instance.recreatepickapetmenu;
+      var newbanner: tpetzbanner;
+      ansistrings.StrPCopy(newbanner.text, pickapetmenusearchstring);
+      ansistrings.strpcopy(newbanner.text2, 'X');
+      fillchar(newbanner.vars, sizeof(newbanner.vars), #0);
+      newbanner.vars[4] := -1;
+      newbanner.vars[5] := -1;
+      newbanner.vars[6] := -1;
+      newbanner.vars[7] := -1;
+      newbanner.vars[8] := -1;
+      newbanner.vars[9] := -1;
+      newbanner.vars[10] := 1;
+      newbanner.vars[11] := 1;
+      newbanner.vars[12] := 30;
+      // copy to bevent
+      copymemory(ptr($61a770), @newbanner, sizeof(newbanner));
+      // force bannersprite to update NOW
+      var bannersprite := cardinal(ppointer($638990)^);
+      pinteger(bannersprite + $3eb0)^ := 1;
+      result := 0;
+      exit;
+    end;
+    if (wparam = VK_BACK) then begin
+      setlength(pickapetmenusearchstring, length(pickapetmenusearchstring)-1);
+      instance.recreatepickapetmenu;
+      var newbanner: tpetzbanner;
+      ansistrings.StrPCopy(newbanner.text, pickapetmenusearchstring);
+      ansistrings.strpcopy(newbanner.text2, 'X');
+      fillchar(newbanner.vars, sizeof(newbanner.vars), #0);
+      newbanner.vars[4] := -1;
+      newbanner.vars[5] := -1;
+      newbanner.vars[6] := -1;
+      newbanner.vars[7] := -1;
+      newbanner.vars[8] := -1;
+      newbanner.vars[9] := -1;
+      newbanner.vars[10] := 1;  
+      newbanner.vars[11] := 1;
+      newbanner.vars[12] := 30;
+      // copy to bevent
+      copymemory(ptr($61a770), @newbanner, sizeof(newbanner));
+      // force bannersprite to update NOW
+      var bannersprite := cardinal(ppointer($638990)^);
+      pinteger(bannersprite + $3eb0)^ := 1;
+      result := 0;
+      exit;
+    end;
+  end;
+  result := popupwndprocpatch.callorigproc(instance, [cardinal(hwnd), msg, wparam, lparam]);
+end;
+
+procedure mygetgenderstring(uid: integer; lpbuffer: pansichar; max: integer); cdecl;
+type
+  TGetPetzString = procedure(uid: integer; lpbuffer: pansichar; max: integer); cdecl;
+var
+  myproc : TGetPetzString;
+begin
+  myproc := ptr($439560);
+  var idx := pinteger($627a14)^;
+  var listloc := ppointer($6391d0)^;
+  var ptrloc := cardinal(listloc) + idx * $10;
+  var gender := TPetzPetInfo(ppointer(ptrloc + $c)^).rawgender;
+  if (gender = 0) or (gender = 1) then
+    myproc(uid, lpbuffer, max)
+  else begin
+    var g := 'Nonbinary';
+    ansistrings.strpcopy(lpbuffer, g);
+  end;
+
 end;
 
 function mywritedib(filename: PAnsiChar; dib: HGlobal): longword; cdecl;
@@ -1601,19 +1822,28 @@ var palettename: pansichar;
 var paletteidx: byte;
 begin
   loadlnzpatch.callorigproc(instance, [cardinal(path), param2, cardinal(xballz), cardinal(cache)]);
+  if (cardinal(xballz) = -1) or (xballz = nil) then
+    exit;
+  if lnzpalettecache.ContainsKey(xballz) then
+    exit;
   lnzdict := classprop(cache, 380);
   // set file position
   gotsection := bool(thiscall(lnzdict, ptr($00431f30), [cardinal(categorytitle)]));
-  if gotsection then begin
+  if not gotsection then begin
+    if petza.defaultpalette.Length = 0 then
+        exit;
+    palettename := pansichar(ansistring(petza.defaultpalette));
+  end else begin
     // get next line
     palettename := pansichar(thiscall(lnzdict, ptr($00431fe0), []));
-    if length(palettename) > 0 then begin
-      var gotpalette := paletteindexes.TryGetValue(palettename, paletteidx);
-      if not gotpalette then
-        exit;
-      paletteidx := paletteindexes[palettename];
-      lnzpalettecache.AddOrSetValue(xballz, paletteidx);
-    end;
+  end;
+
+  if length(palettename) > 0 then begin
+    var gotpalette := paletteindexes.TryGetValue(palettename, paletteidx);
+    if not gotpalette then
+      exit;
+    paletteidx := paletteindexes[palettename];
+    lnzpalettecache.AddOrSetValue(xballz, paletteidx);
   end;
 end;
 
@@ -2292,6 +2522,23 @@ begin
     end;
   end;
 
+  // Patch CreateHeadShot to stop giant white pick-a-pet menu bug
+  // Patch measuremenu/popupproc to enable menu filtering - buggy
+  case cpetzver of
+    pvpetz4: begin
+      createheadshotpatch := patchthiscall(rimports.petsprite_createheadshot, @mycreateheadshot);
+     // patchthiscall(ptr($40a060), @mymeasuremenu);
+     // popupwndprocpatch := patchthiscall(ptr($40a580), @mypopupwndproc);
+    end;
+  end;
+
+  // Patch gender on profile
+  case cpetzver of
+    pvpetz4: begin
+        retargetcall(ptr($41518c), @mygetgenderstring);
+    end;
+  end;
+
   installdispatchhook;
 
   patchcamera;
@@ -2337,6 +2584,9 @@ begin
     desxballzpatch := patchthiscall(ptr($0044b6d0), @mydesxballz);
     // Load palettes
     loadpalettes;
+    if (defaultpalette.Length > 0) and not paletteswapunit.paletteindexes.ContainsKey(defaultpalette) then
+      defaultpalette := string.Empty;
+
     // Make photos hicolor
     retargetcall(ptr($0048a554), @mymakepicturefrombuffer);
     retargetcall(ptr($0048a4e7), @mymakepicturefrombufferbg);
@@ -2529,25 +2779,31 @@ begin
             brain := TfrmSliderBrain.create(nil, petza.brainslidersontop, false, pet.id);
             petza.brains.add(brain);
             brain.show;
-          end else
-            if sender.name = 'sexchange' then begin
-              pet.petinfo.isfemale := not pet.petinfo.isfemale;
-              if pet.petinfo.isfemale then
-                nonmodalmessage('Successfully switched ' + pet.name + ' to a female.', 'SexChangeSuccess') else
-                nonmodalmessage('Successfully switched ' + pet.name + ' to a male.', 'SexChangeSuccess');
-            end else
-              if sender.name = 'neuter' then begin
-                pet.petinfo.neutered := not pet.petinfo.neutered;
-                if pet.petinfo.neutered then
-                  nonmodalmessage('Successfully neutered ' + pet.name + '!', 'NeuterSuccess') else
-                  nonmodalmessage('Successfully unneutered ' + pet.name + '!', 'NeuterSuccess');
-              end else
-                if sender.name = 'trimtree' then begin
-                  frm := tfrmtrimfamilytree.create(application);
-                  frm.petid := pet.id;
-                  frm.petname := pet.name;
-                  frm.Show;
-                end;
+          end
+          else if sender.name = 'sexchange' then begin
+            pet.petinfo.isfemale := not pet.petinfo.isfemale;
+
+            if pet.petinfo.isfemale then
+              nonmodalmessage('Successfully switched ' + pet.name + ' to a female.', 'SexChangeSuccess') else
+              nonmodalmessage('Successfully switched ' + pet.name + ' to a male.', 'SexChangeSuccess');
+          end
+          else if sender.name = 'neuter' then begin
+            pet.petinfo.neutered := not pet.petinfo.neutered;
+            if pet.petinfo.neutered then
+              nonmodalmessage('Successfully neutered ' + pet.name + '!', 'NeuterSuccess') else
+              nonmodalmessage('Successfully unneutered ' + pet.name + '!', 'NeuterSuccess');
+          end
+          else if sender.name = 'trimtree' then begin
+            frm := tfrmtrimfamilytree.create(application);
+            frm.petid := pet.id;
+            frm.petname := pet.name;
+            frm.Show;
+          end
+          else if sender.name = 'nonbinary' then begin
+            var newgender: byte := 255;
+            pet.petinfo.rawgender := newgender;
+            nonmodalmessage('Successfully switched ' + pet.name + ' to nonbinary.', 'SexChangeSuccess')
+          end;
         break;
       end;
     end;
@@ -2598,6 +2854,7 @@ begin
 
       if cpetzver in verBreeding then begin
         menumanager.additem(pet, 'sexchange', 'Sex change', petsprite.id, petoptionshandler);
+        menumanager.additem(pet, 'nonbinary', 'Make nonbinary', petsprite.id, petoptionshandler);
         menumanager.additem(pet, 'neuter', 'Neuter/Unneuter', petsprite.id, petoptionshandler);
         menumanager.additem(pet, 'trimtree', 'Trim family tree...', petsprite.id, petoptionshandler);
       end;

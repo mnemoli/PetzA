@@ -4,7 +4,7 @@ object frmSettings: TfrmSettings
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'PetzA Settings'
-  ClientHeight = 200
+  ClientHeight = 241
   ClientWidth = 400
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -16,11 +16,11 @@ object frmSettings: TfrmSettings
   OnCreate = FormCreate
   DesignSize = (
     400
-    200)
+    241)
   TextHeight = 13
   object Bevel1: TBevel
     Left = 0
-    Top = 159
+    Top = 200
     Width = 400
     Height = 41
     Align = alBottom
@@ -35,9 +35,16 @@ object frmSettings: TfrmSettings
     Height = 13
     Caption = 'Camera picture format:'
   end
+  object lblDefaultPalette: TLabel
+    Left = 224
+    Top = 159
+    Width = 69
+    Height = 13
+    Caption = 'Default palette'
+  end
   object btnCancel: TButton
     Left = 250
-    Top = 167
+    Top = 208
     Width = 67
     Height = 25
     Anchors = [akRight, akBottom]
@@ -45,12 +52,10 @@ object frmSettings: TfrmSettings
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 6
-    ExplicitLeft = 256
-    ExplicitTop = 149
   end
   object btnOk: TButton
     Left = 178
-    Top = 167
+    Top = 208
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
@@ -59,8 +64,6 @@ object frmSettings: TfrmSettings
     ModalResult = 1
     TabOrder = 5
     OnClick = btnOkClick
-    ExplicitLeft = 184
-    ExplicitTop = 149
   end
   object chkBrainSliders: TCheckBox
     Left = 8
@@ -74,15 +77,13 @@ object frmSettings: TfrmSettings
   end
   object Button3: TButton
     Left = 2
-    Top = 167
+    Top = 208
     Width = 169
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Reset hidden warning messages'
     TabOrder = 8
     OnClick = Button3Click
-    ExplicitLeft = 8
-    ExplicitTop = 149
   end
   object chkNameTags: TCheckBox
     Left = 8
@@ -94,21 +95,19 @@ object frmSettings: TfrmSettings
   end
   object btnHelp: TButton
     Left = 322
-    Top = 167
+    Top = 208
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Help'
     TabOrder = 7
     OnClick = btnHelpClick
-    ExplicitLeft = 328
-    ExplicitTop = 149
   end
   object GroupBox1: TGroupBox
     Left = 8
     Top = 80
     Width = 217
-    Height = 57
+    Height = 81
     Caption = 'Mating'
     TabOrder = 4
     object chkShowHeart: TCheckBox
@@ -126,6 +125,15 @@ object frmSettings: TfrmSettings
       Height = 17
       Caption = 'Babies should be born instantly'
       TabOrder = 0
+    end
+    object chkTweakEyelidColours: TCheckBox
+      Left = 8
+      Top = 50
+      Width = 201
+      Height = 17
+      Caption = 'Change eyelid genes'
+      TabOrder = 2
+      OnClick = chkTweakEyelidColoursClick
     end
   end
   object cmbCameraFormat: TComboBox
@@ -211,5 +219,13 @@ object frmSettings: TfrmSettings
     Height = 17
     Caption = 'Enable palette swaps'
     TabOrder = 15
+  end
+  object cmbDefaultPalette: TComboBox
+    Left = 232
+    Top = 173
+    Width = 145
+    Height = 21
+    Style = csDropDownList
+    TabOrder = 16
   end
 end
