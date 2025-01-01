@@ -130,6 +130,8 @@ type
     fenablepalettes: boolean;
     ftweakeyelidcolours: boolean;
     fdefaultpalette: string;
+    fclosetspeed: integer;
+    lastadoptpetlnzinfo: pointer;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -155,6 +157,7 @@ type
     procedure setacpetsadult(const Value: boolean);
     procedure settexturedirises(const Value: boolean);
     procedure settweakeyelidcolours(const Value: boolean);
+    procedure setclosetspeed(const Value: integer);
 
   public
     brains: TObjectList;
@@ -197,6 +200,7 @@ type
     property enablepalettes: boolean read fenablepalettes write fenablepalettes;
     property tweakeyelidcolours: boolean read ftweakeyelidcolours write settweakeyelidcolours;
     property defaultpalette: string read fdefaultpalette write fdefaultpalette;
+    property closetspeed: integer read fclosetspeed write setclosetspeed;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -206,6 +210,7 @@ var petza: tpetza;
   hresetstack, reacttocamerapatch, deliveroffspringpatch,
   draweyeballpatch, inittoypatch, drawphotopatch, drawspritespatch, initstagepatch,
   loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
+  streamoutlnzpatch,
   popupwndprocpatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, byte>;
 var  logging: Boolean;
@@ -547,6 +552,8 @@ begin
         tweakeyelidcolours := reg.ReadBool('TweakEyelidColours');
       if reg.ValueExists('DefaultPalette') then
         defaultpalette := reg.ReadString('DefaultPalette');
+      if reg.ValueExists('ClosetSpeed') then
+        closetspeed := reg.ReadInteger('ClosetSpeed');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -591,7 +598,8 @@ begin
       reg.WriteBool('UnlockPalette', unlockpalette);
       reg.WriteBool('EnablePalettes', enablepalettes);
       reg.WriteBool('TweakEyelidColours', tweakeyelidcolours);
-      reg.WriteString('DefaultPalette', defaultpalette)
+      reg.WriteString('DefaultPalette', defaultpalette);
+      reg.WriteInteger('ClosetSpeed', closetspeed);
     end;
   finally
     reg.free;
@@ -1064,82 +1072,6 @@ begin
   end;
 end;
 
-procedure mymeasuremenu(return: pointer; instance: tpetzwinmenu; hwnd: hwnd); stdcall;
-type measureinfo = record
-  unknown1: integer;
-  unknown2: integer;
-  wid: integer;
-  width: integer;
-  height: integer;
-end;
-
-begin
-  invalidaterect(hwnd, nil, false);
-  instance.rectcount := 0;
-  var lasty := 0;
-  var lastrect := 0;
-  
-  for var i := 0 to instance.menuitemcount-1 do begin
-    var menuitem := instance.menuitems[i];
-    var thestr: array[0..256] of ansichar;
-    getmenustringa(petzshlglobals.pickapetmenu, menuitem.wid, @thestr, $100, 0);
-    if (petzshlglobals.dialogsopen = 0) and (length(pickapetmenusearchstring) > 0) and (not system.strutils.containstext(thestr, pickapetmenusearchstring)) then begin
-      instance.rects[i].x1 := 0;
-      instance.rects[i].x2 := 0;
-      instance.rects[i].y1 := 0;
-      instance.rects[i].y2 := 0;
-      if instance.rectfirst = i then begin
-        instance.rectfirst := i + 1;
-      end;
-      continue;
-    end;
-
-    var mi: measureinfo;
-    mi.wid := menuitem.wid;
-    // do measure item
-    thiscall(instance, ptr($408b90), [cardinal(instance.mainwindow), cardinal(instance.selectedidx = i), cardinal(@mi)]);
-    if instance.width < mi.width then
-      instance.width := mi.width;
-    instance.rects[i].x1 := 0;
-    instance.rects[i].x2 := mi.width;
-    instance.rects[i].y1 := lasty;
-    instance.rects[i].y2 := lasty + mi.height;
-
-    lasty := instance.rects[i].y2;
-
-    if (instance.rectfirst < i) and (instance.rectcount = 0) and (petzshlglobals.fullscreenrect.y2 - petzshlglobals.fullscreenrect.y1 <= instance.rects[i].y2 - instance.rects[instance.rectfirst].y1) then
-      instance.rectcount := i;
-
-    lastrect := i;
-  end;
-
-  if instance.rectcount = 0 then
-    instance.rectcount := lastrect;
-
-  for var i := 0 to instance.menuitemcount - 1 do begin
-    if instance.rects[i].x2 > 0 then
-      instance.rects[i].x2 := instance.width;
-  end;
-
-  var maxwidth := instance.drawrect.x2 + instance.width;
-  if (petzshlglobals.fullscreenrect.x2) < (instance.drawrect.x1 + maxwidth) then
-    instance.drawrect.x1 := petzshlglobals.fullscreenrect.x2 - maxwidth;
-  var maxheight := instance.rects[instance.rectcount].y2 - instance.rects[instance.rectfirst].y1 + instance.drawrect.y2;
-  if (petzshlglobals.fullscreenrect.y2 < instance.drawrect.y1 + maxheight) then begin
-    instance.drawrect.y1 := petzshlglobals.fullscreenrect.y2 - maxheight;
-  end;
-  if instance.drawrect.x1 < 0 then
-    instance.drawrect.x1 := 0;
-
-  var halfheight := instance.drawrect.y2 div -2;
-  if instance.drawrect.y1 < halfheight then
-    instance.drawrect.y1 := -halfheight;
-
-  movewindow(hwnd, instance.drawrect.x1, instance.drawrect.y1, maxwidth, maxheight, true);
-  var r: trect;
-  getclientrect(hwnd, &r);
-end;
-
 function mypopupwndproc(return: pointer; instance: tpetzwinmenu; hwnd: hwnd; msg, wparam: integer; lparam: long): long; stdcall;
 type tpetzbanner = record
   text: array[0..259] of ansichar;
@@ -1403,6 +1335,21 @@ begin
     end;
   end;
   fautopicsavepath := fautopicsavepath + #0;
+end;
+
+procedure TPetza.setclosetspeed(const Value: integer);
+var newspeed: integer;
+begin
+  if cpetzver = pvpetz4 then begin
+    fclosetspeed := Value;
+    newspeed := $80000000;
+    if value = 1 then
+      newspeed := newspeed + 1;
+    if value = 2 then
+      newspeed := newspeed + 3;
+    patchcodebuf(ptr($4e4503), 4, 4, newspeed);  
+    patchcodebuf(ptr($4e45b5), 4, 4, newspeed);
+  end;
 end;
 
 procedure TPetza.setgamespeed(value: integer);
@@ -1788,15 +1735,28 @@ begin
   patchthiscall(ptr($590B8B), @mysetdiaperstatus);
 end;
 
+procedure setprofile(petinfo: TPetzPetInfo);
+begin
+  thiscall(petinfo.commenttext, rimports.textinfo_adopttext, [cardinal(petza.customuserprofile), cardinal(-1)]);
+  thiscall(petinfo.ancestryinfo, rimports.ancestryinfo_setadopter, [cardinal(petza.ownername)]);
+  thiscall(pointer(classprop(petinfo, $5bba8)^), rimports.textinfo_adopttext, [cardinal(petza.ownername), cardinal(-1)]);
+end;
+
 function customdeliveroffspring(return, instance: TPetzPetSprite): pointer; stdcall;
   var offspring: TPetzPetSprite;
 begin
   petzshlglobals.adoptername := petza.ownername;
   offspring := TPetzPetSprite(deliveroffspringpatch.callorigproc(instance, []));
-  thiscall(offspring.petinfo.commenttext, rimports.textinfo_adopttext, [cardinal(petza.customuserprofile), cardinal(-1)]);
-  thiscall(offspring.petinfo.ancestryinfo, rimports.ancestryinfo_setadopter, [cardinal(petza.ownername)]);
-  thiscall(pointer(classprop(offspring.petinfo, $5bba8)^), rimports.textinfo_adopttext, [cardinal(petza.ownername), cardinal(-1)]);
+  setprofile(offspring.petinfo);
   result := offspring;
+end;
+
+function customadoptpet(loadinfo: pointer; petinfo: TPetzPetInfo; opt: boolean): boolean; cdecl;
+begin
+  petzshlglobals.adoptername := petza.ownername;
+  setprofile(petinfo);
+  petza.lastadoptpetlnzinfo := classprop(petinfo, $1414);
+  petinfo.saveanadoptedpet(loadinfo);
 end;
 
 procedure mycopy8bit(prect: TPetzPRect); stdcall;
@@ -1853,10 +1813,7 @@ begin
   initstagepatch.callorigproc(instance, [cardinal(b1), cardinal(b2)]);
   if not assigned(petza.maskdrawport) then begin
     maskrect := TPetzPRect(classprop(petzshlglobals, 648))^;
-    maskrect.x1 := maskrect.x1 - 128;
-    maskrect.y1 := maskrect.y1 - 128;
-    maskrect.x2 := maskrect.x2 + 128;
-    maskrect.y2 := maskrect.y2 + 128;
+    maskrect.Inflate(128, 128);
     petza.maskdrawport := TPetzDrawport.MakeNew(@maskrect, false, true, false);
     petza.maskdrawport.SetOrigin(128, 128);
   end;
@@ -1869,17 +1826,18 @@ asm
   mov instance, ecx;
 end;
 
-  var localrect := tpetzrect.create(0, 0, rect.x2 - rect.x1, rect.y2 - rect.y1);
-  localrect.x2 := ((rect.x2 - rect.x1) + 3) and $FFFC;
+  var localrect := tpetzrect.create(0, 0, rect.Width, rect.Height);
+  localrect.Right := (rect.Width + 3) and $FFFC;
   var localdrawport := tpetzdrawport.makenew(@localrect, false, true, true);
-  localdrawport.SetOrigin(-rect.x1, -rect.y1);
+  localdrawport.SetOrigin(-rect.Left, -rect.Top);
 
   // jiggle rect around to right position... bad magic numbers...
-  var adjustedrect := tpetzrect.create(rect.x1 + 128, rect.y1 + 128, rect.x1 + localrect.x2 + 128, rect.y1 + localrect.y2 + 128);
+  var adjustedrect := TPetzRect.Create(rect.left, rect.top, rect.left + localrect.right, rect.top + localrect.bottom);
+  adjustedrect.Offset(128, 128);
   // fill out to the nearest multiple of 4
-  rect.x2 := rect.x1 + localrect.x2;
+  rect.right := rect.left + localrect.right;
 
-  if (localrect.x2 <= 0) or (localrect.y2 <= 0) then begin
+  if (localrect.right <= 0) or (localrect.bottom <= 0) then begin
     result := 0;
     exit;
   end;
@@ -1887,7 +1845,7 @@ end;
   instance.CopyBits(localdrawport, rect, rect);
   localdrawport.Copy8BitCustom(@localrect, @adjustedrect, petza.maskdrawport, true);
 
-  var bytes := (localrect.y2 * localrect.x2) * 4 + 40;
+  var bytes := (localrect.width * localrect.height) * 4 + 40;
   var datahandle := globalalloc($42, bytes);
   if datahandle = 0 then
     raise Exception.Create('Failed to allocate photo memory');
@@ -1895,8 +1853,8 @@ end;
   var lock := GlobalLock(datahandle);
   var lockAsBitmapInfo := pBitmapInfo(lock);
 
-  lockAsBitmapInfo.bmiHeader.biWidth := localrect.x2;
-  lockAsBitmapInfo.bmiHeader.biHeight := localrect.y2;
+  lockAsBitmapInfo.bmiHeader.biWidth := localrect.Width;
+  lockAsBitmapInfo.bmiHeader.biHeight := localrect.Height;
   lockAsBitmapInfo.bmiHeader.biSizeImage := lockAsBitmapInfo.bmiHeader.biWidth * lockAsBitmapInfo.bmiHeader.biHeight;
   lockAsBitmapInfo.bmiHeader.biSize := 40;
   lockAsBitmapInfo.bmiHeader.biPlanes := 1;
@@ -1908,6 +1866,49 @@ end;
   localdrawport.Destroy;
 
   result := datahandle;
+end;
+
+procedure mystreamoutlnz(return, instance, ostream: pointer); stdcall;
+  var header: ansistring;
+  var headerp: pansichar;
+  var cachehaslnz: boolean;
+  var palettename: ansistring;
+  var callpos: pointer;
+begin
+  cachehaslnz := false;
+  var actuallnzptr := petza.lastadoptpetlnzinfo;
+  if actuallnzptr = nil then begin
+    streamoutlnzpatch.callorigproc(instance, [cardinal(ostream)]);
+    exit;
+  end;
+
+  for var item in lnzpalettecache do begin
+    var xballz := item.key;
+    var lnzptr := ppointer(classprop(xballz, $184))^;
+    if lnzptr = actuallnzptr then begin
+      cachehaslnz := true;
+      for var p in paletteindexes do begin
+        if p.Value = item.Value then begin
+          palettename := p.Key;
+          break;
+        end;
+      end;
+      break;
+    end;
+  end;
+
+  if cachehaslnz then begin
+    callpos := ppointer($58b2ec)^;
+    header := '[Palette]'#10'';
+    headerp := pansichar(header);
+    thiscall(ostream, callpos, [cardinal(headerp)]);
+    header := palettename + #10;
+    headerp := pansichar(header);
+    thiscall(ostream, callpos, [cardinal(headerp)]);
+  end;
+
+  streamoutlnzpatch.callorigproc(instance, [cardinal(ostream)]);
+  petza.lastadoptpetlnzinfo := nil;
 end;
 
 procedure mysnapshot(ballstate, rect1, rect2: pointer; bgcolor: integer; sprite1, sprite2: pointer); stdcall;
@@ -1941,46 +1942,44 @@ begin
   var boundsptr: tpetzprect := tpetzprect(classprop(instance, 12));
   var bounds: tpetzrect := boundsptr^;
   var dimensions := petzshlglobals.dimensions;
-  boundsptr.x2 := dimensions.x2 - dimensions.x1;
-  boundsptr.y2 := dimensions.y2 - dimensions.y1;
-  var nearestmultiple := (boundsptr.x2 + 3) and $fffffffc;
+  boundsptr.right := dimensions.width;
+  boundsptr.bottom := dimensions.height;
+  var nearestmultiple := (boundsptr.right + 3) and $fffffffc;
   var backup1 := pinteger(classprop(instance, 28))^;
   var backup2 := pinteger(classprop(instance, 32))^;
   pinteger(classprop(instance, 28))^ := nearestmultiple;
-  pinteger(classprop(instance, 32))^ := nearestmultiple * (boundsptr.y2);
+  pinteger(classprop(instance, 32))^ := nearestmultiple * boundsptr.bottom;
 
   // stop blowups from pet being offscreen
-  var inrectadjusted := tpetzrect.create(rect.x1, rect.y1, rect.x2, rect.y2);
-  if inrectadjusted.x1 = inrectadjusted.x2 then
-    if inrectadjusted.x2 = 0 then
-      inrectadjusted.x2 := 1
+  var inrectadjusted := tpetzrect.create(rect.TopLeft, rect.BottomRight);
+  if inrectadjusted.left = inrectadjusted.right then
+    if inrectadjusted.right = 0 then
+      inrectadjusted.right := 1
     else
-      inrectadjusted.x1 := inrectadjusted.x1 - 1;
+      inrectadjusted.left := inrectadjusted.left - 1;
 
-  if inrectadjusted.y1 = inrectadjusted.y2 then
-    if inrectadjusted.y2 = 0 then
-      inrectadjusted.y2 := 1
+  if inrectadjusted.top = inrectadjusted.bottom then
+    if inrectadjusted.bottom = 0 then
+      inrectadjusted.bottom := 1
     else
-      inrectadjusted.y1 := inrectadjusted.y1 - 1;
-  inrectadjusted.x2 := (inrectadjusted.x2 + 3) and $fffffffc;
+      inrectadjusted.top := inrectadjusted.top - 1;
+  inrectadjusted.right := (inrectadjusted.right + 3) and $fffffffc;
 
-  var localrect := tpetzrect.create(0, 0, inrectadjusted.x2 - inrectadjusted.x1, inrectadjusted.y2 - inrectadjusted.y1);
+  var localrect := tpetzrect.create(0, 0, inrectadjusted.width, inrectadjusted.height);
   var localdrawport := tpetzdrawport.makenew(@localrect, false, true, true);
   // set use hi color otherwise xcopybits doesn't work right
   pinteger(classprop(localdrawport, 168))^ := 1;
-  localdrawport.SetOrigin(-inrectadjusted.x1, -inrectadjusted.y1);
+  localdrawport.SetOrigin(-inrectadjusted.left, -inrectadjusted.top);
 
   instance.CopyBits(localdrawport, @inrectadjusted, @inrectadjusted);
 
   // restore screen drawport settings
-  boundsptr.x1 := bounds.x1;
-  boundsptr.y1 := bounds.y1;
-  boundsptr.x2 := bounds.x2;
-  boundsptr.y2 := bounds.y2;
+  boundsptr.TopLeft := bounds.TopLeft;
+  boundsptr.BottomRight := bounds.BottomRight;
   pinteger(classprop(instance, 28))^ := backup1;
   pinteger(classprop(instance, 32))^ := backup2;
 
-  var bytes := (localrect.y2 * localrect.x2) * 4 + 40;
+  var bytes := (localrect.height * localrect.width) * 4 + 40;
   var datahandle := globalalloc($42, bytes);
   if datahandle = 0 then
     raise Exception.Create('Failed to allocate photo memory');
@@ -1988,9 +1987,9 @@ begin
   var lock := GlobalLock(datahandle);
   var lockAsBitmapInfo := pBitmapInfo(lock);
 
-  lockAsBitmapInfo.bmiHeader.biWidth := inrectadjusted.x2 - inrectadjusted.x1;
-  lockAsBitmapInfo.bmiHeader.biHeight := inrectadjusted.y2 - inrectadjusted.y1;
-  lockAsBitmapInfo.bmiHeader.biSizeImage := localrect.x2 * lockAsBitmapInfo.bmiHeader.biHeight;
+  lockAsBitmapInfo.bmiHeader.biWidth := inrectadjusted.width;
+  lockAsBitmapInfo.bmiHeader.biHeight := inrectadjusted.height;
+  lockAsBitmapInfo.bmiHeader.biSizeImage := localrect.right * lockAsBitmapInfo.bmiHeader.biHeight;
   lockAsBitmapInfo.bmiHeader.biSize := 40;
   lockAsBitmapInfo.bmiHeader.biPlanes := 1;
   lockAsBitmapInfo.bmiHeader.biBitCount := 32;
@@ -2015,16 +2014,13 @@ begin
     exit;
   end;
 
-  localbounds.x1 := 0;
-  localbounds.y1 := 0;
-  localbounds.x2 := bounds1.x2 - bounds1.x1;
-  localbounds.y2 := bounds1.y2 - bounds1.y1;
-  if (localbounds.x2 = 0) and (localbounds.y2 = 0) then
+  localbounds := TPetzRect.Create(0, 0, bounds1.width, bounds1.height);
+  if (localbounds.right = 0) and (localbounds.bottom = 0) then
     exit;
  // create new small drawport big enough for the filmstrip
   thisdrawport := TPetzDrawport.MakeNew(@localbounds, false, true, false);
   // set origin
-  thisdrawport.setorigin(-bounds1.x1, -bounds1.y1);
+  thisdrawport.setorigin(-bounds1.left, -bounds1.top);
   // fill with transparent
   thisdrawport.FillTransparent(bounds1, 253);
   // draw on small drawport
@@ -2067,30 +2063,20 @@ asm
   mov xballz, ecx;
 end;
   inrect := TPetzPRect(bounds)^;
-  localbounds.x1 := 0;
-  localbounds.y1 := 0;
-
-  if (inrect.x1 > inrect.x2) or (inrect.y1 > inrect.y2) then begin
-    localbounds.x2 := inrect.x2 - inrect.x1;
-    localbounds.y2 := inrect.y2 - inrect.y1;
-  end else begin
-    localbounds.x2 := inrect.x2 - inrect.x1;
-    localbounds.y2 := inrect.y2 - inrect.y1;
-  end;
-
-  if (localbounds.x2 < 0) or (localbounds.y2 < 0) then
-    localbounds.x2 := -localbounds.x2;
+  localbounds := TPetzRect.Create(inrect.TopLeft, inrect.BottomRight);
+  localbounds.NormalizeRect;
 
   lnzpalettecache.TryGetValue(xballz, palette);
 
-  if (localbounds.x2 <= 0) or (localbounds.y2 <= 0) then
+  if (localbounds.right <= 0) or (localbounds.bottom <= 0) then
+    exit;
+  if (localbounds.height < 1) or (localbounds.width < 1) then
     exit;
 
   // create new small drawport big enough for the pet
   thisdrawport := TPetzDrawport.MakeNew(@localbounds, true, true, false);
   // set origin
-  thisdrawport.setorigin(-inrect.x1, -inrect.y1);
-  //petza.maskdrawport.SetOrigin(128, 128);
+  thisdrawport.setorigin(-inrect.left, -inrect.top);
   // fill with transparent
   thisdrawport.FillTransparent(@inrect, 253);
   dd.miniport := thisdrawport;
@@ -2100,7 +2086,6 @@ end;
   petza.drawdata.Push(dd);
   // draw onto the small drawport
   thiscall(xballz, ptr($00450bd0), [cardinal(thisdrawport), cardinal(@inrect), cardinal(ballstate)]);
-  //drawspritespatch.callorigproc(xballz, [cardinal(thismaskdrawport), cardinal(@inrect), cardinal(ballstate)]);
   // copy from small drawport to main drawport with transparency
   thisdrawport.CopyBitsTransparentMask(port, @inrect, @inrect, -1);
   // copy from small drawport to mask drawport
@@ -2112,99 +2097,6 @@ end;
   petza.drawdata.Pop;
 end;
 
-
-procedure mydraw(sprite: pointer; port: TPetzDrawport; region: pointer); stdcall;
-  var stage: TPetzStage;
-  var localrect1, localrect2, spriterect, regionrect: TPetzRect;
-  var rectct, ctr: integer;
-  var rectptr: TPetzRect;
-  var isstacked, dirty: byte;
-  var rectsarrayptr: cardinal;
-  var vftable: cardinal;
-  var portbounds: TPetzRect;
-  var thisdrawport: TPetzDrawport;
-begin
-asm
-  mov stage, ecx;
-end;
-  localrect1 := TPetzRect.create(0, 0, 0, 0);
-  vftable := cardinal(ppointer(sprite)^);
-  spriterect := TPetzPRect(classprop(sprite, 320))^;
-  if (spriterect.x1 <> 0) or (spriterect.y1 <> 0) or (spriterect.x2 <> 0) or (spriterect.y2 <> 0) then
-    localrect1 := spriterect;
-  regionrect := TPetzPRect(classprop(classprop(sprite, 352), 28))^;
-  if (regionrect.x1 <> 0) or (regionrect.y1 <> 0) or (regionrect.x2 <> 0) or (regionrect.y2 <> 0) then begin
-    if (localrect1.x1 <> 0) or (localrect1.y1 <> 0) or (localrect1.x2 <> 0) or (localrect1.y2 <> 0) then
-      regionrect := regionrect + localrect1;
-    localrect1 := regionrect;
-  end;
-
-  if ((localrect1.x1 = 0) and (localrect1.x2 = 0) and (localrect1.y1 = 0) and (localrect1.y2 = 0)) then
-    exit;
-
-  dirty := pbyte(classprop(sprite, 316))^;
-
-  if dirty <> 0 then begin
-    portbounds := TPetzRect.create(0, 0, localrect1.x2 - localrect1.x1, localrect1.y2 - localrect1.y1);
-    if ((portbounds.x1 = 0) and (portbounds.x2 = 0) and (portbounds.y1 = 0) and (portbounds.y2 = 0)) then
-    exit;
-
-    thisdrawport := TPetzDrawport.MakeNew(@portbounds, true, true, false);
-    thisdrawport.SetOrigin(-localrect1.x1, -localrect1.y1);
-    thisdrawport.FillTransparent(@localrect1, 253);
-    petza.lastmaskvalue := 0;
-    thiscall(sprite, ppointer(vftable + $74)^, [cardinal(@localrect1), cardinal(@spriterect), cardinal(thisdrawport), cardinal(0)]);
-    thisdrawport.CopyBitsTransparentMask(port, @localrect1, @localrect1, -1);
-    thisdrawport.CopyBitsTransparentMask(petza.maskdrawport, @localrect1, @localrect1, petza.lastmaskvalue);
-    thiscall(sprite, ppointer(vftable + $50)^, []);
-    thisdrawport.Destroy;
-    exit;
-  end;
-  ctr := 0;
-  rectsarrayptr := 0;
-  while true do begin
-    rectct := pinteger(classprop(region, 4))^;
-    if rectct <= ctr then begin
-      thiscall(sprite, ppointer(vftable + $50)^, []);
-      exit;
-    end;
-    rectptr := TPetzPRect(cardinal(ppointer(region)^) + rectsarrayptr)^;
-    if (localrect1.x1 < rectptr.x2) and (localrect1.y1 < rectptr.y2) and (rectptr.x1 < localrect1.x2) and (rectptr.y1 < localrect1.y2) then begin
-      localrect2 := localrect1 + rectptr;
-      regionrect := localrect1 + rectptr;
-    end else begin
-      regionrect.x1 := 0;
-      regionrect.y1 := 0;
-      regionrect.x2 := 0;
-      regionrect.y2 := 0;
-    end;
-    if (regionrect.x1 <> 0) or (regionrect.y1 <> 0) or (regionrect.x2 <> 0) or (regionrect.y2 <> 0) then begin
-      isstacked := pbyte(classprop(sprite, 312))^;
-      if (isstacked <> 0) or (localrect1 = localrect2) then begin
-        petza.lastmaskvalue := 0;
-        thiscall(sprite, ppointer(vftable + $74)^, [cardinal(@localrect1), cardinal(@spriterect), cardinal(port), cardinal(0)]);
-        thiscall(sprite, ppointer(vftable + $50)^, []);
-        exit;
-      end;
-      portbounds := TPetzRect.create(0, 0, localrect2.x2 - localrect2.x1, localrect2.y2 - localrect2.y1);
-      if ((portbounds.x1 = 0) and (portbounds.x2 = 0) and (portbounds.y1 = 0) and (portbounds.y2 = 0)) then
-        exit;
-      thisdrawport := TPetzDrawport.MakeNew(@portbounds, true, true, false);
-      thisdrawport.SetOrigin(-localrect2.x1, -localrect2.y1);
-      thisdrawport.FillTransparent(@localrect2, 253);
-      petza.lastmaskvalue := 0;
-      // drawing in background of some other sprite in front
-      // think it's ok...
-      thiscall(sprite, ppointer(vftable + $74)^, [cardinal(@localrect2), cardinal(@spriterect), cardinal(thisdrawport), cardinal(0)]);
-      thisdrawport.CopyBitsTransparentMask(port, @localrect2, @localrect2, -1);
-      thisdrawport.CopyBitsTransparentMask(petza.maskdrawport, @localrect2, @localrect2, 0);
-      thisdrawport.Destroy;
-    end;
-    ctr := ctr + 1;
-    rectsarrayptr := rectsarrayptr + 16;
-  end;
-end;
-
 procedure mydrawsprites(sprites: pointer); stdcall;
 var instance: TPetzStage;
 var port: pointer;
@@ -2214,10 +2106,7 @@ asm
   mov instance, ecx;
 end;
   boundsrect := petza.maskdrawport.bounds;
-  boundsrect.x1 := boundsrect.x1 - 128;
-  boundsrect.y1 := boundsrect.y1 - 128;
-  boundsrect.x2 := boundsrect.x2 + 128;
-  boundsrect.y2 := boundsrect.y2 + 128;
+  boundsrect.Inflate(128, 128);
   petza.maskdrawport.FillTransparent(@boundsrect, 0);
   port := instance.activedrawport;
   var backup1 := pboolean(classprop(port, 168))^;
@@ -2318,6 +2207,8 @@ end;
 procedure tpetza.patchcustomuserprofile;
 begin
   deliveroffspringpatch := patchthiscall(rimports.petsprite_deliveroffspring, @customdeliveroffspring);
+  if cpetzver = pvpetz4 then
+    retargetcall(ptr($4d9970), @customadoptpet);
 end;
 
 procedure tpetza.patchreacttocamera(value: bool);
@@ -2567,6 +2458,9 @@ begin
   fbreedingtimer := 0;
   fbatchbreedcountdefault := 10;
 
+  // Closet speed default
+  fclosetspeed := 2;
+
   loadsettings; //pretty late in the peace so all objects are created
 
   if (enablepalettes) and (cpetzver = pvpetz4) then begin
@@ -2593,9 +2487,12 @@ begin
     // Make headshots palettised
     retargetcall(ptr($004cefc5), @mysnapshot);
     retargetcall(ptr($004CED8D), @mysnapshot);
+
+    // Write palette to lnz when AC pet adopted
+    streamoutlnzpatch := patchthiscall(ptr($46b3a0), @mystreamoutlnz)
   end;
 
-  if unlockpalette then begin
+  if (unlockpalette) and (cpetzver = pvpetz4) then begin
     // Load palette without windows colours
     // and from petz.bmp if exists
     retargetcall(ptr($4359a9), @mycreatepalette);

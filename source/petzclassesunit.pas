@@ -84,6 +84,7 @@ type
   public
     function pregnant: boolean;
     function conceivetime: longword;
+    function saveanadoptedpet(loadinfo: pointer): boolean;
     property ancestryinfo: TPetzAncestryInfo read getancestryinfo write setancestryinfo;
     property isfemale: boolean read getfemale write setfemale;
     property rawgender: byte read getgender write setgender;
@@ -167,14 +168,9 @@ type
 
   end;
 
-  TPetzRect = record
-    x1, y1, x2, y2: integer;
-    constructor create(px1, py1, px2, py2: integer);
-    class operator add(a, b: TPetzRect): TPetzRect;
-    class operator equal(a, b: TPetzRect): bool;
-  end;
+  TPetzRect = TRect;
 
-  TPetzPRect = ^TPetzRect;
+  TPetzPRect = PRect;
 
   TPetzSHLGlobals = class
   private
@@ -322,7 +318,7 @@ type TRPetzApp = record
 var petzclassesman: tpetzclassesman;
 
 implementation
-uses dllformunit, petzcommon1, petzaunit, ansistrings;
+uses dllformunit, petzcommon1, petzaunit, ansistrings, system.types;
 
 function tpetzpetzapp.getpetmodule: tpetzpetmodule;
 begin
@@ -1050,6 +1046,11 @@ begin
   end;
 end;
 
+function TPetzPetinfo.saveanadoptedpet(loadinfo: pointer): boolean;
+begin
+  rimports.petinfo_saveanadoptedpet(loadinfo, self, true);
+end;
+
 procedure tpetzpetinfo.setancestryinfo(value: tpetzancestryinfo);
 begin
   case cpetzver of
@@ -1624,19 +1625,18 @@ var palar: tgamepalette;
 var outofbounds: boolean;
 begin
   rect := prect^;
-  height := rect.y2 - rect.y1;
-  width := rect.x2 - rect.x1;
+  height := rect.height;
+  width := rect.width;
   rawrowbytes :=  pinteger(classprop(self, 28))^;
   maskrawrowbytes :=  pinteger(classprop(maskdrawport, 28))^;
-  rowbytes := (rect.x1 - rect.x2) + rawrowbytes;
-  var maskrowbytes := (maskprect.x1 - maskprect.x2) + maskrawrowbytes;
+  rowbytes := (rect.left - rect.right) + rawrowbytes;
+  var maskrowbytes := (maskprect.left - maskprect.right) + maskrawrowbytes;
 
-  startpos := ((bounds.y2 - rect.y2) * rawrowbytes) + rect.x1;
+  startpos := ((bounds.bottom - rect.bottom) * rawrowbytes) + rect.left;
   outofbounds := false;
-  if (maskdrawport.bounds.y1 - 128 > maskprect.y1) or (maskdrawport.bounds.x1 - 128 > maskprect.x1)
-  or (maskdrawport.bounds.y2 + 128 < maskprect.y2) or (maskdrawport.bounds.x2 + 128 < maskprect.x2) then
+  if not maskdrawport.bounds.Contains(maskprect^) then
     outofbounds := true;
-  startposmask := ((maskdrawport.bounds.y2 - maskprect.y2) * maskrawrowbytes) + maskprect.x1;
+  startposmask := ((maskdrawport.bounds.bottom - maskprect.bottom) * maskrawrowbytes) + maskprect.left;
   bitsptr := pbyte(cardinal(bits) + startpos);
   maskbitsptr := pbyte(cardinal(maskdrawport.bits) + startposmask);
   hibitsptr := pointer(cardinal(hibits) + startpos * 4);
@@ -1692,63 +1692,57 @@ begin
   dstsize := dstport.bounds;
 
   srcrect := TPetzPRect(psrcrect)^;
-  srcrect.x1 := srcrect.x1 + srcsize.x1;
-  srcrect.x2 := srcrect.x2 + srcsize.x1;
-  srcrect.y1 := srcrect.y1 + srcsize.y1;
-  srcrect.y2 := srcrect.y2 + srcsize.y1;
+  srcrect.Offset(srcsize.TopLeft);
   dstrect := TPetzPRect(pdstrect)^;
-  dstrect.x1 := dstrect.x1 + dstsize.x1;
-  dstrect.x2 := dstrect.x2 + dstsize.x1;
-  dstrect.y1 := dstrect.y1 + dstsize.y1;
-  dstrect.y2 := dstrect.y2 + dstsize.y1;
+  dstrect.Offset(dstsize.TopLeft);
 
-  if srcrect.x1 < 0 then begin
-    dstrect.x1 := dstrect.x1 - srcrect.x1;
-    srcrect.x1 := 0;
+  if srcrect.left < 0 then begin
+    dstrect.left := dstrect.left - srcrect.left;
+    srcrect.left := 0;
   end;
-  if srcrect.y1 < 0 then begin
-    dstrect.y1 := dstrect.y1 - srcrect.y1;
-    srcrect.y1 := 0;
+  if srcrect.top < 0 then begin
+    dstrect.top := dstrect.top - srcrect.top;
+    srcrect.top := 0;
   end;
-  if srcsize.x2 < srcrect.x2 then begin
-    dstrect.x2 := dstrect.x2 + (srcsize.x2 - srcrect.x2);
-    srcrect.x2 := srcsize.x2;
+  if srcsize.right < srcrect.right then begin
+    dstrect.right := dstrect.right + (srcsize.right - srcrect.right);
+    srcrect.right := srcsize.right;
   end;
-  if srcsize.y2 < srcrect.y2 then begin
-    dstrect.y2 := dstrect.y2 + (srcsize.y2 - srcrect.y2);
-    srcrect.y2 := srcsize.y2;
+  if srcsize.bottom < srcrect.bottom then begin
+    dstrect.bottom := dstrect.bottom + (srcsize.bottom - srcrect.bottom);
+    srcrect.bottom := srcsize.bottom;
   end;
 
-  if dstrect.x1 < 0 then begin
-    srcrect.x1 := srcrect.x1 - dstrect.x1;
-    dstrect.x1 := 0;
+  if dstrect.left < 0 then begin
+    srcrect.left := srcrect.left - dstrect.left;
+    dstrect.left := 0;
   end;
-  if dstrect.y1 < 0 then begin
-    srcrect.y1 := srcrect.y1 - dstrect.y1;
-    dstrect.y1 := 0;
+  if dstrect.top < 0 then begin
+    srcrect.top := srcrect.top - dstrect.top;
+    dstrect.top := 0;
   end;
-  if dstsize.x2 < dstrect.x2 then begin
-    srcrect.x2 := srcrect.x2 + (dstsize.x2 - dstrect.x2);
-    dstrect.x2 := dstsize.x2;
+  if dstsize.right < dstrect.right then begin
+    srcrect.right := srcrect.right + (dstsize.right - dstrect.right);
+    dstrect.right := dstsize.right;
   end;
-  if dstsize.y2 < dstrect.y2 then begin
-    srcrect.y2 := srcrect.y2 + (dstsize.y2 - dstrect.y2);
-    dstrect.y2 := dstsize.y2;
+  if dstsize.bottom < dstrect.bottom then begin
+    srcrect.bottom := srcrect.bottom + (dstsize.bottom - dstrect.bottom);
+    dstrect.bottom := dstsize.bottom;
   end;
 
   srcrowwidth := rowwidth;
   dstrowwidth := dstport.rowwidth;
 
-  var startpos := ((srcsize.y2 - srcrect.y2) * srcrowwidth) + srcrect.x1;
+  var startpos := ((srcsize.bottom - srcrect.bottom) * srcrowwidth) + srcrect.left;
 
   srcbits := pbyte(cardinal(bits) + startpos);
 
-  startpos := ((dstsize.y2 - dstrect.y2) * dstrowwidth) + dstrect.x1;
+  startpos := ((dstsize.bottom - dstrect.bottom) * dstrowwidth) + dstrect.left;
 
   dstbits := pbyte(cardinal(dstport.bits) + startpos);
 
-  for var y := srcrect.y1 to srcrect.y2 - 1 do begin
-    for var x := srcrect.x1 to srcrect.x2 - 1 do begin
+  for var y := srcrect.top to srcrect.bottom - 1 do begin
+    for var x := srcrect.left to srcrect.right - 1 do begin
     if srcbits^ <> 253 then
       if maskvalue <> -1 then
         dstbits^ := maskvalue
@@ -1757,8 +1751,8 @@ begin
       dstbits := dstbits + 1;
       srcbits := srcbits + 1;
     end;
-    srcbits := srcbits + (srcrowwidth - (srcrect.x2 - srcrect.x1));
-    dstbits := dstbits + (dstrowwidth - (dstrect.x2 - dstrect.x1));
+    srcbits := srcbits + (srcrowwidth - srcrect.width);
+    dstbits := dstbits + (dstrowwidth - dstrect.width);
   end;
 end;
 
@@ -1811,39 +1805,6 @@ end;
 procedure TPetzDrawport.SetOrigin(x, y: integer);
 begin
   thiscall(self, ptr($00460740), [cardinal(x), cardinal(y)]);
-end;
-
-{ TPetzRect }
-
-class operator TPetzRect.add(a, b: TPetzRect): TPetzRect;
-var output: TPetzRect;
-begin
-  output.x1 := b.x1;
-  if a.x1 <= b.x1 then
-    output.x1 := a.x1;
-  output.y1 := b.y1;
-  if a.y1 <= b.y1 then
-    output.y1 := a.y1;
-  output.x2 := b.x2;
-  if b.x2 <= a.x2 then
-    output.x2 := a.x2;
-  output.y2 := b.y2;
-  if b.y2 <= a.y2 then
-    output.y2 := a.y2;
-  result := output;
-end;
-
-constructor TPetzRect.create(px1, py1, px2, py2: integer);
-begin
-  x1 := px1;
-  x2 := px2;
-  y1 := py1;
-  y2 := py2;
-end;
-
-class operator TPetzRect.equal(a, b: TPetzRect): bool;
-begin
-  result := (a.x1 = b.x1) and (a.y1 = b.y1) and (a.x2 = b.x2) and (a.y2 = b.y2);
 end;
 
 { TPetzWinMenu }

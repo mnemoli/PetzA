@@ -31,6 +31,8 @@ type
     chkTweakEyelidColours: TCheckBox;
     cmbDefaultPalette: TComboBox;
     lblDefaultPalette: TLabel;
+    lblClosetSpeed: TLabel;
+    chkClosetSpeed: TComboBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -112,6 +114,7 @@ begin
   petza.enablepalettes := chkEnablePalettes.Checked;
   petza.tweakeyelidcolours := chkTweakEyelidColours.Checked;
   petza.defaultpalette := cmbDefaultPalette.items[cmbdefaultpalette.itemindex];
+  petza.closetspeed := chkClosetSpeed.ItemIndex;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -133,6 +136,7 @@ begin
   chkdisableneglect.Checked := petza.neglectdisabled;
   chktexturedirises.Checked := petza.texturedirises;
   chkEnablePalettes.Checked := petza.enablepalettes;
+  chkClosetSpeed.itemindex := petza.closetspeed;
   // stupid workaround
   chkunlockpalette.OnClick := nil;
   chkunlockpalette.checked := petza.unlockpalette;
@@ -154,6 +158,7 @@ begin
   chkunlockpalette.Enabled := cpetzver = pvpetz4;
   chkEnablePalettes.Enabled := cpetzver = pvpetz4;
   chkTweakEyelidColours.Enabled := cpetzver = pvpetz4;
+  chkClosetSpeed.Enabled := cpetzver = pvpetz4;
 
   if petza.enablepalettes and (cpetzver = pvpetz4) then begin
     cmbDefaultPalette.AddItem('', nil);

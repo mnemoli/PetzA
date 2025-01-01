@@ -42,6 +42,13 @@ object frmSettings: TfrmSettings
     Height = 13
     Caption = 'Default palette'
   end
+  object lblClosetSpeed: TLabel
+    Left = 8
+    Top = 159
+    Width = 61
+    Height = 13
+    Caption = 'Closet speed'
+  end
   object btnCancel: TButton
     Left = 250
     Top = 208
@@ -227,5 +234,17 @@ object frmSettings: TfrmSettings
     Height = 21
     Style = csDropDownList
     TabOrder = 16
+  end
+  object chkClosetSpeed: TComboBox
+    Left = 16
+    Top = 173
+    Width = 145
+    Height = 21
+    Style = csDropDownList
+    TabOrder = 17
+    Items.Strings = (
+      'Fastest'
+      'Faster'
+      'Normal')
   end
 end
