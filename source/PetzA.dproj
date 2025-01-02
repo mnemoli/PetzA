@@ -98,9 +98,8 @@
         <DCC_ImportedDataReferences>false</DCC_ImportedDataReferences>
         <DCC_DebugInfoInExe>false</DCC_DebugInfoInExe>
         <VerInfo_PreRelease>false</VerInfo_PreRelease>
-        <VerInfo_MinorVer>2</VerInfo_MinorVer>
-        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=1.2.1.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <VerInfo_Release>1</VerInfo_Release>
+        <VerInfo_MinorVer>3</VerInfo_MinorVer>
+        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=1.3.0.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_ExeOutput>C:\Babyz\Babyz Download\Resource\Toyz\</DCC_ExeOutput>
@@ -111,9 +110,8 @@
         <Debugger_HostApplication>C:\Babyz\Babyz Download\Babyz.exe</Debugger_HostApplication>
         <Debugger_CWD>C:\Babyz\Babyz Download</Debugger_CWD>
         <VerInfo_PreRelease>false</VerInfo_PreRelease>
-        <VerInfo_MinorVer>2</VerInfo_MinorVer>
-        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=1.2.1.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <VerInfo_Release>1</VerInfo_Release>
+        <VerInfo_MinorVer>3</VerInfo_MinorVer>
+        <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=1.3.0.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
@@ -192,8 +190,76 @@
                     <Source Name="MainSource">PetzA.dpr</Source>
                 </Source>
                 <Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k280.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp280.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k290.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp290.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclxml280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclxml280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\gitide280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\gitide280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\hgide280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\hgide280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\svnide280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\svnide280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\svnui280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\svnui280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\svn280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\svn280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclbindcomp280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclbindcomp280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\ExpertsUI280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\ExpertsUI280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclcommon280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclcommon280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclbindcompfmx280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclbindcompfmx280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclrtl280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclrtl280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcltethering280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dcltethering280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclact280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclact280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcldb280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dcldb280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclstd280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclstd280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclemacsedit280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclemacsedit280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclmlwiz280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclmlwiz280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclQuickEdit280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclQuickEdit280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclshare280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclshare280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclwinx280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclwinx280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\samplevisualizers280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\samplevisualizers280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\applet280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\applet280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclappanalytics280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclappanalytics280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclbindcompvcl280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclbindcompvcl280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclmid280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclmid280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclnetwiz280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclnetwiz280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclnet280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclnet280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\ExpertsCreators280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\ExpertsCreators280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclvcldb280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclvcldb280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcl31w280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dcl31w280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclsmp280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclsmp280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclsmpedit280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclsmpedit280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcltouch280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dcltouch280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\MobileWizardExpert280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\MobileWizardExpert280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\DataExplorerService280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\DataExplorerService280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclDBXDrivers280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclDBXDrivers280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclDBXDriversInt280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclDBXDriversInt280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclIPIndyImpl280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclIPIndyImpl280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclRESTBackendComponents280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclRESTBackendComponents280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclRESTComponents280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclRESTComponents280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcldbx280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dcldbx280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcldbxcds280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dcldbxcds280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclCloudService280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclCloudService280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\DataExplorerFireDACPlugin280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\DataExplorerFireDACPlugin280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclFireDAC280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclFireDAC280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclBindCompFireDAC280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclBindCompFireDAC280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclFMXFireDAC280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclFMXFireDAC280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclVclFireDAC280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclVclFireDAC280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclfmxstd280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclfmxstd280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\fmxstyledesigner280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\fmxstyledesigner280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclIndyCore280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclIndyCore280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclIndyProtocols280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclIndyProtocols280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcledge280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dcledge280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclie280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclie280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\DataExplorerDBXPlugin280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\DataExplorerDBXPlugin280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\DataExplorerDBXPluginInt280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\DataExplorerDBXPluginInt280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclbindcompdbx280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclbindcompdbx280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcldsnapxml280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dcldsnapxml280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclmcn280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclmcn280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclsoapmidas280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclsoapmidas280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclsoap280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclsoap280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclsoapserver280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclsoapserver280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclnetdb280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclnetdb280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclado280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclado280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\22.0\bpl\SynEditDD280.bpl">File C:\Users\Public\Documents\Embarcadero\Studio\22.0\bpl\SynEditDD280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\22.0\Bpl\alleleunit.bpl">File C:\Users\Public\Documents\Embarcadero\Studio\22.0\Bpl\alleleunit.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dcloffice2k280.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp280.bpl">File c:\program files (x86)\embarcadero\studio\23.0\bin\dclofficexp280.bpl not found</Excluded_Packages>
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="4">
