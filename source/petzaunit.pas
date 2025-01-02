@@ -211,6 +211,7 @@ var petza: tpetza;
   draweyeballpatch, inittoypatch, drawphotopatch, drawspritespatch, initstagepatch,
   loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
   streamoutlnzpatch,
+  normalcirclepatch,
   popupwndprocpatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, byte>;
 var  logging: Boolean;
@@ -1071,6 +1072,78 @@ begin
     updatewindow(popuphwnd);
   end;
 end;
+
+{$POINTERMATH ON}
+procedure mydrawnormalcircle(return: pointer; instance: tpetzdrawport; circlerenderblock: ppetzcirclerenderblock); stdcall;
+type ppshort = ^pshort;
+begin
+  if circlerenderblock.xtexture = nil then begin
+    // untextured - call original
+    normalcirclepatch.callorigproc(instance, [cardinal(circlerenderblock)]);
+    exit;
+  end;
+  if circlerenderblock.istransparent then begin
+    // tex colours remapped, call orig
+    normalcirclepatch.callorigproc(instance, [cardinal(circlerenderblock)]);
+    exit;
+  end;
+  var width := circlerenderblock.rect.Width - 1;
+  var rowbytesdiff: integer;
+  var texdrawing := pbyte(thiscall(instance, ptr($45bdd0), [cardinal(circlerenderblock), width, cardinal(@rowbytesdiff)]));
+  var circlerenderingptr := ppshort(classprop(instance, $2c));
+  var halfwidth := trunc(((circlerenderblock.rect.Width - 2) * width) / 2);
+  var edge := pshort(circlerenderingptr[circlerenderblock.fuzz * 3]) + halfwidth;
+  var bits := instance.bits;
+  var abit := bits +
+  circlerenderblock.rect.left + instance.bounds.left +
+  (((instance.bounds.bottom - circlerenderblock.rect.top) - instance.bounds.top) - width)
+   * instance.rowwidth;
+
+  var drawportbitsptr := abit + edge^;
+  var texdrawingptr := texdrawing + edge^;
+  var widthmem := pbyte($631bf8) + halfwidth;
+
+  if(width > 0) then begin
+    while (width <> 0) do begin
+
+      edge := edge + 1;
+      var circlewidthval := widthmem^;
+      var textureoffset := circlerenderblock.textureoffset;
+      var texptr2 := texdrawingptr;
+      var bitsptr2 := drawportbitsptr;
+
+      if(circlerenderblock.textureoffset = 0) then begin
+        while(circlewidthval <> 0) do begin
+          if texptr2^ <> 253 then
+            texptr2[drawportbitsptr - texdrawingptr] := texptr2^;
+//              else
+//                texptr2[drawportbitsptr - texdrawingptr] := 133;
+          texptr2 := texptr2 + 1;
+          circlewidthval := circlewidthval - 1;
+        end;
+      end
+      else begin
+          while(circlewidthval <> 0) do begin
+            if texptr2^ <> 253 then
+              texptr2[drawportbitsptr - texdrawingptr] := texptr2^ + textureoffset;
+            texptr2 := texptr2 + 1;
+            circlewidthval := circlewidthval - 1;
+          end;
+        end;
+
+      drawportbitsptr := drawportbitsptr + edge^;
+      texdrawingptr := texdrawingptr + edge^ + rowbytesdiff;
+      widthmem := widthmem + 1;
+      width := width - 1;
+
+    end;
+  end;
+
+  // close bits
+  var vftable := pcardinal(ppointer(circlerenderblock.xtexture)^);
+  thiscall(circlerenderblock.xtexture, pointer(vftable[2]), []);
+end;
+{$POINTERMATH OFF}
 
 function mypopupwndproc(return: pointer; instance: tpetzwinmenu; hwnd: hwnd; msg, wparam: integer; lparam: long): long; stdcall;
 type tpetzbanner = record
@@ -2427,6 +2500,13 @@ begin
   case cpetzver of
     pvpetz4: begin
         retargetcall(ptr($41518c), @mygetgenderstring);
+    end;
+  end;
+
+  // Patch circle drawing for Babyz-style transparency
+  case cpetzver of
+    pvpetz4: begin
+      //normalcirclepatch := patchthiscall(rimports.xdrawport_xfillnormalcircle, @mydrawnormalcircle);
     end;
   end;
 

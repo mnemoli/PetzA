@@ -295,6 +295,24 @@ type
 
   PPetzMenuStruct = ^TPetzMenuStruct;
 
+  TPetzCircleRenderBlock = record
+    rendermode: integer;
+    colorindex: integer;
+    outlinecolorindex: integer;
+    fuzz: integer;
+    xtexture: pointer;
+    textureoffset: integer;
+    istransparent: boolean;
+    outlinetype: integer;
+    rect: trect;
+    notexturerotate: integer;
+    unused1: integer;
+    unused2: integer;
+    clipwithinrenderblock: pointer;
+  end;
+
+  PPetzCircleRenderBlock = ^TPetzCircleRenderBlock;
+
 (*procedure mypetzapp_dodrawframe(ecx: pointer); stdcall;*)
 procedure createmainwindow(return, instance: pointer); stdcall;
 procedure mypetzapp_dodrawframe(return, instance: pointer); stdcall;
