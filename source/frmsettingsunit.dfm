@@ -4,7 +4,7 @@ object frmSettings: TfrmSettings
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'PetzA Settings'
-  ClientHeight = 183
+  ClientHeight = 198
   ClientWidth = 396
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -16,15 +16,16 @@ object frmSettings: TfrmSettings
   OnCreate = FormCreate
   DesignSize = (
     396
-    183)
+    198)
   TextHeight = 13
   object Bevel1: TBevel
     Left = 0
-    Top = 142
+    Top = 157
     Width = 396
     Height = 41
     Align = alBottom
     Shape = bsTopLine
+    ExplicitTop = 142
   end
   object lblCameraFormat: TLabel
     Left = 224
@@ -33,9 +34,16 @@ object frmSettings: TfrmSettings
     Height = 13
     Caption = 'Camera picture format:'
   end
+  object lblClosetSpeed: TLabel
+    Left = 8
+    Top = 115
+    Width = 61
+    Height = 13
+    Caption = 'Closet speed'
+  end
   object btnCancel: TButton
-    Left = 238
-    Top = 150
+    Left = 248
+    Top = 165
     Width = 67
     Height = 25
     Anchors = [akRight, akBottom]
@@ -43,12 +51,10 @@ object frmSettings: TfrmSettings
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 6
-    ExplicitLeft = 234
-    ExplicitTop = 149
   end
   object btnOk: TButton
-    Left = 166
-    Top = 150
+    Left = 176
+    Top = 165
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
@@ -57,8 +63,6 @@ object frmSettings: TfrmSettings
     ModalResult = 1
     TabOrder = 5
     OnClick = btnOkClick
-    ExplicitLeft = 162
-    ExplicitTop = 149
   end
   object chkBrainSliders: TCheckBox
     Left = 8
@@ -71,16 +75,14 @@ object frmSettings: TfrmSettings
     TabOrder = 0
   end
   object Button3: TButton
-    Left = -10
-    Top = 150
+    Left = 0
+    Top = 165
     Width = 169
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Reset hidden warning messages'
     TabOrder = 9
     OnClick = Button3Click
-    ExplicitLeft = -14
-    ExplicitTop = 149
   end
   object chkNameTags: TCheckBox
     Left = 8
@@ -91,16 +93,14 @@ object frmSettings: TfrmSettings
     TabOrder = 1
   end
   object btnHelp: TButton
-    Left = 310
-    Top = 150
+    Left = 320
+    Top = 165
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Help'
     TabOrder = 7
     OnClick = btnHelpClick
-    ExplicitLeft = 306
-    ExplicitTop = 149
   end
   object chkHideNavigation: TCheckBox
     Left = 8
@@ -167,5 +167,17 @@ object frmSettings: TfrmSettings
     Height = 17
     Caption = 'Enable textured irises'
     TabOrder = 12
+  end
+  object chkClosetSpeed: TComboBox
+    Left = 8
+    Top = 131
+    Width = 145
+    Height = 21
+    Style = csDropDownList
+    TabOrder = 13
+    Items.Strings = (
+      'Fastest'
+      'Faster'
+      'Normal')
   end
 end

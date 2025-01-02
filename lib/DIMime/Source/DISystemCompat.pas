@@ -1,6 +1,6 @@
 {-------------------------------------------------------------------------------
  
- Copyright (c) 1999-2021 Ralf Junker, Yunqa
+ Copyright (c) 1999-2023 Ralf Junker, Yunqa
  Internet: https://www.yunqa.de
  E-Mail:   delphi@yunqa.de
 
@@ -256,7 +256,15 @@ function AtomicDecrement(
 
 {$ENDIF ~COMPILER_17_UP}
 
-{$ENDIF FPC}
+{$IFNDEF COMPILER_24}
+
+type
+  Utf8Char = AnsiChar;
+  PUtf8Char = PAnsiChar;
+
+  {$ENDIF ~COMPILER_24}
+
+  {$ENDIF FPC}
 
 type
 
@@ -264,7 +272,6 @@ type
   PPAnsiCharArray = ^TPAnsiCharArray;
   PPPAnsiCharArray = ^PPAnsiCharArray;
 
-  PUtf8Char = PAnsiChar;
   PPUtf8Char = ^PUtf8Char;
 
   TPUtf8CharArray = array[0..MaxInt div SizeOf(PUtf8Char) - 1] of PUtf8Char;

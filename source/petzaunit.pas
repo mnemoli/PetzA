@@ -114,6 +114,7 @@ type
     fusenewphotonameformat: boolean;
     fstopwalking: boolean;
     ftexturedirises: boolean;
+    fclosetspeed: integer;
 
     procedure patchnavigation;
     procedure installclasscreationhooks;
@@ -132,6 +133,7 @@ type
     procedure setusenewphotonameformat(const Value: boolean);
     procedure setstopwalking(const Value: boolean);
     procedure settexturedirises(const Value: boolean);
+    procedure setclosetspeed(const Value: integer);
   public
     brains: TObjectList;
     actionlist: Tactionlist;
@@ -161,6 +163,7 @@ type
     property usenewphotonameformat: boolean read fusenewphotonameformat write setusenewphotonameformat;
     property stopwalking: boolean read fstopwalking write setstopwalking;
     property texturedirises: boolean read ftexturedirises write settexturedirises;
+    property closetspeed: integer read fclosetspeed write setclosetspeed;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -529,6 +532,8 @@ begin
         profilemanager.useprofiles := reg.readbool(pre + '-UseProfiles');
       if reg.ValueExists(pre + 'TexturedIrises') then
         texturedirises := reg.ReadBool(pre + 'TexturedIrises');
+      if reg.ValueExists(pre + 'ClosetSpeed') then
+        closetspeed := reg.ReadInteger(pre + 'ClosetSpeed');
     end;
   finally
     reg.free;
@@ -558,6 +563,7 @@ begin
       reg.writeinteger(pre + '-GameSpeed', fgamespeed);
       reg.writebool(pre + '-UseProfiles', profilemanager.useprofiles);
       reg.WriteBool(pre + 'TexturedIrises', texturedirises);
+      reg.WriteInteger(pre + 'ClosetSpeed', closetspeed);
     end;
   finally
     reg.free;
@@ -1026,6 +1032,19 @@ begin
       cfPNG: fautopicsavepath := '%s\PetzPix\petz%d.png';
     end;
   end;
+end;
+
+procedure TPetza.setclosetspeed(const Value: integer);
+var newspeed: integer;
+begin
+  fclosetspeed := Value;
+  case value of
+    0: newspeed := 0;
+    1: newspeed := 4;
+    2: newspeed := 8;
+  end;
+  patchcodebuf(ptr($6777A2), 4, 4, newspeed);
+  patchcodebuf(ptr($6775C8), 4, 4, newspeed);
 end;
 
 {Remove the check for minimum width and height screen resolutions. Widescreen
@@ -1558,6 +1577,7 @@ begin
   fnavvisible := true; //The game is showing the navigation
   shownavigation := true; //Show it by default
   fnodiaperchanges := False; //by default, diapers get soiled just like normal :)
+  closetspeed := 2;
 
   loadsettings; //pretty late in the peace so all objects are created
 
