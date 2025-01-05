@@ -305,7 +305,7 @@ type
     istransparent: boolean;
     outlinetype: integer;
     rect: trect;
-    notexturerotate: integer;
+    texturescroll: ppoint;
     unused1: integer;
     unused2: integer;
     clipwithinrenderblock: pointer;

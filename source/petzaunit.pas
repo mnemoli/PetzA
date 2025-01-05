@@ -211,7 +211,7 @@ var petza: tpetza;
   draweyeballpatch, inittoypatch, drawphotopatch, drawspritespatch, initstagepatch,
   loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
   streamoutlnzpatch,
-  normalcirclepatch,
+  normalcirclepatch, clipcirclepatch,
   popupwndprocpatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, byte>;
 var  logging: Boolean;
@@ -1074,75 +1074,242 @@ begin
 end;
 
 {$POINTERMATH ON}
-procedure mydrawnormalcircle(return: pointer; instance: tpetzdrawport; circlerenderblock: ppetzcirclerenderblock); stdcall;
-type ppshort = ^pshort;
+//procedure mydrawnormalcircle(return: pointer; instance: tpetzdrawport; circlerenderblock: ppetzcirclerenderblock); stdcall;
+//type ppshort = ^pshort;
+//begin
+//  if circlerenderblock.xtexture = nil then begin
+//    // untextured - call original
+//    normalcirclepatch.callorigproc(instance, [cardinal(circlerenderblock)]);
+//    exit;
+//  end;
+//  if circlerenderblock.istransparent then begin
+//    // tex colours remapped, call orig
+//    normalcirclepatch.callorigproc(instance, [cardinal(circlerenderblock)]);
+//    exit;
+//  end;
+//
+//  var width := circlerenderblock.rect.Width - 1;
+//  var rowbytesdiff: long;
+//  var texdrawing := pbyte(thiscall(instance, ptr($45bdd0), [cardinal(circlerenderblock), width, cardinal(@rowbytesdiff)]));
+//  var circlerenderingptr := ppshort(classprop(instance, $2c));
+//  var halfwidth := trunc(((circlerenderblock.rect.Width - 2) * width) / 2);
+//  var edge := pshort(circlerenderingptr[circlerenderblock.fuzz * 3]) + halfwidth;
+//  var bits := instance.bits;
+//  var abit := bits +
+//  circlerenderblock.rect.left + instance.bounds.left +
+//  (((instance.bounds.bottom - circlerenderblock.rect.top) - instance.bounds.top) - width)
+//   * instance.rowwidth;
+//
+//  var drawportbitsptr := abit + edge^;
+//  var texdrawingptr := texdrawing + edge^;
+//  var widthmem := pbyte($631bf8) + halfwidth;
+//
+//  if(width > 0) then begin
+//    while (width <> 0) do begin
+//
+//      edge := edge + 1;
+//      var circlewidthval := widthmem^;
+//      var textureoffset := circlerenderblock.textureoffset;
+//      var texptr2 := texdrawingptr;
+//      var bitsptr2 := drawportbitsptr;
+//
+//      if(circlerenderblock.textureoffset = 0) then begin
+//        while(circlewidthval <> 0) do begin
+//          if texptr2^ <> 253 then
+//            texptr2[drawportbitsptr - texdrawingptr] := texptr2^;
+//          texptr2 := texptr2 + 1;
+//          circlewidthval := circlewidthval - 1;
+//        end;
+//      end
+//      else begin
+//          while(circlewidthval <> 0) do begin
+//            if texptr2^ <> 253 then
+//              texptr2[drawportbitsptr - texdrawingptr] := texptr2^ + textureoffset;
+//            texptr2 := texptr2 + 1;
+//            circlewidthval := circlewidthval - 1;
+//          end;
+//        end;
+//
+//      drawportbitsptr := drawportbitsptr + edge^;
+//      texdrawingptr := texdrawingptr + edge^ + rowbytesdiff;
+//      widthmem := widthmem + 1;
+//      width := width - 1;
+//
+//    end;
+//  end;
+//
+//  // close bits
+//  var vftable := pcardinal(ppointer(circlerenderblock.xtexture)^);
+//  thiscall(circlerenderblock.xtexture, pointer(vftable[2]), []);
+//end;
+
+procedure asmclipcircle(); stdcall;
 begin
-  if circlerenderblock.xtexture = nil then begin
-    // untextured - call original
-    normalcirclepatch.callorigproc(instance, [cardinal(circlerenderblock)]);
-    exit;
+  asm
+    mov dl, [ecx]
+    cmp dl, 253
+    je @@FAIL
+    mov [esi + ecx], dl
+    jmp @@FAIL
+    @@FAIL:
+    mov edx, $45e0f8
+    jmp edx
   end;
-  if circlerenderblock.istransparent then begin
-    // tex colours remapped, call orig
-    normalcirclepatch.callorigproc(instance, [cardinal(circlerenderblock)]);
-    exit;
-  end;
-  var width := circlerenderblock.rect.Width - 1;
-  var rowbytesdiff: integer;
-  var texdrawing := pbyte(thiscall(instance, ptr($45bdd0), [cardinal(circlerenderblock), width, cardinal(@rowbytesdiff)]));
-  var circlerenderingptr := ppshort(classprop(instance, $2c));
-  var halfwidth := trunc(((circlerenderblock.rect.Width - 2) * width) / 2);
-  var edge := pshort(circlerenderingptr[circlerenderblock.fuzz * 3]) + halfwidth;
-  var bits := instance.bits;
-  var abit := bits +
-  circlerenderblock.rect.left + instance.bounds.left +
-  (((instance.bounds.bottom - circlerenderblock.rect.top) - instance.bounds.top) - width)
-   * instance.rowwidth;
-
-  var drawportbitsptr := abit + edge^;
-  var texdrawingptr := texdrawing + edge^;
-  var widthmem := pbyte($631bf8) + halfwidth;
-
-  if(width > 0) then begin
-    while (width <> 0) do begin
-
-      edge := edge + 1;
-      var circlewidthval := widthmem^;
-      var textureoffset := circlerenderblock.textureoffset;
-      var texptr2 := texdrawingptr;
-      var bitsptr2 := drawportbitsptr;
-
-      if(circlerenderblock.textureoffset = 0) then begin
-        while(circlewidthval <> 0) do begin
-          if texptr2^ <> 253 then
-            texptr2[drawportbitsptr - texdrawingptr] := texptr2^;
-//              else
-//                texptr2[drawportbitsptr - texdrawingptr] := 133;
-          texptr2 := texptr2 + 1;
-          circlewidthval := circlewidthval - 1;
-        end;
-      end
-      else begin
-          while(circlewidthval <> 0) do begin
-            if texptr2^ <> 253 then
-              texptr2[drawportbitsptr - texdrawingptr] := texptr2^ + textureoffset;
-            texptr2 := texptr2 + 1;
-            circlewidthval := circlewidthval - 1;
-          end;
-        end;
-
-      drawportbitsptr := drawportbitsptr + edge^;
-      texdrawingptr := texdrawingptr + edge^ + rowbytesdiff;
-      widthmem := widthmem + 1;
-      width := width - 1;
-
-    end;
-  end;
-
-  // close bits
-  var vftable := pcardinal(ppointer(circlerenderblock.xtexture)^);
-  thiscall(circlerenderblock.xtexture, pointer(vftable[2]), []);
 end;
+
+procedure asmnormalcircle(); stdcall;
+begin
+  asm
+    mov dl, [ecx]
+    cmp dl, 253
+    je @@FAIL
+    mov [esi + ecx], dl
+    jmp @@FAIL
+    @@FAIL:
+    mov edx, $45d24e
+    jmp edx
+  end;
+end;
+
+//function myinittexfornorotate(crb: ppetzcirclerenderblock; ballwidth: integer; rowbytesdiff: plong): pbyte; stdcall;
+//var drawport: tpetzdrawport;
+//begin
+//  asm
+//    mov drawport, ecx;
+//  end;
+//  if (crb.texturescroll <> nil) or (crb.textureoffset <> 0) then begin
+//    result := pbyte(thiscall(drawport, ptr($45bdd0), [cardinal(crb), ballwidth, cardinal(rowbytesdiff)]));
+//    exit;
+//  end;
+//
+//  var xtex := crb.xtexture;
+//  var xtexbits := pbyte(thiscall(xtex, ptr($48dc20), []));
+//  var rowbytes := integer(thiscall(xtex, ptr($515c20), []));
+//  var drawportrowbytes := integer(thiscall(drawport, ptr($460760), []));
+//  rowbytesdiff^ := rowbytes - drawportrowbytes;
+//  // bmp is upside down in memory so you have to put a HIGHER col
+//  // number to get the quadrant at the TOP of the bmp
+//  result := xtexbits + (rowbytes * 74) + 10;
+//
+//end;
+
+//function mydrawclipcircle(return: pointer; instance: tpetzdrawport; circlerenderblock: ppetzcirclerenderblock): boolean; stdcall;
+//begin
+//  if circlerenderblock.xtexture = nil then begin
+//    // untextured - call original
+//    clipcirclepatch.callorigproc(instance, [cardinal(circlerenderblock)]);
+//    exit;
+//  end;
+//  if circlerenderblock.istransparent then begin
+//    // tex colours remapped, call orig
+//    clipcirclepatch.callorigproc(instance, [cardinal(circlerenderblock)]);
+//    exit;
+//  end;
+//
+//  var circlewidthraw := circlerenderblock.rect.width;
+//  var circlewidth1 := circlewidthraw - 1;
+//
+//  var initoffset := long(thiscall(instance, ptr($45d0b0), [cardinal(circlerenderblock), circlewidth1]));
+//  var bits := instance.bits + initoffset;
+//  var halfwidth := trunc(((circlewidthraw - 2) * circlewidth1) / 2);
+//  var circlewidthmem := pbyte($631bf8) + halfwidth;
+//  var circleoffsettable := pshort(thiscall(instance, ptr($45dd80), [circlerenderblock.fuzz, circlewidth1]));
+//  var clipwithinrenderblock: ppetzcirclerenderblock := circlerenderblock.clipwithinrenderblock;
+//  var outline1 := circlerenderblock.outlinetype - 1;
+//  var rawclipwithinwidth := clipwithinrenderblock.rect.width;
+//  var clipwithinwidth1 := rawclipwithinwidth - 1;
+//  var clipwithinoffset := long(thiscall(instance, ptr($45d0b0), [cardinal(clipwithinrenderblock), clipwithinwidth1]));
+//  var bits2 := instance.bits + clipwithinoffset;
+//  var clipwithincirclemem := pbyte($631bf8) + trunc(((rawclipwithinwidth - 2) * clipwithinwidth1) / 2);
+//  var clipwithinoffsettable := pshort(thiscall(instance, ptr($45dd80), [clipwithinrenderblock.fuzz, clipwithinwidth1]));
+//  var clipwithinoutline1 := clipwithinrenderblock.outlinetype - 1;
+//  var clipwithinoutlineactual := 0;
+//  if -1 < clipwithinoutline1 then
+//    clipwithinoutlineactual := clipwithinoutline1;
+//  var clipwithinleftoutline := clipwithinoutlineactual + clipwithinrenderblock.rect.left;
+//  var clipwithinbottomoutline := clipwithinrenderblock.rect.bottom - clipwithinoutline1;
+//  var minwidthctr := 0;
+//  var someval := clipwithinoutlineactual + clipwithinrenderblock.rect.top - circlerenderblock.rect.top;
+//  if 0 < someval then
+//    minwidthctr := someval;
+//  var bottomoutline := circlerenderblock.rect.bottom - clipwithinbottomoutline;
+//  var bottom := circlewidth1;
+//  if 0 < bottomoutline then
+//    bottom := circlewidth1 - bottomoutline;
+//
+//  if (bottom <= minwidthctr) or (clipwithinrenderblock.rect.right - clipwithinoutlineactual <= circlerenderblock.rect.left) or
+//    (clipwithinbottomoutline <= circlerenderblock.rect.top) or (circlerenderblock.rect.right <= clipwithinoutlineactual + clipwithinrenderblock.rect.left) or
+//    (circlerenderblock.rect.bottom <= clipwithinoutlineactual + clipwithinrenderblock.rect.top)
+//  then begin
+//    result := false;
+//    exit;
+//  end;
+//
+//
+//  var clipwithinfuckery := clipwithinrenderblock.rect.bottom - circlerenderblock.rect.bottom - bottom + circlewidth1;
+//  if 0 < clipwithinfuckery then begin
+//    clipwithincirclemem := clipwithincirclemem + clipwithinfuckery;
+//    while clipwithinfuckery <> 0 do begin
+//      bits2 := bits2 + clipwithinoffsettable^;
+//      clipwithinoffsettable := clipwithinoffsettable + 1;
+//      clipwithinfuckery := clipwithinfuckery - 1;
+//    end;
+//  end;
+//
+//  var rowbytesdiff: long := 0;
+//  var textureinit := pbyte(thiscall(instance, ptr($45bdd0), [cardinal(circlerenderblock), circlewidth1, cardinal(@rowbytesdiff)]));
+//  var texdrawingptr := textureinit + circleoffsettable^;
+//  bits := bits + circleoffsettable^;
+//  var idk := 0;
+//  var thisrowwidth := 0;
+//  while minwidthctr < circlewidth1 do begin
+//    circleoffsettable := circleoffsettable + 1;
+//    if circlewidth1 <= bottom then begin
+//      bits2 := bits2 + clipwithinoffsettable^;
+//      var innerwidth := circlewidthmem^;
+//      idk := (bits2 - bits) + clipwithinoutlineactual;
+//      if idk < 1 then begin
+//        var jfc := idk + clipwithincirclemem^ + (clipwithinoutlineactual * -2);
+//        var newval := innerwidth;
+//        if jfc <= innerwidth then
+//          newval := jfc;
+//        thisrowwidth := newval;
+//        idk := 0;
+//      end else begin
+//        var innerwidth2 := innerwidth - idk;
+//        var jfc := clipwithincirclemem^ + (clipwithinoutlineactual * -2);
+//        var newval := innerwidth2;
+//        if jfc < innerwidth - idk then
+//          newval := jfc;
+//        thisrowwidth := newval;
+//      end;
+//
+//      if 0 < thisrowwidth then begin
+//        var newtexptr := texdrawingptr + idk;
+//        var bitsidk := bits + idk;
+//
+//        var pb := cardinal(bitsidk) - cardinal(newtexptr);
+//        while thisrowwidth <> 0 do begin
+//          //newtexptr[pb] := newtexptr^;
+//          newtexptr[pb] := 75;
+//          newtexptr := newtexptr + 1;
+//          thisrowwidth := thisrowwidth - 1;
+//        end;
+//      end;
+//
+//      clipwithincirclemem := clipwithincirclemem + 1;
+//      clipwithinoffsettable := clipwithinoffsettable + 1;
+//    end;
+//    bits := bits + circleoffsettable^;
+//    texdrawingptr := texdrawingptr + circleoffsettable^ + rowbytesdiff;
+//    circlewidthmem := circlewidthmem + 1;
+//    circlewidth1 := circlewidth1 - 1;
+//  end;
+//
+//  var vftable := pcardinal(ppointer(circlerenderblock.xtexture)^);
+//  thiscall(circlerenderblock.xtexture, pointer(vftable[2]), []);
+//  result := true;
+//end;
 {$POINTERMATH OFF}
 
 function mypopupwndproc(return: pointer; instance: tpetzwinmenu; hwnd: hwnd; msg, wparam: integer; lparam: long): long; stdcall;
@@ -2506,7 +2673,28 @@ begin
   // Patch circle drawing for Babyz-style transparency
   case cpetzver of
     pvpetz4: begin
-      //normalcirclepatch := patchthiscall(rimports.xdrawport_xfillnormalcircle, @mydrawnormalcircle);
+      var funpos := @asmnormalcircle;
+      var newpos := longword(funpos) - $45d249 - 5;
+      var data: array[0..4] of byte;
+      data[0] := $E9;
+      data[4] := (newpos shr 24) and $FF;
+      data[3] := (newpos shr 16) and $FF;
+      data[2] := (newpos shr 8) and $FF;
+      data[1] := (newpos shr 0) and $FF;
+      patchcodebuf(ptr($45d249), sizeof(data), 5, data);
+
+      // clip circle patch
+      funpos := @asmclipcircle;
+      newpos := longword(funpos) - $45e0f3 - 5;
+
+      data[0] := $E9;
+      data[4] := (newpos shr 24) and $FF;
+      data[3] := (newpos shr 16) and $FF;
+      data[2] := (newpos shr 8) and $FF;
+      data[1] := (newpos shr 0) and $FF;
+      patchcodebuf(ptr($45e0f3), sizeof(data), 5, data);
+
+      retargetcall(ptr($45d1b0), @myinittexfornorotate);
     end;
   end;
 
