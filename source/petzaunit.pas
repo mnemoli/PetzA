@@ -239,7 +239,7 @@ type TFlavor = (
 implementation
 
 uses setchildrenunit, mymessageunit, debugunit, gamespeedunit, typinfo, frmsettingsunit, userprofileunit,
-  nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit, controls, ansistrings, System.StrUtils;
+  nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit, controls, ansistrings, System.StrUtils, system.math.Vectors;
 
 {$WARN SYMBOL_PLATFORM OFF}
 {$WARN UNIT_PLATFORM OFF}
@@ -1169,6 +1169,97 @@ begin
     mov edx, $45d24e
     jmp edx
   end;
+end;
+
+procedure mysetballtextureinfo(crb: ppetzcirclerenderblock; ballstate, rots: pointer; ballno: integer); stdcall;
+  var xballz: pointer;
+  type vector3d = record
+    x, y, z: long;
+  end;
+  type grp = record
+    one, two, three: vector3d;
+  end;
+  type pvector3d = ^vector3d;
+  var r: grp;
+  var transposed: grp;
+begin
+  asm
+    mov xballz, ecx;
+  end;
+  var linez := ppointer(classprop(xballz, $184))^;
+  var textureinfo := pointer(cardinal(classprop(linez, $8dc)) + cardinal(ballno * $14));
+  var texturerotate := pboolean(classprop(textureinfo, 4))^;
+  if texturerotate = false then begin
+    thiscall(xballz, ptr($4501d0), [cardinal(crb), cardinal(ballstate), cardinal(rots), ballno]);
+    var texscrollpt := ppoint(cardinal(classprop(xballz, $10e8)) + (ballno * $34) + 8);
+
+    var posrotptr := cardinal(ppointer(rots)^) + (ballno * $a);
+    thiscall(@r, ptr($450420), []);
+    thiscall(xballz, ptr($44df20), [cardinal(@r), cardinal(ballstate), ballno, cardinal(posrotptr)]);
+    thiscall(xballz, ptr($44df20), [cardinal(@r.two), cardinal(ballstate), ballno, cardinal(posrotptr)]);
+    thiscall(xballz, ptr($44df20), [cardinal(@r.three), cardinal(ballstate), ballno, cardinal(posrotptr)]);
+    var xintrot := ppointer(cardinal(classprop(xballz, $10e8)) + (ballno * $34) + $10);
+    var tranposetimes := thiscall(xintrot, ptr($450460), [cardinal(@r), cardinal(@transposed)]);
+    var xscrollamt := 0;
+    if (transposed.three.x = 0) and (transposed.three.z = 0) then begin
+
+    end else begin
+      var fpatan := arctan2(transposed.three.z, transposed.three.x);
+      fpatan := fpatan - (PI/2) - (PI/4);
+      if fpatan > PI then
+        fpatan := fpatan - 2*PI;
+      if fpatan <= -PI then
+        fpatan := fpatan + 2*PI;
+
+      var degs := radtodeg(fpatan);
+
+      var scrollamt := 64;
+
+      if (degs <= 0) and (degs >= -90) then begin
+        // FRONT
+        texscrollpt.x := -scrollamt;
+        texscrollpt.y := scrollamt;
+      end
+      else if (degs >= 90) and (degs <= 180) then begin
+        // RIGHT
+        texscrollpt.x := scrollamt;
+        texscrollpt.y := scrollamt;
+      end
+      else if (degs <= -90) and (degs >= -180) then begin
+        // LEFT
+        texscrollpt.x := scrollamt;
+        texscrollpt.y := -scrollamt;
+      end else begin
+        // BACK
+        texscrollpt.x := -scrollamt;
+        texscrollpt.y := -scrollamt;
+      end;
+
+//      if (fpatan <= 0.0) and (fpatan >= -(PI/2.0)) then begin
+//        texscrollpt.x := 96;
+//        texscrollpt.y := 96;
+//      end else
+//      if (fpatan > 0.0) and (fpatan <= (PI/2.0)) then begin
+//        texscrollpt.x := -96;
+//        texscrollpt.y := 96;
+//      end else
+//      if (fpatan > (PI/2.0)) and (fpatan <= PI) then begin
+//        texscrollpt.x := 96;
+//        texscrollpt.y := -96;
+//      end else
+//      if (fpatan < -(PI/2.0)) and (fpatan >= -PI) then begin
+//        texscrollpt.x := -96;
+//        texscrollpt.y := -96;
+//      end;
+
+    end;
+
+    //texscrollpt.x := -96;
+    //texscrollpt.y := 96;
+    crb.texturescroll := texscrollpt;
+
+  end else
+    thiscall(xballz, ptr($4501d0), [cardinal(crb), cardinal(ballstate), cardinal(rots), ballno]);
 end;
 
 //function myinittexfornorotate(crb: ppetzcirclerenderblock; ballwidth: integer; rowbytesdiff: plong): pbyte; stdcall;
@@ -2694,7 +2785,8 @@ begin
       data[1] := (newpos shr 0) and $FF;
       patchcodebuf(ptr($45e0f3), sizeof(data), 5, data);
 
-      retargetcall(ptr($45d1b0), @myinittexfornorotate);
+      //retargetcall(ptr($45d1b0), @myinittexfornorotate);
+      retargetcall(ptr($45112a), @mysetballtextureinfo);
     end;
   end;
 
