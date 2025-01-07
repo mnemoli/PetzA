@@ -1190,12 +1190,15 @@ begin
   var textureinfo := pointer(cardinal(classprop(linez, $8dc)) + cardinal(ballno * $14));
   var texturerotate := pboolean(classprop(textureinfo, 4))^;
   if texturerotate = false then begin
+    // call original
     thiscall(xballz, ptr($4501d0), [cardinal(crb), cardinal(ballstate), cardinal(rots), ballno]);
     var texscrollpt := ppoint(cardinal(classprop(xballz, $10e8)) + (ballno * $34) + 8);
+    var texscrollptpaintball := ppoint(cardinal(classprop(xballz, $10e8)) + (ballno * $34) + 0);
+    var ugh := ppoint(cardinal(ppointer(cardinal(ppointer(classprop(xballz, $184)^)) + $8dc + (ballno * $14) + $8)^) + $3c);
 
     var posrotptr := cardinal(ppointer(rots)^) + (ballno * $a);
     thiscall(@r, ptr($450420), []);
-    thiscall(xballz, ptr($44df20), [cardinal(@r), cardinal(ballstate), ballno, cardinal(posrotptr)]);
+    thiscall(xballz, ptr($44df20), [cardinal(@r.one), cardinal(ballstate), ballno, cardinal(posrotptr)]);
     thiscall(xballz, ptr($44df20), [cardinal(@r.two), cardinal(ballstate), ballno, cardinal(posrotptr)]);
     thiscall(xballz, ptr($44df20), [cardinal(@r.three), cardinal(ballstate), ballno, cardinal(posrotptr)]);
     var xintrot := ppointer(cardinal(classprop(xballz, $10e8)) + (ballno * $34) + $10);
@@ -1204,7 +1207,7 @@ begin
     if (transposed.three.x = 0) and (transposed.three.z = 0) then begin
 
     end else begin
-      var fpatan := arctan2(transposed.three.z, transposed.three.x);
+      var fpatan := arctan2(transposed.one.z, transposed.one.x);
       fpatan := fpatan - (PI/2) - (PI/4);
       if fpatan > PI then
         fpatan := fpatan - 2*PI;
@@ -1217,46 +1220,30 @@ begin
 
       if (degs <= 0) and (degs >= -90) then begin
         // FRONT
-        texscrollpt.x := -scrollamt;
-        texscrollpt.y := scrollamt;
-      end
-      else if (degs >= 90) and (degs <= 180) then begin
-        // RIGHT
-        texscrollpt.x := scrollamt;
-        texscrollpt.y := scrollamt;
-      end
-      else if (degs <= -90) and (degs >= -180) then begin
-        // LEFT
         texscrollpt.x := scrollamt;
         texscrollpt.y := -scrollamt;
+      end
+      else if (degs > 90) and (degs <= 180) then begin
+        // RIGHT
+        texscrollpt.x := -scrollamt;
+        texscrollpt.y := -scrollamt;
+      end
+      else if (degs < -90) and (degs >= -180) then begin
+        // LEFT
+        texscrollpt.x := -scrollamt;
+        texscrollpt.y := scrollamt;
       end else begin
         // BACK
-        texscrollpt.x := -scrollamt;
-        texscrollpt.y := -scrollamt;
+        texscrollpt.x := scrollamt;
+        texscrollpt.y := scrollamt;
       end;
-
-//      if (fpatan <= 0.0) and (fpatan >= -(PI/2.0)) then begin
-//        texscrollpt.x := 96;
-//        texscrollpt.y := 96;
-//      end else
-//      if (fpatan > 0.0) and (fpatan <= (PI/2.0)) then begin
-//        texscrollpt.x := -96;
-//        texscrollpt.y := 96;
-//      end else
-//      if (fpatan > (PI/2.0)) and (fpatan <= PI) then begin
-//        texscrollpt.x := 96;
-//        texscrollpt.y := -96;
-//      end else
-//      if (fpatan < -(PI/2.0)) and (fpatan >= -PI) then begin
-//        texscrollpt.x := -96;
-//        texscrollpt.y := -96;
-//      end;
-
     end;
 
-    //texscrollpt.x := -96;
-    //texscrollpt.y := 96;
     crb.texturescroll := texscrollpt;
+    ugh.x := 0;
+    ugh.y := 0;
+    texscrollptpaintball.x := texscrollpt.x;
+    texscrollptpaintball.y := texscrollpt.y;
 
   end else
     thiscall(xballz, ptr($4501d0), [cardinal(crb), cardinal(ballstate), cardinal(rots), ballno]);
