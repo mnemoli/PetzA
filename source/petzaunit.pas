@@ -211,9 +211,10 @@ var petza: tpetza;
   draweyeballpatch, inittoypatch, drawphotopatch, drawspritespatch, initstagepatch,
   loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
   streamoutlnzpatch,
-  normalcirclepatch, clipcirclepatch,
+  normalcirclepatch, clipcirclepatch, paintballspatch,
   popupwndprocpatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, byte>;
+var texturequadrantscache: TDictionary<pointer, TDictionary<integer, bool>>;
 var  logging: Boolean;
 procedure dolog(const message: string);
 var pickapetmenusearchstring: ansistring;
@@ -1171,6 +1172,18 @@ begin
   end;
 end;
 
+function myparsepaintballs(return, instance, stream: pointer): pointer; stdcall;
+begin
+  paintballspatch.callorigproc(instance, [cardinal(stream)]);
+  var x := pdouble(classprop(instance, 0));
+  if isnan(x^) then begin
+    x^ := 0;
+    pdouble(classprop(instance, 8))^ := 0;
+    pdouble(classprop(instance, $10))^ := 0;
+  end;
+  result := instance;
+end;
+
 procedure mysetballtextureinfo(crb: ppetzcirclerenderblock; ballstate, rots: pointer; ballno: integer); stdcall;
   var xballz: pointer;
   type vector3d = record
@@ -1186,6 +1199,18 @@ begin
   asm
     mov xballz, ecx;
   end;
+  var d: TDictionary<integer, bool>;
+  texturequadrantscache.TryGetValue(xballz, d);
+  if d <> nil then begin
+    var needsquadrantfix: bool := false;
+    d.TryGetValue(ballno, needsquadrantfix);
+    if needsquadrantfix = false then begin
+      // call original
+      thiscall(xballz, ptr($4501d0), [cardinal(crb), cardinal(ballstate), cardinal(rots), ballno]);
+      exit;
+    end;
+  end;
+
   var linez := ppointer(classprop(xballz, $184))^;
   var textureinfo := pointer(cardinal(classprop(linez, $8dc)) + cardinal(ballno * $14));
   var texturerotate := pboolean(classprop(textureinfo, 4))^;
@@ -1246,6 +1271,7 @@ begin
     texscrollptpaintball.y := texscrollpt.y;
 
   end else
+    // call orig
     thiscall(xballz, ptr($4501d0), [cardinal(crb), cardinal(ballstate), cardinal(rots), ballno]);
 end;
 
@@ -2089,39 +2115,67 @@ end;
 procedure mydesxballz(return, instance: pointer); stdcall;
 begin
   lnzpalettecache.Remove(instance);
+  texturequadrantscache.Remove(instance);
   desxballzpatch.callorigproc(instance, []);
 end;
 
 procedure myloadlnz(return, instance, path: pointer; param2: cardinal; xballz, cache: pointer); stdcall;
 var lnzdict: pointer;
 const categorytitle: pansichar = '[Palette]';
+const texturecategorytitle: pansichar = '[No Texture Rotate]';
 var gotsection: bool;
 var palettename: pansichar;
 var paletteidx: byte;
 begin
   loadlnzpatch.callorigproc(instance, [cardinal(path), param2, cardinal(xballz), cardinal(cache)]);
+
   if (cardinal(xballz) = -1) or (xballz = nil) then
     exit;
-  if lnzpalettecache.ContainsKey(xballz) then
-    exit;
-  lnzdict := classprop(cache, 380);
-  // set file position
-  gotsection := bool(thiscall(lnzdict, ptr($00431f30), [cardinal(categorytitle)]));
-  if not gotsection then begin
-    if petza.defaultpalette.Length = 0 then
-        exit;
-    palettename := pansichar(ansistring(petza.defaultpalette));
-  end else begin
-    // get next line
-    palettename := pansichar(thiscall(lnzdict, ptr($00431fe0), []));
+
+  if petza.fenablepalettes then begin
+    // load palette
+    if not lnzpalettecache.ContainsKey(xballz) then begin
+      lnzdict := classprop(cache, 380);
+      // set file position
+      gotsection := bool(thiscall(lnzdict, ptr($00431f30), [cardinal(categorytitle)]));
+      if not gotsection then begin
+        if petza.defaultpalette.Length > 0 then
+          palettename := pansichar(ansistring(petza.defaultpalette));
+      end else begin
+        // get next line
+        palettename := pansichar(thiscall(lnzdict, ptr($00431fe0), []));
+      end;
+
+      if length(palettename) > 0 then begin
+        var gotpalette := paletteindexes.TryGetValue(palettename, paletteidx);
+        if gotpalette then begin
+          paletteidx := paletteindexes[palettename];
+          lnzpalettecache.AddOrSetValue(xballz, paletteidx);
+        end;
+      end;
+    end;
   end;
 
-  if length(palettename) > 0 then begin
-    var gotpalette := paletteindexes.TryGetValue(palettename, paletteidx);
-    if not gotpalette then
-      exit;
-    paletteidx := paletteindexes[palettename];
-    lnzpalettecache.AddOrSetValue(xballz, paletteidx);
+  // load additional texture info (quadrants)
+  gotsection := bool(thiscall(lnzdict, ptr($00431f30), [cardinal(texturecategorytitle)]));
+  if not gotsection then
+    exit;
+
+  // get next line
+  var ballno: integer;
+  var isquadrants: integer := 0;
+  var gotline := boolean(thiscall(cache, ptr($432d60), [cardinal(@ballno), cardinal(@isquadrants), cardinal(false)]));
+  while(gotline) do begin
+    if isquadrants <> 0 then begin
+      var d: TDictionary<integer,bool>;
+      texturequadrantscache.TryGetValue(xballz, d);
+      if d = nil then
+        d := TDictionary<integer,bool>.Create;
+      d.TryAdd(ballno, bool(isquadrants));
+      texturequadrantscache.AddOrSetValue(xballz, d);
+    end;
+    isquadrants := 0;
+    gotline := boolean(thiscall(cache, ptr($432d60), [cardinal(@ballno), cardinal(@isquadrants), cardinal(false)]));
   end;
 end;
 
@@ -2191,7 +2245,7 @@ procedure mystreamoutlnz(return, instance, ostream: pointer); stdcall;
   var headerp: pansichar;
   var cachehaslnz: boolean;
   var palettename: ansistring;
-  var callpos: pointer;
+  var callpostext, callposint: pointer;
 begin
   cachehaslnz := false;
   var actuallnzptr := petza.lastadoptpetlnzinfo;
@@ -2199,6 +2253,9 @@ begin
     streamoutlnzpatch.callorigproc(instance, [cardinal(ostream)]);
     exit;
   end;
+
+  callpostext := ppointer($58b2ec)^;
+  callposint := ppointer($58b268)^;
 
   for var item in lnzpalettecache do begin
     var xballz := item.key;
@@ -2216,17 +2273,58 @@ begin
   end;
 
   if cachehaslnz then begin
-    callpos := ppointer($58b2ec)^;
     header := '[Palette]'#10'';
     headerp := pansichar(header);
-    thiscall(ostream, callpos, [cardinal(headerp)]);
+    thiscall(ostream, callpostext, [cardinal(headerp)]);
     header := palettename + #10;
     headerp := pansichar(header);
-    thiscall(ostream, callpos, [cardinal(headerp)]);
+    thiscall(ostream, callpostext, [cardinal(headerp)]);
   end;
 
   streamoutlnzpatch.callorigproc(instance, [cardinal(ostream)]);
+
   petza.lastadoptpetlnzinfo := nil;
+  cachehaslnz := false;
+
+  // no texture rotate - overrides game exe writing of this section
+  var notexturerotates: TDictionary<integer, bool> := nil;
+  var sep := ''#10'';
+
+  for var item in texturequadrantscache do begin
+    var xballz := item.key;
+    var lnzptr := ppointer(classprop(xballz, $184))^;
+    if lnzptr = actuallnzptr then begin
+      notexturerotates := texturequadrantscache[xballz];
+      break;
+    end;
+  end;
+
+  header := '[No Texture Rotate]'#10'';
+  headerp := pansichar(header);
+  var sepp := pansichar(sep);
+  var space := ' ';
+  var spacep := pansichar(space);
+  var norotatearray := pbytebool(cardinal(classprop(instance, $8dc)) + 4);
+  var headerwritten := false;
+//  for var i := 0 to 511 do begin
+//    if norotatearray^ = false then begin
+//      if headerwritten = false then begin
+//        thiscall(ostream, callpostext, [cardinal(headerp)]);
+//        headerwritten := true;
+//      end;
+//      thiscall(ostream, callposint, [i]);
+//      if notexturerotates <> nil then begin
+//        var ntrval: bool := false;
+//        notexturerotates.TryGetValue(i, ntrval);
+//        if ntrval then begin
+//          thiscall(ostream, callpostext, [cardinal(spacep)]);
+//          thiscall(ostream, callposint, [cardinal(ntrval)]);
+//        end;
+//      end;
+//      thiscall(ostream, callpostext, [cardinal(sepp)]);
+//    end;
+//    norotatearray := pbytebool(cardinal(norotatearray) + 20)
+//  end;
 end;
 
 procedure mysnapshot(ballstate, rect1, rect2: pointer; bgcolor: integer; sprite1, sprite2: pointer); stdcall;
@@ -2772,8 +2870,17 @@ begin
       data[1] := (newpos shr 0) and $FF;
       patchcodebuf(ptr($45e0f3), sizeof(data), 5, data);
 
-      //retargetcall(ptr($45d1b0), @myinittexfornorotate);
+      // Never write no tex rotate info - overridden
+      data[0] := $EB;
+      data[1] := $46b7ee - $46b78d - 2;
+      patchcodebuf(ptr($46b78d), 2, 6, data);
+
       retargetcall(ptr($45112a), @mysetballtextureinfo);
+      texturequadrantscache := TDictionary<pointer, TDictionary<integer, bool>>.Create;
+
+      // Patch 0,0,0 paintballs getting messed up
+      paintballspatch := patchthiscall(ptr($470030), @myparsepaintballs);
+//
     end;
   end;
 
