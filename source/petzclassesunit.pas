@@ -760,7 +760,10 @@ end;
 
 function TPetzSHLGlobals.getpickapetmenu: hmenu;
 begin
-  result := hmenu(classprop(self, $6e0)^);
+  case cpetzver of
+    pvpetz4: result := hmenu(classprop(self, $6e0)^);
+    pvpetz2: result := hmenu(classprop(self, $884)^);
+  end;
 end;
 
 function tpetzshlglobals.mainwindow: hwnd;

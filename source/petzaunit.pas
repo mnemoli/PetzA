@@ -800,6 +800,91 @@ begin
   result := 0;
 end;
 
+function myp2measureitem(hwnd: hwnd; isselected: uint; menustruct: pointer): long; cdecl;
+type menustruct2 = record
+  unused1,unused2,wid,x,y: integer;
+end;
+type pmenustruct = ^menustruct2;
+var namestr: shortstring;
+var rect: trect;
+var menuiteminfo: menuiteminfoa;
+var buffer: bitmapinfoheader;
+begin
+  rect := trect.create(0,0,0,0);
+  var pstruct := pmenustruct(menustruct);
+  var max := pinteger(classprop(petzshlglobals, $4b8))^;
+  if (pstruct.wid < 3000) or (pstruct.wid > 3999) then begin
+    if (99 < pstruct.wid) or (pstruct.wid > (max + 100)) then begin
+      pstruct.x := $4b;
+      pstruct.y := $12;
+    end;
+  end else begin
+    getmenustringa(petzshlglobals.pickapetmenu, pstruct.wid, @namestr, $100, 0);
+    var hdc := getdc(0);
+    var h := getstockobject($11);
+    var s := selectobject(hdc, h);
+    drawtexta(hdc, namestr, -1, rect, $420);
+    selectobject(hdc, s);
+    releasedc(0, hdc);
+    var right := rect.right;
+    if isselected = 0 then begin
+      var min := getsystemmetrics($47);
+      pstruct.x := min + right + 10;
+      min := getsystemmetrics($f);
+      pstruct.y := min;
+    end else begin
+      fillchar(menuiteminfo, 4 * 12, 0);
+      menuiteminfo.cbsize := sizeof(menuiteminfoa);
+      menuiteminfo.fmask := $1b;
+      getmenuiteminfoa(petzshlglobals.pickapetmenu, pstruct.wid, false, menuiteminfo);
+      if menuiteminfo.hbmpChecked = 0 then begin
+        var min := getsystemmetrics(71);
+        pstruct.x := min + right + 10;
+        min := getsystemmetrics(15);
+        pstruct.y := min;
+      end else begin
+        getobjecta(menuiteminfo.hbmpChecked, 24, @buffer);
+        var min := getsystemmetrics(15);
+        pstruct.y := min + buffer.biHeight;
+        pstruct.x := buffer.biWidth;
+        if pstruct.x <= right then
+          pstruct.x := right;
+        min := getsystemmetrics(71);
+        pstruct.x := pstruct.x + min;
+      end;
+    end;
+  end;
+  result := 1;
+end;
+
+function mytrackmenu(hmenu: pointer; something,x,y,something2: integer; mainwindow: hwnd): long; cdecl;
+  type originalfun = function(hmenu: pointer; something,x,y,something2: integer; mainwindow: hwnd): integer; cdecl;
+  var thefun: originalfun;
+begin
+  thefun := ptr($048053e);
+  var res := thefun(hmenu, something, x, y, something2, mainwindow);
+  var threadid := getcurrentthreadid;
+  var popupgetmessage := ptr($4813bd);
+  var popupkeyboard := ptr($481372);
+  var hookres := setwindowshookexa(3, popupgetmessage, 0, threadid);
+  var keyboardhook := setwindowshookexa(2, popupkeyboard, 0, threadid);
+  var hhookptr: ^hhook := ptr($50f7fc);
+  hhookptr^ := hookres;
+  hhookptr := ptr($50f784);
+  hhookptr^ := keyboardhook;
+end;
+
+procedure asmmenuiteminfo;
+begin
+  asm
+    mov ebp - $78, 44;
+    mov ebp - $74, $3b;
+    mov ebp - $78 + $24, 0;
+    mov ecx, $47ca19
+    jmp ecx
+  end;
+end;
+
 function win2kornewer: boolean;
 begin
   result := (Win32MajorVersion >= 5);
@@ -2773,12 +2858,23 @@ begin
         VirtualProtect(p, 1, PAGE_EXECUTE_READWRITE, oldprotect);
         p^ := $EB; // replace with uncontrolled jump to allow any number of petz out!
 
-        //patchthiscall(ptr($4AD208), @getthumbnail);
-
         if win2kornewer then begin
-          p := ptr($481326);
-          VirtualProtect(p, 11, PAGE_EXECUTE_READWRITE, oldprotect);
-          fillchar(p^, 11, $90); // replace with uncontrolled jump to skip a block of code in expandable menu wndproc
+          // make menu get input correctly
+          retargetcall(ptr($47c610), @mytrackmenu);
+
+          // patch a weird bug with initialisation of
+          // menuiteminfoa
+          var funpos := @asmmenuiteminfo;
+          var newpos := longword(funpos) - $47ca12 - 5;
+          var data: array[0..4] of byte;
+          data[0] := $E9;
+          data[4] := (newpos shr 24) and $FF;
+          data[3] := (newpos shr 16) and $FF;
+          data[2] := (newpos shr 8) and $FF;
+          data[1] := (newpos shr 0) and $FF;
+          patchcodebuf(ptr($47ca12), sizeof(data), 7, data);
+
+          retargetcall(ptr($480818), @myp2measureitem);
         end;
 
 {    //always allow sounds
