@@ -5,7 +5,7 @@
         <FrameworkType>VCL</FrameworkType>
         <MainSource>PetzA.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Test</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Library</AppType>
@@ -107,9 +107,8 @@
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_MapFile>3</DCC_MapFile>
-        <Debugger_HostApplication>C:\Petz II\Petz II.exe</Debugger_HostApplication>
-        <Debugger_CWD>C:\Petz II</Debugger_CWD>
-        <DCC_ExeOutput>C:\Petz II\Resource\Toyz</DCC_ExeOutput>
+        <Debugger_HostApplication>E:\Program Files (x86)\Petz\Petz 4 (Vanilla)\Petz 4.exe</Debugger_HostApplication>
+        <Debugger_CWD>E:\Program Files (x86)\Petz\Petz 4 (Vanilla)</Debugger_CWD>
         <VerInfo_MinorVer>10</VerInfo_MinorVer>
         <VerInfo_Keys>CompanyName=Sherlock Software;FileDescription=$(MSBuildProjectName);FileVersion=3.10.0.0;InternalName=;LegalCopyright=Copyright Sherlock Software 2018;LegalTrademarks=;OriginalFilename=petza.toy;ProgramID=org.sherlocksoftware.petz.petza;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
     </PropertyGroup>
