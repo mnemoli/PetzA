@@ -295,6 +295,24 @@ type
 
   PPetzMenuStruct = ^TPetzMenuStruct;
 
+  TPetzCircleRenderBlock = record
+    rendermode: integer;
+    colorindex: integer;
+    outlinecolorindex: integer;
+    fuzz: integer;
+    xtexture: pointer;
+    textureoffset: integer;
+    istransparent: boolean;
+    outlinetype: integer;
+    rect: trect;
+    texturescroll: ppoint;
+    unused1: integer;
+    unused2: integer;
+    clipwithinrenderblock: pointer;
+  end;
+
+  PPetzCircleRenderBlock = ^TPetzCircleRenderBlock;
+
 (*procedure mypetzapp_dodrawframe(ecx: pointer); stdcall;*)
 procedure createmainwindow(return, instance: pointer); stdcall;
 procedure mypetzapp_dodrawframe(return, instance: pointer); stdcall;
@@ -742,7 +760,10 @@ end;
 
 function TPetzSHLGlobals.getpickapetmenu: hmenu;
 begin
-  result := hmenu(classprop(self, $6e0)^);
+  case cpetzver of
+    pvpetz4: result := hmenu(classprop(self, $6e0)^);
+    pvpetz2: result := hmenu(classprop(self, $884)^);
+  end;
 end;
 
 function tpetzshlglobals.mainwindow: hwnd;

@@ -132,6 +132,7 @@ type
     fdefaultpalette: string;
     fclosetspeed: integer;
     lastadoptpetlnzinfo: pointer;
+    fenabletransparency: boolean;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -158,6 +159,7 @@ type
     procedure settexturedirises(const Value: boolean);
     procedure settweakeyelidcolours(const Value: boolean);
     procedure setclosetspeed(const Value: integer);
+    procedure setenabletransparency(const Value: boolean);
 
   public
     brains: TObjectList;
@@ -201,6 +203,7 @@ type
     property tweakeyelidcolours: boolean read ftweakeyelidcolours write settweakeyelidcolours;
     property defaultpalette: string read fdefaultpalette write fdefaultpalette;
     property closetspeed: integer read fclosetspeed write setclosetspeed;
+    property enabletransparency: boolean read fenabletransparency write setenabletransparency;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -211,8 +214,10 @@ var petza: tpetza;
   draweyeballpatch, inittoypatch, drawphotopatch, drawspritespatch, initstagepatch,
   loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
   streamoutlnzpatch,
+  normalcirclepatch, clipcirclepatch, paintballspatch,
   popupwndprocpatch: TPatchThiscall;
-var lnzpalettecache: TDictionary<pointer, byte>;
+var lnzpalettecache: TDictionary<pointer, TPair<byte, boolean>>;
+var texturequadrantscache: TDictionary<pointer, TDictionary<integer, bool>>;
 var  logging: Boolean;
 procedure dolog(const message: string);
 var pickapetmenusearchstring: ansistring;
@@ -238,7 +243,7 @@ type TFlavor = (
 implementation
 
 uses setchildrenunit, mymessageunit, debugunit, gamespeedunit, typinfo, frmsettingsunit, userprofileunit,
-  nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit, controls, ansistrings, System.StrUtils;
+  nakedbitmaploader, Vcl.Imaging.pngimage, Vcl.Imaging.gifimg, helpunit, controls, ansistrings, System.StrUtils, system.math.Vectors;
 
 {$WARN SYMBOL_PLATFORM OFF}
 {$WARN UNIT_PLATFORM OFF}
@@ -554,6 +559,8 @@ begin
         defaultpalette := reg.ReadString('DefaultPalette');
       if reg.ValueExists('ClosetSpeed') then
         closetspeed := reg.ReadInteger('ClosetSpeed');
+      if reg.ValueExists('EnableTransparency') then
+        enabletransparency := reg.ReadBool('EnableTransparency');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -600,6 +607,7 @@ begin
       reg.WriteBool('TweakEyelidColours', tweakeyelidcolours);
       reg.WriteString('DefaultPalette', defaultpalette);
       reg.WriteInteger('ClosetSpeed', closetspeed);
+      reg.WriteBool('EnableTransparency', enabletransparency);
     end;
   finally
     reg.free;
@@ -796,6 +804,91 @@ end;
 function getthumbnail(return, instance: pointer): hbitmap; stdcall;
 begin
   result := 0;
+end;
+
+function myp2measureitem(hwnd: hwnd; isselected: uint; menustruct: pointer): long; cdecl;
+type menustruct2 = record
+  unused1,unused2,wid,x,y: integer;
+end;
+type pmenustruct = ^menustruct2;
+var namestr: shortstring;
+var rect: trect;
+var menuiteminfo: menuiteminfoa;
+var buffer: bitmapinfoheader;
+begin
+  rect := trect.create(0,0,0,0);
+  var pstruct := pmenustruct(menustruct);
+  var max := pinteger(classprop(petzshlglobals, $4b8))^;
+  if (pstruct.wid < 3000) or (pstruct.wid > 3999) then begin
+    if (99 < pstruct.wid) or (pstruct.wid > (max + 100)) then begin
+      pstruct.x := $4b;
+      pstruct.y := $12;
+    end;
+  end else begin
+    getmenustringa(petzshlglobals.pickapetmenu, pstruct.wid, @namestr, $100, 0);
+    var hdc := getdc(0);
+    var h := getstockobject($11);
+    var s := selectobject(hdc, h);
+    drawtexta(hdc, namestr, -1, rect, $420);
+    selectobject(hdc, s);
+    releasedc(0, hdc);
+    var right := rect.right;
+    if isselected = 0 then begin
+      var min := getsystemmetrics($47);
+      pstruct.x := min + right + 10;
+      min := getsystemmetrics($f);
+      pstruct.y := min;
+    end else begin
+      fillchar(menuiteminfo, 4 * 12, 0);
+      menuiteminfo.cbsize := sizeof(menuiteminfoa);
+      menuiteminfo.fmask := $1b;
+      getmenuiteminfoa(petzshlglobals.pickapetmenu, pstruct.wid, false, menuiteminfo);
+      if menuiteminfo.hbmpChecked = 0 then begin
+        var min := getsystemmetrics(71);
+        pstruct.x := min + right + 10;
+        min := getsystemmetrics(15);
+        pstruct.y := min;
+      end else begin
+        getobjecta(menuiteminfo.hbmpChecked, 24, @buffer);
+        var min := getsystemmetrics(15);
+        pstruct.y := min + buffer.biHeight;
+        pstruct.x := buffer.biWidth;
+        if pstruct.x <= right then
+          pstruct.x := right;
+        min := getsystemmetrics(71);
+        pstruct.x := pstruct.x + min;
+      end;
+    end;
+  end;
+  result := 1;
+end;
+
+function mytrackmenu(hmenu: pointer; something,x,y,something2: integer; mainwindow: hwnd): long; cdecl;
+  type originalfun = function(hmenu: pointer; something,x,y,something2: integer; mainwindow: hwnd): integer; cdecl;
+  var thefun: originalfun;
+begin
+  thefun := ptr($048053e);
+  var res := thefun(hmenu, something, x, y, something2, mainwindow);
+  var threadid := getcurrentthreadid;
+  var popupgetmessage := ptr($4813bd);
+  var popupkeyboard := ptr($481372);
+  var hookres := setwindowshookexa(3, popupgetmessage, 0, threadid);
+  var keyboardhook := setwindowshookexa(2, popupkeyboard, 0, threadid);
+  var hhookptr: ^hhook := ptr($50f7fc);
+  hhookptr^ := hookres;
+  hhookptr := ptr($50f784);
+  hhookptr^ := keyboardhook;
+end;
+
+procedure asmmenuiteminfo;
+begin
+  asm
+    mov ebp - $78, 44;
+    mov ebp - $74, $3b;
+    mov ebp - $78 + $24, 0;
+    mov ecx, $47ca19
+    jmp ecx
+  end;
 end;
 
 function win2kornewer: boolean;
@@ -1070,6 +1163,316 @@ begin
     invalidaterect(popuphwnd, nil, false);
     updatewindow(popuphwnd);
   end;
+end;
+
+procedure asmoutlinecircle(); stdcall;
+begin
+  asm
+    mov cl, [eax]
+    cmp cl, 253
+    je @@FAIL
+    mov byte [eax + esi], cl
+    @@FAIL:
+    mov ecx, $45da40
+    jmp ecx
+  end;
+end;
+
+procedure asmoutlinecircle2(); stdcall;
+begin
+  asm
+    cmp cl, 253
+    je @@FAIL
+    mov byte [esi], cl
+    @@FAIL:
+    inc eax
+    inc esi
+    dec edi
+    mov ecx, $45da0c
+    jmp ecx
+  end;
+end;
+
+procedure asmclipcircle(); stdcall;
+begin
+  asm
+    mov dl, [ecx]
+    cmp dl, 253
+    je @@FAIL
+    mov byte [esi + ecx], dl
+    @@FAIL:
+    mov edx, $45e0f8
+    jmp edx
+  end;
+end;
+
+procedure asmclipcircle2(); stdcall;
+begin
+  asm
+    cmp dl, 253
+    je @@FAIL
+    mov byte [esi], dl
+    @@FAIL:
+    inc ecx
+    inc esi
+    mov edx, $45e0d7
+    dec edi
+    jmp edx
+  end;
+end;
+
+procedure asmnormalcircle(); stdcall;
+begin
+  asm
+    mov dl, [ecx]
+    cmp dl, 253
+    je @@FAIL
+    mov byte [esi + ecx], dl
+    @@FAIL:
+    mov edx, $45d24e
+    jmp edx
+  end;
+end;
+
+procedure asmnormalcircle2(); stdcall;
+begin
+  asm
+    cmp dl, 253
+    je @@FAIL
+    mov byte [esi], dl
+    @@FAIL:
+    inc ecx
+    inc esi
+    dec edi
+    mov edx, $045d20e
+    jmp edx
+  end;
+end;
+
+procedure asmdrawline(); stdcall;
+begin
+  asm
+    mov dl, byte [ecx]
+    cmp dl, 253
+    je @@FAIL
+    mov byte [esi], dl
+    @@FAIL:
+    inc esi
+    mov edx, $45fd91
+    jmp edx
+  end;
+end;
+
+procedure TPetza.setenabletransparency(const Value: boolean);
+begin
+  if fenabletransparency <> value then begin
+    fenabletransparency := Value;
+
+    if fenabletransparency then begin
+      var funpos := @asmnormalcircle;
+      var newpos := longword(funpos) - $45d249 - 5;
+      var data: array[0..4] of byte;
+      data[0] := $E9;
+      data[4] := (newpos shr 24) and $FF;
+      data[3] := (newpos shr 16) and $FF;
+      data[2] := (newpos shr 8) and $FF;
+      data[1] := (newpos shr 0) and $FF;
+      patchcodebuf(ptr($45d249), sizeof(data), 5, data);
+
+      // texture transparency
+      funpos := @asmnormalcircle2;
+      newpos := longword(funpos) - $45d209 - 5;
+      data[0] := $E9;
+      data[4] := (newpos shr 24) and $FF;
+      data[3] := (newpos shr 16) and $FF;
+      data[2] := (newpos shr 8) and $FF;
+      data[1] := (newpos shr 0) and $FF;
+      patchcodebuf(ptr($45d209), sizeof(data), 5, data);
+
+      // clip circle patch
+      // paintballs
+      funpos := @asmclipcircle;
+      newpos := longword(funpos) - $45e0f3 - 5;
+
+      data[0] := $E9;
+      data[4] := (newpos shr 24) and $FF;
+      data[3] := (newpos shr 16) and $FF;
+      data[2] := (newpos shr 8) and $FF;
+      data[1] := (newpos shr 0) and $FF;
+      patchcodebuf(ptr($45e0f3), sizeof(data), 5, data);
+
+      // clip circle patch 2 - texture transparency on
+      funpos := @asmclipcircle2;
+      newpos := longword(funpos) - $45e0d2 - 5;
+
+      data[0] := $E9;
+      data[4] := (newpos shr 24) and $FF;
+      data[3] := (newpos shr 16) and $FF;
+      data[2] := (newpos shr 8) and $FF;
+      data[1] := (newpos shr 0) and $FF;
+      patchcodebuf(ptr($45e0d2), sizeof(data), 5, data);
+
+      // outline circle
+      // for glasses/helmets
+      funpos := @asmoutlinecircle;
+      newpos := longword(funpos) - $45da3b - 5;
+      data[0] := $E9;
+      data[4] := (newpos shr 24) and $FF;
+      data[3] := (newpos shr 16) and $FF;
+      data[2] := (newpos shr 8) and $FF;
+      data[1] := (newpos shr 0) and $FF;
+      patchcodebuf(ptr($45da3b), sizeof(data), 5, data);
+
+      funpos := @asmoutlinecircle2;
+      newpos := longword(funpos) - $45da07 - 5;
+      data[0] := $E9;
+      data[4] := (newpos shr 24) and $FF;
+      data[3] := (newpos shr 16) and $FF;
+      data[2] := (newpos shr 8) and $FF;
+      data[1] := (newpos shr 0) and $FF;
+      patchcodebuf(ptr($45da07), sizeof(data), 5, data);
+
+      // lines
+      funpos := @asmdrawline;
+      newpos := longword(funpos) - $45fd8c - 5;
+      data[0] := $E9;
+      data[4] := (newpos shr 24) and $FF;
+      data[3] := (newpos shr 16) and $FF;
+      data[2] := (newpos shr 8) and $FF;
+      data[1] := (newpos shr 0) and $FF;
+      patchcodebuf(ptr($45fd8c), sizeof(data), 5, data);
+
+    end else begin
+      var data: array[0..4] of byte;
+      data[0] := $8a;
+      data[1] := $11;
+      data[2] := $88;
+      data[3] := $14;
+      data[4] := $0e;
+      patchcodebuf(ptr($45d249), sizeof(data), 5, data);
+
+      data[0] := $8a;
+      data[1] := $11;
+      data[2] := $88;
+      data[3] := $14;
+      data[4] := $0e;
+      patchcodebuf(ptr($45e0f3), sizeof(data), 5, data);
+
+      data[0] := $88;
+      data[1] := $16;
+      data[2] := $41;
+      data[3] := $46;
+      data[4] := $4f;
+      patchcodebuf(ptr($45e0d2), sizeof(data), 5, data);
+    end;
+  end;
+end;
+
+function myparsepaintballs(return, instance, stream: pointer): pointer; stdcall;
+begin
+  paintballspatch.callorigproc(instance, [cardinal(stream)]);
+  var x := pdouble(classprop(instance, 0));
+  if isnan(x^) then begin
+    x^ := 0;
+    pdouble(classprop(instance, 8))^ := 0;
+    pdouble(classprop(instance, $10))^ := 0;
+  end;
+  result := instance;
+end;
+
+procedure mysetballtextureinfo(crb: ppetzcirclerenderblock; ballstate, rots: pointer; ballno: integer); stdcall;
+  var xballz: pointer;
+  type vector3d = record
+    x, y, z: long;
+  end;
+  type grp = record
+    one, two, three: vector3d;
+  end;
+  type pvector3d = ^vector3d;
+  var r: grp;
+  var transposed: grp;
+begin
+  asm
+    mov xballz, ecx;
+  end;
+  var d: TDictionary<integer, bool>;
+  texturequadrantscache.TryGetValue(xballz, d);
+  if d <> nil then begin
+    var needsquadrantfix: bool := false;
+    d.TryGetValue(ballno, needsquadrantfix);
+    if needsquadrantfix = false then begin
+      // call original
+      thiscall(xballz, ptr($4501d0), [cardinal(crb), cardinal(ballstate), cardinal(rots), ballno]);
+      exit;
+    end
+  end else begin
+    // call original
+    thiscall(xballz, ptr($4501d0), [cardinal(crb), cardinal(ballstate), cardinal(rots), ballno]);
+    exit;
+  end;
+
+  var linez := ppointer(classprop(xballz, $184))^;
+  var textureinfo := pointer(cardinal(classprop(linez, $8dc)) + cardinal(ballno * $14));
+  var texturerotate := pboolean(classprop(textureinfo, 4))^;
+  if texturerotate = false then begin
+    // call original
+    thiscall(xballz, ptr($4501d0), [cardinal(crb), cardinal(ballstate), cardinal(rots), ballno]);
+    var texscrollpt := ppoint(cardinal(classprop(xballz, $10e8)) + (ballno * $34) + 8);
+    var texscrollptpaintball := ppoint(cardinal(classprop(xballz, $10e8)) + (ballno * $34) + 0);
+    var ugh := ppoint(cardinal(ppointer(cardinal(ppointer(classprop(xballz, $184)^)) + $8dc + (ballno * $14) + $8)^) + $3c);
+
+    var posrotptr := cardinal(ppointer(rots)^) + (ballno * $a);
+    thiscall(@r, ptr($450420), []);
+    thiscall(xballz, ptr($44df20), [cardinal(@r.one), cardinal(ballstate), ballno, cardinal(posrotptr)]);
+    thiscall(xballz, ptr($44df20), [cardinal(@r.two), cardinal(ballstate), ballno, cardinal(posrotptr)]);
+    thiscall(xballz, ptr($44df20), [cardinal(@r.three), cardinal(ballstate), ballno, cardinal(posrotptr)]);
+    var xintrot := ppointer(cardinal(classprop(xballz, $10e8)) + (ballno * $34) + $10);
+    var tranposetimes := thiscall(xintrot, ptr($450460), [cardinal(@r), cardinal(@transposed)]);
+    var xscrollamt := 0;
+    if (transposed.three.x = 0) and (transposed.three.z = 0) then begin
+
+    end else begin
+      var fpatan := arctan2(transposed.one.z, transposed.one.x);
+      fpatan := fpatan - (PI/2) - (PI/4);
+      if fpatan > PI then
+        fpatan := fpatan - 2*PI;
+      if fpatan <= -PI then
+        fpatan := fpatan + 2*PI;
+
+      var degs := radtodeg(fpatan);
+
+      var scrollamt := 64;
+
+      if (degs <= 0) and (degs >= -90) then begin
+        // FRONT
+        texscrollpt.x := scrollamt;
+        texscrollpt.y := -scrollamt;
+      end
+      else if (degs > 90) and (degs <= 180) then begin
+        // RIGHT
+        texscrollpt.x := -scrollamt;
+        texscrollpt.y := -scrollamt;
+      end
+      else if (degs < -90) and (degs >= -180) then begin
+        // LEFT
+        texscrollpt.x := -scrollamt;
+        texscrollpt.y := scrollamt;
+      end else begin
+        // BACK
+        texscrollpt.x := scrollamt;
+        texscrollpt.y := scrollamt;
+      end;
+    end;
+
+    crb.texturescroll := texscrollpt;
+    ugh.x := 0;
+    ugh.y := 0;
+    texscrollptpaintball.x := texscrollpt.x;
+    texscrollptpaintball.y := texscrollpt.y;
+
+  end else
+    // call orig
+    thiscall(xballz, ptr($4501d0), [cardinal(crb), cardinal(ballstate), cardinal(rots), ballno]);
 end;
 
 function mypopupwndproc(return: pointer; instance: tpetzwinmenu; hwnd: hwnd; msg, wparam: integer; lparam: long): long; stdcall;
@@ -1771,39 +2174,71 @@ end;
 procedure mydesxballz(return, instance: pointer); stdcall;
 begin
   lnzpalettecache.Remove(instance);
+  texturequadrantscache.Remove(instance);
   desxballzpatch.callorigproc(instance, []);
 end;
 
 procedure myloadlnz(return, instance, path: pointer; param2: cardinal; xballz, cache: pointer); stdcall;
 var lnzdict: pointer;
 const categorytitle: pansichar = '[Palette]';
+const texturecategorytitle: pansichar = '[No Texture Rotate]';
 var gotsection: bool;
 var palettename: pansichar;
+var paletteisdefault: boolean;
 var paletteidx: byte;
 begin
   loadlnzpatch.callorigproc(instance, [cardinal(path), param2, cardinal(xballz), cardinal(cache)]);
+
   if (cardinal(xballz) = -1) or (xballz = nil) then
     exit;
-  if lnzpalettecache.ContainsKey(xballz) then
-    exit;
-  lnzdict := classprop(cache, 380);
-  // set file position
-  gotsection := bool(thiscall(lnzdict, ptr($00431f30), [cardinal(categorytitle)]));
-  if not gotsection then begin
-    if petza.defaultpalette.Length = 0 then
-        exit;
-    palettename := pansichar(ansistring(petza.defaultpalette));
-  end else begin
-    // get next line
-    palettename := pansichar(thiscall(lnzdict, ptr($00431fe0), []));
+
+  if petza.fenablepalettes then begin
+    // load palette
+    if not lnzpalettecache.ContainsKey(xballz) then begin
+      lnzdict := classprop(cache, 380);
+      // set file position
+      gotsection := bool(thiscall(lnzdict, ptr($00431f30), [cardinal(categorytitle)]));
+      if not gotsection then begin
+        if petza.defaultpalette.Length > 0 then begin
+          palettename := pansichar(ansistring(petza.defaultpalette));
+          paletteisdefault := true;
+        end;
+      end else begin
+        // get next line
+        palettename := pansichar(thiscall(lnzdict, ptr($00431fe0), []));
+        paletteisdefault := false;
+      end;
+
+      if length(palettename) > 0 then begin
+        var gotpalette := paletteindexes.TryGetValue(palettename, paletteidx);
+        if gotpalette then begin
+          paletteidx := paletteindexes[palettename];
+          lnzpalettecache.AddOrSetValue(xballz, TPair<byte, boolean>.Create(paletteidx, paletteisdefault));
+        end;
+      end;
+    end;
   end;
 
-  if length(palettename) > 0 then begin
-    var gotpalette := paletteindexes.TryGetValue(palettename, paletteidx);
-    if not gotpalette then
-      exit;
-    paletteidx := paletteindexes[palettename];
-    lnzpalettecache.AddOrSetValue(xballz, paletteidx);
+  // load additional texture info (quadrants)
+  gotsection := bool(thiscall(lnzdict, ptr($00431f30), [cardinal(texturecategorytitle)]));
+  if not gotsection then
+    exit;
+
+  // get next line
+  var ballno: integer;
+  var isquadrants: integer := 0;
+  var gotline := boolean(thiscall(cache, ptr($432d60), [cardinal(@ballno), cardinal(@isquadrants), cardinal(false)]));
+  while(gotline) do begin
+    if isquadrants <> 0 then begin
+      var d: TDictionary<integer,bool>;
+      texturequadrantscache.TryGetValue(xballz, d);
+      if d = nil then
+        d := TDictionary<integer,bool>.Create;
+      d.TryAdd(ballno, bool(isquadrants));
+      texturequadrantscache.AddOrSetValue(xballz, d);
+    end;
+    isquadrants := 0;
+    gotline := boolean(thiscall(cache, ptr($432d60), [cardinal(@ballno), cardinal(@isquadrants), cardinal(false)]));
   end;
 end;
 
@@ -1873,7 +2308,7 @@ procedure mystreamoutlnz(return, instance, ostream: pointer); stdcall;
   var headerp: pansichar;
   var cachehaslnz: boolean;
   var palettename: ansistring;
-  var callpos: pointer;
+  var callpostext, callposint: pointer;
 begin
   cachehaslnz := false;
   var actuallnzptr := petza.lastadoptpetlnzinfo;
@@ -1882,13 +2317,19 @@ begin
     exit;
   end;
 
+  callpostext := ppointer($58b2ec)^;
+  callposint := ppointer($58b268)^;
+
   for var item in lnzpalettecache do begin
     var xballz := item.key;
     var lnzptr := ppointer(classprop(xballz, $184))^;
     if lnzptr = actuallnzptr then begin
+      if item.value.value = true then
+        // is default palette - ignore
+        break;
       cachehaslnz := true;
       for var p in paletteindexes do begin
-        if p.Value = item.Value then begin
+        if p.Value = item.Value.Key then begin
           palettename := p.Key;
           break;
         end;
@@ -1898,22 +2339,23 @@ begin
   end;
 
   if cachehaslnz then begin
-    callpos := ppointer($58b2ec)^;
     header := '[Palette]'#10'';
     headerp := pansichar(header);
-    thiscall(ostream, callpos, [cardinal(headerp)]);
+    thiscall(ostream, callpostext, [cardinal(headerp)]);
     header := palettename + #10;
     headerp := pansichar(header);
-    thiscall(ostream, callpos, [cardinal(headerp)]);
+    thiscall(ostream, callpostext, [cardinal(headerp)]);
   end;
 
   streamoutlnzpatch.callorigproc(instance, [cardinal(ostream)]);
+
   petza.lastadoptpetlnzinfo := nil;
+  cachehaslnz := false;
 end;
 
 procedure mysnapshot(ballstate, rect1, rect2: pointer; bgcolor: integer; sprite1, sprite2: pointer); stdcall;
 var xballz: pointer;
-palette: byte;
+palette: TPair<byte, boolean>;
 originalpalette, newpalette: TGamePalette;
 begin
 asm
@@ -1927,7 +2369,7 @@ end;
   // crummy code - would be better to swap a ptr here rather than copy vals
   // but original code looks directly at static address
   originalpalette := pgamepalette($631398)^;
-  palettes.TryGetValue(palette, newpalette);
+  palettes.TryGetValue(palette.Key, newpalette);
   pgamepalette($631398)^ := newpalette;
   thiscall(xballz, ptr($00452440), [cardinal(ballstate), cardinal(rect1), cardinal(rect2), cardinal(bgcolor), cardinal(sprite1), cardinal(sprite2)]);
   pgamepalette($631398)^ := originalpalette;
@@ -2056,6 +2498,7 @@ var xballz: pointer;
 var thisdrawport: TPetzDrawport;
 var localbounds: TPetzRect;
 var inrect: TPetzRect;
+var pair: TPair<byte, boolean>;
 var palette: byte;
 var dd: TDrawData;
 begin
@@ -2066,7 +2509,10 @@ end;
   localbounds := TPetzRect.Create(inrect.TopLeft, inrect.BottomRight);
   localbounds.NormalizeRect;
 
-  lnzpalettecache.TryGetValue(xballz, palette);
+  if lnzpalettecache.TryGetValue(xballz, pair) then
+    palette := pair.key
+  else
+    palette := 0;
 
   if (localbounds.right <= 0) or (localbounds.bottom <= 0) then
     exit;
@@ -2357,12 +2803,23 @@ begin
         VirtualProtect(p, 1, PAGE_EXECUTE_READWRITE, oldprotect);
         p^ := $EB; // replace with uncontrolled jump to allow any number of petz out!
 
-        //patchthiscall(ptr($4AD208), @getthumbnail);
-
         if win2kornewer then begin
-          p := ptr($481326);
-          VirtualProtect(p, 11, PAGE_EXECUTE_READWRITE, oldprotect);
-          fillchar(p^, 11, $90); // replace with uncontrolled jump to skip a block of code in expandable menu wndproc
+          // make menu get input correctly
+          retargetcall(ptr($47c610), @mytrackmenu);
+
+          // patch a weird bug with initialisation of
+          // menuiteminfoa
+          var funpos := @asmmenuiteminfo;
+          var newpos := longword(funpos) - $47ca12 - 5;
+          var data: array[0..4] of byte;
+          data[0] := $E9;
+          data[4] := (newpos shr 24) and $FF;
+          data[3] := (newpos shr 16) and $FF;
+          data[2] := (newpos shr 8) and $FF;
+          data[1] := (newpos shr 0) and $FF;
+          patchcodebuf(ptr($47ca12), sizeof(data), 7, data);
+
+          retargetcall(ptr($480818), @myp2measureitem);
         end;
 
 {    //always allow sounds
@@ -2430,6 +2887,19 @@ begin
     end;
   end;
 
+  // Patch circle drawing for Babyz-style transparency
+  case cpetzver of
+    pvpetz4: begin
+      var data: array[0..2] of byte;
+
+      retargetcall(ptr($45112a), @mysetballtextureinfo);
+      texturequadrantscache := TDictionary<pointer, TDictionary<integer, bool>>.Create;
+
+      // Patch 0,0,0 paintballs getting messed up
+      paintballspatch := patchthiscall(ptr($470030), @myparsepaintballs);
+    end;
+  end;
+
   installdispatchhook;
 
   patchcamera;
@@ -2473,7 +2943,7 @@ begin
     drawstackedpatch := patchthiscall(ptr($00488b60), @mydrawstacked);
     retargetcall(ptr($004365f2), @mycopy8bit);
     // Patch lnz loading and unloading for extra palettes
-    lnzpalettecache := TDictionary<pointer, byte>.Create();
+    lnzpalettecache := TDictionary<pointer, TPair<byte, boolean>>.Create();
     loadlnzpatch := patchthiscall(ptr($0046c390), @myloadlnz);
     desxballzpatch := patchthiscall(ptr($0044b6d0), @mydesxballz);
     // Load palettes

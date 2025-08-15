@@ -97,7 +97,7 @@ begin
 
   reg := TRegistry.Create;
   try
-    reg.rootkey := HKEY_LOCAL_MACHINE;
+    reg.rootkey := HKEY_CURRENT_USER;
     if reg.OpenKey(petzakeyname, false) then begin
       if reg.ValueExists('InstallPath') then
         path := IncludeTrailingBackslash(reg.ReadString('InstallPath')) + 'Profile Icons';

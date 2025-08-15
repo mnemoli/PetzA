@@ -11,14 +11,12 @@ object frmPickIcon: TfrmPickIcon
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
-  OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   DesignSize = (
     488
     287)
-  PixelsPerInch = 96
   TextHeight = 13
   object icongrid: TItemGrid32
     Left = 8
