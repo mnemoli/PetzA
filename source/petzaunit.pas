@@ -1249,20 +1249,6 @@ begin
   end;
 end;
 
-procedure asmnormalcircle3(); stdcall;
-begin
-  asm
-    cmp dl, 253
-    je @@FAIL
-    mov [esi + ecx], dl
-    @@FAIL:
-    inc ecx
-    dec edi
-    mov edx, $45d235
-    jmp edx
-  end;
-end;
-
 procedure asmdrawline(); stdcall;
 begin
   asm
@@ -1488,147 +1474,6 @@ begin
     // call orig
     thiscall(xballz, ptr($4501d0), [cardinal(crb), cardinal(ballstate), cardinal(rots), ballno]);
 end;
-
-//function myinittexfornorotate(crb: ppetzcirclerenderblock; ballwidth: integer; rowbytesdiff: plong): pbyte; stdcall;
-//var drawport: tpetzdrawport;
-//begin
-//  asm
-//    mov drawport, ecx;
-//  end;
-//  if (crb.texturescroll <> nil) or (crb.textureoffset <> 0) then begin
-//    result := pbyte(thiscall(drawport, ptr($45bdd0), [cardinal(crb), ballwidth, cardinal(rowbytesdiff)]));
-//    exit;
-//  end;
-//
-//  var xtex := crb.xtexture;
-//  var xtexbits := pbyte(thiscall(xtex, ptr($48dc20), []));
-//  var rowbytes := integer(thiscall(xtex, ptr($515c20), []));
-//  var drawportrowbytes := integer(thiscall(drawport, ptr($460760), []));
-//  rowbytesdiff^ := rowbytes - drawportrowbytes;
-//  // bmp is upside down in memory so you have to put a HIGHER col
-//  // number to get the quadrant at the TOP of the bmp
-//  result := xtexbits + (rowbytes * 74) + 10;
-//
-//end;
-
-//function mydrawclipcircle(return: pointer; instance: tpetzdrawport; circlerenderblock: ppetzcirclerenderblock): boolean; stdcall;
-//begin
-//  if circlerenderblock.xtexture = nil then begin
-//    // untextured - call original
-//    clipcirclepatch.callorigproc(instance, [cardinal(circlerenderblock)]);
-//    exit;
-//  end;
-//  if circlerenderblock.istransparent then begin
-//    // tex colours remapped, call orig
-//    clipcirclepatch.callorigproc(instance, [cardinal(circlerenderblock)]);
-//    exit;
-//  end;
-//
-//  var circlewidthraw := circlerenderblock.rect.width;
-//  var circlewidth1 := circlewidthraw - 1;
-//
-//  var initoffset := long(thiscall(instance, ptr($45d0b0), [cardinal(circlerenderblock), circlewidth1]));
-//  var bits := instance.bits + initoffset;
-//  var halfwidth := trunc(((circlewidthraw - 2) * circlewidth1) / 2);
-//  var circlewidthmem := pbyte($631bf8) + halfwidth;
-//  var circleoffsettable := pshort(thiscall(instance, ptr($45dd80), [circlerenderblock.fuzz, circlewidth1]));
-//  var clipwithinrenderblock: ppetzcirclerenderblock := circlerenderblock.clipwithinrenderblock;
-//  var outline1 := circlerenderblock.outlinetype - 1;
-//  var rawclipwithinwidth := clipwithinrenderblock.rect.width;
-//  var clipwithinwidth1 := rawclipwithinwidth - 1;
-//  var clipwithinoffset := long(thiscall(instance, ptr($45d0b0), [cardinal(clipwithinrenderblock), clipwithinwidth1]));
-//  var bits2 := instance.bits + clipwithinoffset;
-//  var clipwithincirclemem := pbyte($631bf8) + trunc(((rawclipwithinwidth - 2) * clipwithinwidth1) / 2);
-//  var clipwithinoffsettable := pshort(thiscall(instance, ptr($45dd80), [clipwithinrenderblock.fuzz, clipwithinwidth1]));
-//  var clipwithinoutline1 := clipwithinrenderblock.outlinetype - 1;
-//  var clipwithinoutlineactual := 0;
-//  if -1 < clipwithinoutline1 then
-//    clipwithinoutlineactual := clipwithinoutline1;
-//  var clipwithinleftoutline := clipwithinoutlineactual + clipwithinrenderblock.rect.left;
-//  var clipwithinbottomoutline := clipwithinrenderblock.rect.bottom - clipwithinoutline1;
-//  var minwidthctr := 0;
-//  var someval := clipwithinoutlineactual + clipwithinrenderblock.rect.top - circlerenderblock.rect.top;
-//  if 0 < someval then
-//    minwidthctr := someval;
-//  var bottomoutline := circlerenderblock.rect.bottom - clipwithinbottomoutline;
-//  var bottom := circlewidth1;
-//  if 0 < bottomoutline then
-//    bottom := circlewidth1 - bottomoutline;
-//
-//  if (bottom <= minwidthctr) or (clipwithinrenderblock.rect.right - clipwithinoutlineactual <= circlerenderblock.rect.left) or
-//    (clipwithinbottomoutline <= circlerenderblock.rect.top) or (circlerenderblock.rect.right <= clipwithinoutlineactual + clipwithinrenderblock.rect.left) or
-//    (circlerenderblock.rect.bottom <= clipwithinoutlineactual + clipwithinrenderblock.rect.top)
-//  then begin
-//    result := false;
-//    exit;
-//  end;
-//
-//
-//  var clipwithinfuckery := clipwithinrenderblock.rect.bottom - circlerenderblock.rect.bottom - bottom + circlewidth1;
-//  if 0 < clipwithinfuckery then begin
-//    clipwithincirclemem := clipwithincirclemem + clipwithinfuckery;
-//    while clipwithinfuckery <> 0 do begin
-//      bits2 := bits2 + clipwithinoffsettable^;
-//      clipwithinoffsettable := clipwithinoffsettable + 1;
-//      clipwithinfuckery := clipwithinfuckery - 1;
-//    end;
-//  end;
-//
-//  var rowbytesdiff: long := 0;
-//  var textureinit := pbyte(thiscall(instance, ptr($45bdd0), [cardinal(circlerenderblock), circlewidth1, cardinal(@rowbytesdiff)]));
-//  var texdrawingptr := textureinit + circleoffsettable^;
-//  bits := bits + circleoffsettable^;
-//  var idk := 0;
-//  var thisrowwidth := 0;
-//  while minwidthctr < circlewidth1 do begin
-//    circleoffsettable := circleoffsettable + 1;
-//    if circlewidth1 <= bottom then begin
-//      bits2 := bits2 + clipwithinoffsettable^;
-//      var innerwidth := circlewidthmem^;
-//      idk := (bits2 - bits) + clipwithinoutlineactual;
-//      if idk < 1 then begin
-//        var jfc := idk + clipwithincirclemem^ + (clipwithinoutlineactual * -2);
-//        var newval := innerwidth;
-//        if jfc <= innerwidth then
-//          newval := jfc;
-//        thisrowwidth := newval;
-//        idk := 0;
-//      end else begin
-//        var innerwidth2 := innerwidth - idk;
-//        var jfc := clipwithincirclemem^ + (clipwithinoutlineactual * -2);
-//        var newval := innerwidth2;
-//        if jfc < innerwidth - idk then
-//          newval := jfc;
-//        thisrowwidth := newval;
-//      end;
-//
-//      if 0 < thisrowwidth then begin
-//        var newtexptr := texdrawingptr + idk;
-//        var bitsidk := bits + idk;
-//
-//        var pb := cardinal(bitsidk) - cardinal(newtexptr);
-//        while thisrowwidth <> 0 do begin
-//          //newtexptr[pb] := newtexptr^;
-//          newtexptr[pb] := 75;
-//          newtexptr := newtexptr + 1;
-//          thisrowwidth := thisrowwidth - 1;
-//        end;
-//      end;
-//
-//      clipwithincirclemem := clipwithincirclemem + 1;
-//      clipwithinoffsettable := clipwithinoffsettable + 1;
-//    end;
-//    bits := bits + circleoffsettable^;
-//    texdrawingptr := texdrawingptr + circleoffsettable^ + rowbytesdiff;
-//    circlewidthmem := circlewidthmem + 1;
-//    circlewidth1 := circlewidth1 - 1;
-//  end;
-//
-//  var vftable := pcardinal(ppointer(circlerenderblock.xtexture)^);
-//  thiscall(circlerenderblock.xtexture, pointer(vftable[2]), []);
-//  result := true;
-//end;
-{$POINTERMATH OFF}
 
 function mypopupwndproc(return: pointer; instance: tpetzwinmenu; hwnd: hwnd; msg, wparam: integer; lparam: long): long; stdcall;
 type tpetzbanner = record
@@ -2506,46 +2351,6 @@ begin
 
   petza.lastadoptpetlnzinfo := nil;
   cachehaslnz := false;
-
-  // no texture rotate - overrides game exe writing of this section
-//  var notexturerotates: TDictionary<integer, bool> := nil;
-//  var sep := ''#10'';
-//
-//  for var item in texturequadrantscache do begin
-//    var xballz := item.key;
-//    var lnzptr := ppointer(classprop(xballz, $184))^;
-//    if lnzptr = actuallnzptr then begin
-//      notexturerotates := texturequadrantscache[xballz];
-//      break;
-//    end;
-//  end;
-
-//  header := '[No Texture Rotate]'#10'';
-//  headerp := pansichar(header);
-//  var sepp := pansichar(sep);
-//  var space := ' ';
-//  var spacep := pansichar(space);
-//  var norotatearray := pbytebool(cardinal(classprop(instance, $8dc)) + 4);
-//  var headerwritten := false;
-//  for var i := 0 to 511 do begin
-//    if norotatearray^ = false then begin
-//      if headerwritten = false then begin
-//        thiscall(ostream, callpostext, [cardinal(headerp)]);
-//        headerwritten := true;
-//      end;
-//      thiscall(ostream, callposint, [i]);
-//      if notexturerotates <> nil then begin
-//        var ntrval: bool := false;
-//        notexturerotates.TryGetValue(i, ntrval);
-//        if ntrval then begin
-//          thiscall(ostream, callpostext, [cardinal(spacep)]);
-//          thiscall(ostream, callposint, [cardinal(ntrval)]);
-//        end;
-//      end;
-//      thiscall(ostream, callpostext, [cardinal(sepp)]);
-//    end;
-//    norotatearray := pbytebool(cardinal(norotatearray) + 20)
-//  end;
 end;
 
 procedure mysnapshot(ballstate, rect1, rect2: pointer; bgcolor: integer; sprite1, sprite2: pointer); stdcall;
@@ -3086,11 +2891,6 @@ begin
   case cpetzver of
     pvpetz4: begin
       var data: array[0..2] of byte;
-
-//      // Never write no tex rotate info to lnz - overridden in lnz stream out
-//      data[0] := $EB;
-//      data[1] := $46b7ee - $46b78d - 2;
-//      patchcodebuf(ptr($46b78d), 2, 6, data);
 
       retargetcall(ptr($45112a), @mysetballtextureinfo);
       texturequadrantscache := TDictionary<pointer, TDictionary<integer, bool>>.Create;
