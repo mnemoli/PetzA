@@ -1165,6 +1165,34 @@ begin
   end;
 end;
 
+procedure asmoutlinecircle(); stdcall;
+begin
+  asm
+    mov cl, [eax]
+    cmp cl, 253
+    je @@FAIL
+    mov byte [eax + esi], cl
+    @@FAIL:
+    mov ecx, $45da40
+    jmp ecx
+  end;
+end;
+
+procedure asmoutlinecircle2(); stdcall;
+begin
+  asm
+    cmp cl, 253
+    je @@FAIL
+    mov byte [esi], cl
+    @@FAIL:
+    inc eax
+    inc esi
+    dec edi
+    mov ecx, $45da0c
+    jmp ecx
+  end;
+end;
+
 procedure asmclipcircle(); stdcall;
 begin
   asm
@@ -1235,6 +1263,20 @@ begin
   end;
 end;
 
+procedure asmdrawline(); stdcall;
+begin
+  asm
+    mov dl, byte [ecx]
+    cmp dl, 253
+    je @@FAIL
+    mov byte [esi], dl
+    @@FAIL:
+    inc esi
+    mov edx, $45fd91
+    jmp edx
+  end;
+end;
+
 procedure TPetza.setenabletransparency(const Value: boolean);
 begin
   if fenabletransparency <> value then begin
@@ -1262,6 +1304,7 @@ begin
       patchcodebuf(ptr($45d209), sizeof(data), 5, data);
 
       // clip circle patch
+      // paintballs
       funpos := @asmclipcircle;
       newpos := longword(funpos) - $45e0f3 - 5;
 
@@ -1282,6 +1325,36 @@ begin
       data[2] := (newpos shr 8) and $FF;
       data[1] := (newpos shr 0) and $FF;
       patchcodebuf(ptr($45e0d2), sizeof(data), 5, data);
+
+      // outline circle
+      // for glasses/helmets
+      funpos := @asmoutlinecircle;
+      newpos := longword(funpos) - $45da3b - 5;
+      data[0] := $E9;
+      data[4] := (newpos shr 24) and $FF;
+      data[3] := (newpos shr 16) and $FF;
+      data[2] := (newpos shr 8) and $FF;
+      data[1] := (newpos shr 0) and $FF;
+      patchcodebuf(ptr($45da3b), sizeof(data), 5, data);
+
+      funpos := @asmoutlinecircle2;
+      newpos := longword(funpos) - $45da07 - 5;
+      data[0] := $E9;
+      data[4] := (newpos shr 24) and $FF;
+      data[3] := (newpos shr 16) and $FF;
+      data[2] := (newpos shr 8) and $FF;
+      data[1] := (newpos shr 0) and $FF;
+      patchcodebuf(ptr($45da07), sizeof(data), 5, data);
+
+      // lines
+      funpos := @asmdrawline;
+      newpos := longword(funpos) - $45fd8c - 5;
+      data[0] := $E9;
+      data[4] := (newpos shr 24) and $FF;
+      data[3] := (newpos shr 16) and $FF;
+      data[2] := (newpos shr 8) and $FF;
+      data[1] := (newpos shr 0) and $FF;
+      patchcodebuf(ptr($45fd8c), sizeof(data), 5, data);
 
     end else begin
       var data: array[0..4] of byte;
@@ -3024,7 +3097,6 @@ begin
 
       // Patch 0,0,0 paintballs getting messed up
       paintballspatch := patchthiscall(ptr($470030), @myparsepaintballs);
-//
     end;
   end;
 
