@@ -214,7 +214,7 @@ var petza: tpetza;
   draweyeballpatch, inittoypatch, drawphotopatch, drawspritespatch, initstagepatch,
   loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
   streamoutlnzpatch,
-  normalcirclepatch, clipcirclepatch, paintballspatch,
+  normalcirclepatch, clipcirclepatch, paintballspatch, initareaeditorpatch,
   popupwndprocpatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, TPair<byte, boolean>>;
 var texturequadrantscache: TDictionary<pointer, TDictionary<integer, bool>>;
@@ -2686,6 +2686,52 @@ begin
 
 end;
 
+procedure AreaGetMaxWindowSize(return, area: pointer; maxx, maxy: pinteger); stdcall;
+begin
+  var fullscreenrect := petzshlglobals.fullscreenrect;
+  var cxframe := GetSystemMetrics(32);
+  var cyframe := GetSystemMetrics(33);
+  var cymenu := GetSystemMetrics(15);
+  var cycaption := GetSystemMetrics(4);
+
+  var maxw := cxframe * 2 + 1024;
+  var maxh := cymenu + 768 + cyframe * 2 + cycaption;
+
+  var path := pansichar(classprop(area, $7c4));
+  if length(path) > 0 then begin
+    var filmstrip: array[0..74] of integer;
+    fillchar(filmstrip, 75*4, 0);
+    // init filmstrip
+    var xliblist := pcardinal(classprop(area, $688))^;
+    thiscall(@filmstrip, ptr($460f70), [xliblist]);
+    // load bmp
+    thiscall(@filmstrip, ptr($463750), [cardinal(path), 250, 1]);
+    // get bounds
+    var outrect: tpetzrect;
+    var outrect2: tpetzprect := @outrect;
+    outrect2 := tpetzprect(thiscall(@filmstrip, ptr($461460), [cardinal(@outrect), cardinal(0)]));
+    // destruct filmstrip
+    thiscall(@filmstrip, ptr($461030), []);
+
+    outrect2.Right := outrect2.Right + cxframe * 2;
+    outrect2.Bottom := outrect2.Bottom + cymenu + cyframe * 2 + cycaption;
+
+    if maxx^ > outrect2.width then
+      maxx^ := outrect2.width;
+    if maxy^ > outrect2.height then
+      maxy^ := outrect2.height;
+
+  end else begin
+    if maxx^ > maxw then
+      maxx^ := maxw;
+    if maxy^ > maxh then
+      maxy^ := maxh;
+  end;
+
+  maxx^ := min(fullscreenrect.width, maxx^);
+  maxy^ := min(fullscreenrect.height, maxy^);
+end;
+
 constructor tpetza.create;
 type ppointer = ^pointer;
 var oldprotect: cardinal;
@@ -2930,6 +2976,10 @@ begin
 
   // Closet speed default
   fclosetspeed := 2;
+
+
+  // set up larger playscenes
+  patchthiscall(ptr($4a8ed0), @areagetmaxwindowsize);
 
   loadsettings; //pretty late in the peace so all objects are created
 
@@ -3491,6 +3541,56 @@ begin
   end;
 end;
 
+{$POINTERMATH ON}
+procedure myhorizoncomputeandset(ret, this: pointer); stdcall;
+  var warray: array[0..1919] of integer;
+begin
+  var numpts := pinteger(classprop(this, $3c70))^ - 1;
+  var pts := pinteger(ppointer(classprop(this, $3c6c))^);
+  var ctr := 0;
+
+  fillchar(warray, 1920*4, 0);
+
+  while (numpts > 0) do begin
+    var x1 := pts[ctr];
+    var y1 := pts[ctr+1];
+    var x2 := pts[ctr+2];
+    var y2 := pts[ctr+3];
+
+    if(x1 < x2) then begin
+      var ydist := y2 - y1;
+      var xdist := x2 - x1;
+      var val := x1 * ydist;
+      var t := val;
+      for var i := 0 to xdist - 1 do begin
+        warray[x1 + i] := floor(y1 + (t - val) / xdist);
+        t := t + ydist;
+      end;
+    end;
+
+    ctr := ctr + 2;
+    numpts := numpts - 1;
+  end;
+
+  for var i := 0 to 239 do begin
+    warray[i] := warray[i*8];
+  end;
+
+  var surfacemapbit := ppointer(classprop(this, $3cc4))^;
+  var surfacemap := ppointer(classprop(surfacemapbit, 2248))^;
+  var t := [0];
+  thiscall(surfacemap, ptr($4e5b50), [0, 0, 0, 0, cardinal(@warray), 0]);
+
+end;
+{$POINTERMATH OFF}
+
+procedure myinitareaeditor(ret, this: pointer; a: pansichar); stdcall;
+begin
+  initareaeditorpatch.callorigproc(this, [cardinal(a)]);
+  var surfacemap := ppointer(classprop(this, 2248))^;
+  thiscall(surfacemap, ptr($4e5b50), [135, 240, 8, 0, 0, 0]);
+  var sq := pinteger(classprop(surfacemap, $c))^;
+end;
 
 procedure petzwindowcreate(return, instance: pointer); stdcall;
 var wnd: hwnd;
@@ -3498,6 +3598,25 @@ var wnd: hwnd;
   areamenu: HMENU;
 {$IFDEF ONLINE}onlinemenu: HMENU; {$ENDIF}
 begin
+
+  var editor := LoadLibraryA('Editor.env');
+  if (editor <> 0) then begin
+    var pos := editor + $3990;
+    patchthiscall(ptr(pos), @myhorizoncomputeandset);
+    initareaeditorpatch := patchthiscall(ptr(editor + $BDA0), @myinitareaeditor);
+    var b: array[0..1] of byte;
+    b[0] := $80;
+    b[1] := $07;
+    patchcodebuf(ptr(editor + $f320), 2, 2, b);
+    patchcodebuf(ptr(editor + $3ACD), 2, 2, b);
+    patchcodebuf(ptr(editor + $372e), 2, 2, b);
+    patchcodebuf(ptr(editor + $14F42), 2, 2, b);
+    patchcodebuf(ptr(editor + $16BA1), 2, 2, b);
+    b[0] := $38;
+    b[1] := $04;
+    patchcodebuf(ptr(editor + $f330), 2, 2, b);
+
+  end;
 
   if instance <> nil then
     hpetzwindowcreate.callorigproc(instance, []);
