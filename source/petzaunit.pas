@@ -2697,39 +2697,13 @@ begin
   var maxw := cxframe * 2 + 1024;
   var maxh := cymenu + 768 + cyframe * 2 + cycaption;
 
-  var path := pansichar(classprop(area, $7c4));
-  if length(path) > 0 then begin
-    var filmstrip: array[0..74] of integer;
-    fillchar(filmstrip, 75*4, 0);
-    // init filmstrip
-    var xliblist := pcardinal(classprop(area, $688))^;
-    thiscall(@filmstrip, ptr($460f70), [xliblist]);
-    // load bmp
-    thiscall(@filmstrip, ptr($463750), [cardinal(path), 250, 1]);
-    // get bounds
-    var outrect: tpetzrect;
-    var outrect2: tpetzprect := @outrect;
-    outrect2 := tpetzprect(thiscall(@filmstrip, ptr($461460), [cardinal(@outrect), cardinal(0)]));
-    // destruct filmstrip
-    thiscall(@filmstrip, ptr($461030), []);
+  var surfacemap := ppointer(classprop(area, $7c4 + $104))^;
+  var surfacemaph := pinteger(classprop(surfacemap, $c))^;
+  var surfacemapw := pinteger(classprop(surfacemap, $10))^;
+  var surfacemapscale := pinteger(classprop(surfacemap, $14))^;
 
-    outrect2.Right := outrect2.Right + cxframe * 2;
-    outrect2.Bottom := outrect2.Bottom + cymenu + cyframe * 2 + cycaption;
-
-    if maxx^ > outrect2.width then
-      maxx^ := outrect2.width;
-    if maxy^ > outrect2.height then
-      maxy^ := outrect2.height;
-
-  end else begin
-    if maxx^ > maxw then
-      maxx^ := maxw;
-    if maxy^ > maxh then
-      maxy^ := maxh;
-  end;
-
-  maxx^ := min(fullscreenrect.width, maxx^);
-  maxy^ := min(fullscreenrect.height, maxy^);
+  maxx^ := min(fullscreenrect.width, surfacemapw * surfacemapscale);
+  maxy^ := min(fullscreenrect.height, surfacemaph * surfacemapscale);
 end;
 
 constructor tpetza.create;
@@ -3579,7 +3553,7 @@ begin
   var surfacemapbit := ppointer(classprop(this, $3cc4))^;
   var surfacemap := ppointer(classprop(surfacemapbit, 2248))^;
   var t := [0];
-  thiscall(surfacemap, ptr($4e5b50), [0, 0, 0, 0, cardinal(@warray), 0]);
+  thiscall(surfacemap, ptr($4e5b50), [135, 240, 8, 0, cardinal(@warray), 0]);
 
 end;
 {$POINTERMATH OFF}
@@ -3587,7 +3561,7 @@ end;
 procedure myinitareaeditor(ret, this: pointer; a: pansichar); stdcall;
 begin
   initareaeditorpatch.callorigproc(this, [cardinal(a)]);
-  var surfacemap := ppointer(classprop(this, 2248))^;
+  var surfacemap := ppointer(classprop(this, $7c4 + $104))^;
   thiscall(surfacemap, ptr($4e5b50), [135, 240, 8, 0, 0, 0]);
   var sq := pinteger(classprop(surfacemap, $c))^;
 end;
