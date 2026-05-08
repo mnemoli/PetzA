@@ -133,6 +133,7 @@ type
     fclosetspeed: integer;
     lastadoptpetlnzinfo: pointer;
     fenabletransparency: boolean;
+    fdoorpetz: boolean;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -160,6 +161,8 @@ type
     procedure settweakeyelidcolours(const Value: boolean);
     procedure setclosetspeed(const Value: integer);
     procedure setenabletransparency(const Value: boolean);
+    procedure patchACphotos();
+    procedure setdoorpetz(const Value: boolean);
 
   public
     brains: TObjectList;
@@ -204,6 +207,7 @@ type
     property defaultpalette: string read fdefaultpalette write fdefaultpalette;
     property closetspeed: integer read fclosetspeed write setclosetspeed;
     property enabletransparency: boolean read fenabletransparency write setenabletransparency;
+    property doorpetz: boolean read fdoorpetz write setdoorpetz;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -408,6 +412,27 @@ begin
     FillChar(ptr(cardinal(address) + cardinal(datasize))^, totalsize - datasize, byte(nop));
 end;
 
+procedure TPetza.setdoorpetz(const Value: boolean);
+  var data: array[0..4] of byte;
+begin
+  fdoorpetz := Value;
+  if cpetzver = pvpetz4 then begin
+    if value = false then begin
+      var d := nop;
+      patchcodebuf(ptr($4ed2ad), sizeof(nop), 5, d);
+    end
+    else begin
+      data[0] := $e8;
+      data[1] := $3e;
+      data[2] := $f8;
+      data[3] := $ff;
+      data[4] := $ff;
+      patchcodebuf(ptr($4ed2ad), 5, 5, data);
+    end;
+
+  end;
+end;
+
 procedure tpetza.setnodiaperchanges(value: Boolean);
 begin
   if fnodiaperchanges <> value then begin
@@ -561,6 +586,8 @@ begin
         closetspeed := reg.ReadInteger('ClosetSpeed');
       if reg.ValueExists('EnableTransparency') then
         enabletransparency := reg.ReadBool('EnableTransparency');
+      if reg.ValueExists('DoorPetz') then
+        doorpetz := reg.ReadBool('DoorPetz');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -608,6 +635,7 @@ begin
       reg.WriteString('DefaultPalette', defaultpalette);
       reg.WriteInteger('ClosetSpeed', closetspeed);
       reg.WriteBool('EnableTransparency', enabletransparency);
+      reg.WriteBool('DoorPetz', doorpetz);
     end;
   finally
     reg.free;
@@ -2657,6 +2685,17 @@ begin
     retargetcall(ptr($4d9970), @customadoptpet);
 end;
 
+procedure tpetza.patchACphotos();
+var data: array[0..5] of byte;
+begin
+   data[0] := $E9;
+   data[1] := $44;
+   data[2] := $01;
+   data[3] := $00;
+   data[4] := $00;
+  patchcodebuf(ptr($419C6F), 5, 6, data);
+end;
+
 procedure tpetza.patchreacttocamera(value: bool);
 var data: array[0..6] of byte;
 var data2: array[0..2] of byte;
@@ -2943,6 +2982,7 @@ begin
   fusenewphotonameformat := true;
   neglectdisabled := true;
   ownername := petzshlglobals.adoptername;
+  fdoorpetz := true;
 
   // breeding settings
   fbreedingtimer := 0;
@@ -2951,9 +2991,11 @@ begin
   // Closet speed default
   fclosetspeed := 2;
 
-
   // set up larger playscenes
   patchthiscall(ptr($4a8ed0), @areagetmaxwindowsize);
+
+  // patch away not being able to take photos in AC
+  patchACphotos();
 
   loadsettings; //pretty late in the peace so all objects are created
 

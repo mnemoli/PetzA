@@ -34,6 +34,7 @@ type
     lblClosetSpeed: TLabel;
     chkClosetSpeed: TComboBox;
     chkTransparency: TCheckBox;
+    chkDoorPetz: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -117,6 +118,7 @@ begin
   petza.defaultpalette := cmbDefaultPalette.items[cmbdefaultpalette.itemindex];
   petza.closetspeed := chkClosetSpeed.ItemIndex;
   petza.enabletransparency := chkTransparency.Checked;
+  petza.doorpetz := chkDoorPetz.Checked;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -147,6 +149,7 @@ begin
   chkTweakEyelidColours.checked := petza.tweakeyelidcolours;
   chkTweakEyelidColours.onClick := chkTweakEyelidColoursClick;
   chkTransparency.checked := petza.enabletransparency;
+  chkDoorPetz.checked := petza.doorpetz;
 
   chkshowheart.enabled := cpetzver in verBreeding;
   chkNameTags.Enabled := cpetzver in verNametags;
@@ -163,6 +166,7 @@ begin
   chkTweakEyelidColours.Enabled := cpetzver = pvpetz4;
   chkClosetSpeed.Enabled := cpetzver = pvpetz4;
   chkTransparency.Enabled := cpetzver = pvpetz4;
+  chkDoorPetz.Enabled := cpetzver = pvpetz4;
 
   if petza.enablepalettes and (cpetzver = pvpetz4) then begin
     cmbDefaultPalette.AddItem('', nil);
