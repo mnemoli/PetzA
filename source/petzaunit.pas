@@ -219,7 +219,7 @@ var petza: tpetza;
   loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
   streamoutlnzpatch,
   normalcirclepatch, clipcirclepatch, paintballspatch, initareaeditorpatch,
-  popupwndprocpatch: TPatchThiscall;
+  popupwndprocpatch, movemywindowpatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, TPair<byte, boolean>>;
 var texturequadrantscache: TDictionary<pointer, TDictionary<integer, bool>>;
 var  logging: Boolean;
@@ -2726,6 +2726,7 @@ begin
 end;
 
 procedure AreaGetMaxWindowSize(return, area: pointer; maxx, maxy: pinteger); stdcall;
+  var dllname, dllpath: string;
 begin
   var fullscreenrect := petzshlglobals.fullscreenrect;
   var cxframe := GetSystemMetrics(32);
@@ -2736,13 +2737,73 @@ begin
   var maxw := cxframe * 2 + 1024;
   var maxh := cymenu + 768 + cyframe * 2 + cycaption;
 
+  dllname := pansichar(classprop(area, $21c + $4 + $102));
+  if dllname.EndsWith('Trn') then begin
+    maxx^ := min(maxw, maxx^);
+    maxy^ := min(maxh, maxy^);
+    exit;
+  end;
+
   var surfacemap := ppointer(classprop(area, $7c4 + $104))^;
+  if surfacemap = nil then begin
+    maxx^ := min(maxx^, fullscreenrect.Width);
+    maxy^ := min(maxy^, fullscreenrect.height);
+    exit;
+  end;
+
   var surfacemaph := pinteger(classprop(surfacemap, $c))^;
   var surfacemapw := pinteger(classprop(surfacemap, $10))^;
   var surfacemapscale := pinteger(classprop(surfacemap, $14))^;
 
-  maxx^ := min(fullscreenrect.width, surfacemapw * surfacemapscale);
-  maxy^ := min(fullscreenrect.height, surfacemaph * surfacemapscale);
+  var tempx := min(fullscreenrect.width, surfacemapw * surfacemapscale);
+  var tempy := min(fullscreenrect.height, surfacemaph * surfacemapscale);
+
+  tempx := tempx + cxframe*2;
+  tempy := tempy + cymenu + cyframe * 2 + cycaption;
+
+  maxx^ := min(tempx, maxx^);
+  maxy^ := min(tempy, maxy^);
+
+end;
+
+procedure DownloadArea_MoveMyWindow(return, area: pointer; showwindow1: boolean); stdcall;
+  var maxx, maxy: long;
+  windowplacement: twindowplacement;
+  dllname: string;
+  srect: prect;
+  const rectstr: ansistring = 'DownloadArea''s AreaRect';
+begin
+
+  GetWindowPlacement(petzshlglobals.mainwindow, windowplacement);
+
+  var initted := pbool(classprop(petzshlglobals, $2c))^;
+
+  if not initted then begin
+    // load area loc
+    thiscall(area, ptr($4a9260), [cardinal(rectstr), cardinal($6387e0)]);
+    movemywindowpatch.callorigproc(area, [cardinal(showwindow1)]);
+    exit;
+  end;
+
+  // Basically, make 'restored' window as big as the new playscene,
+  // then restore and fullscreen again
+  // this means objects still get correctly clipped to playscene size
+  // loses saved window size though
+
+  // get max window size (either patched or original)
+  thiscall(area, ptr($4a8ed0), [cardinal(@maxx), cardinal(@maxy)]);
+
+  if (windowplacement.showCmd = 3) or (maxx < windowplacement.rcNormalPosition.Width) then begin
+    windowplacement.rcNormalPosition.Width := maxx;
+  end;
+  if (windowplacement.showCmd = 3) or (maxy < windowplacement.rcNormalPosition.Height) then begin
+    windowplacement.rcNormalPosition.height := maxy;
+  end;
+  SetWindowPlacement(petzshlglobals.mainwindow, windowplacement);
+  SendMessage(petzshlglobals.mainwindow, WM_SYSCOMMAND, SC_RESTORE, 0);
+  if windowplacement.showCmd = 3 then begin
+    SendMessage(petzshlglobals.mainwindow, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+  end;
 end;
 
 constructor tpetza.create;
@@ -2991,11 +3052,18 @@ begin
   // Closet speed default
   fclosetspeed := 2;
 
-  // set up larger playscenes
-  patchthiscall(ptr($4a8ed0), @areagetmaxwindowsize);
+  if cpetzver = pvpetz4 then begin
+    // set up larger playscenes
+    patchthiscall(ptr($4a8ed0), @areagetmaxwindowsize);
+    // disable fixspritesoffscreen - runs too early, will be run by window resize anyway
+    b := nop;
+    patchcodebuf(ptr($4a9742), sizeof(nop), 5, b);
+    // make area resize automatically
+    movemywindowpatch := patchthiscall(ptr($4aadb0), @downloadarea_movemywindow);
 
-  // patch away not being able to take photos in AC
-  patchACphotos();
+    // patch away not being able to take photos in AC
+    patchACphotos();
+  end;
 
   loadsettings; //pretty late in the peace so all objects are created
 
@@ -3560,6 +3628,7 @@ end;
 {$POINTERMATH ON}
 procedure myhorizoncomputeandset(ret, this: pointer); stdcall;
   var warray: array[0..1919] of integer;
+  var maxx, maxy: integer;
 begin
   var numpts := pinteger(classprop(this, $3c70))^ - 1;
   var pts := pinteger(ppointer(classprop(this, $3c6c))^);
@@ -3574,6 +3643,7 @@ begin
     var y2 := pts[ctr+3];
 
     if(x1 < x2) then begin
+      maxx := x2;
       var ydist := y2 - y1;
       var xdist := x2 - x1;
       var val := x1 * ydist;
@@ -3595,7 +3665,44 @@ begin
   var surfacemapbit := ppointer(classprop(this, $3cc4))^;
   var surfacemap := ppointer(classprop(surfacemapbit, 2248))^;
   var t := [0];
-  thiscall(surfacemap, ptr($4e5b50), [135, 240, 8, 0, cardinal(@warray), 0]);
+  if maxx = 1024 then
+    maxy := 768
+  else
+    maxy := 1080;
+  thiscall(surfacemap, ptr($4e5b50), [floor(maxy/8), floor(maxx/8), 8, 0, cardinal(@warray), 0]);
+  thiscall(this, ptr($4aadb0), [cardinal(-1)]);
+
+  // don't like this, but...
+  // patch loadbackground and re-call
+  // to fix problem with misaligned background drawing in smaller playscenes
+  if maxx = 1024 then begin
+
+     var editor := LoadLibraryA('Editor.env');
+     if (editor <> 0) then begin
+        var b: array[0..1] of byte;
+        b[0] := $00;
+        b[1] := $04;
+        patchcodebuf(ptr(editor + $f320), 2, 2, b);
+
+        b[0] := $00;
+        b[1] := $03;
+        patchcodebuf(ptr(editor + $f330), 2, 2, b);
+      end
+    end
+    else begin
+       var editor := LoadLibraryA('Editor.env');
+       if (editor <> 0) then begin
+        var b: array[0..1] of byte;
+          b[0] := $80;
+          b[1] := $07;
+          patchcodebuf(ptr(editor + $f320), 2, 2, b);
+
+          b[0] := $38;
+          b[1] := $04;
+          patchcodebuf(ptr(editor + $f330), 2, 2, b);
+      end;
+    end;
+//  thiscall(surfacemap, ptr($4e5b50), [135, 240, 8, 0, cardinal(@warray), 0]);
 
 end;
 {$POINTERMATH OFF}
@@ -3605,7 +3712,6 @@ begin
   initareaeditorpatch.callorigproc(this, [cardinal(a)]);
   var surfacemap := ppointer(classprop(this, $7c4 + $104))^;
   thiscall(surfacemap, ptr($4e5b50), [135, 240, 8, 0, 0, 0]);
-  var sq := pinteger(classprop(surfacemap, $c))^;
 end;
 
 procedure petzwindowcreate(return, instance: pointer); stdcall;
@@ -3615,23 +3721,26 @@ var wnd: hwnd;
 {$IFDEF ONLINE}onlinemenu: HMENU; {$ENDIF}
 begin
 
-  var editor := LoadLibraryA('Editor.env');
-  if (editor <> 0) then begin
-    var pos := editor + $3990;
-    patchthiscall(ptr(pos), @myhorizoncomputeandset);
-    initareaeditorpatch := patchthiscall(ptr(editor + $BDA0), @myinitareaeditor);
-    var b: array[0..1] of byte;
-    b[0] := $80;
-    b[1] := $07;
-    patchcodebuf(ptr(editor + $f320), 2, 2, b);
-    patchcodebuf(ptr(editor + $3ACD), 2, 2, b);
-    patchcodebuf(ptr(editor + $372e), 2, 2, b);
-    patchcodebuf(ptr(editor + $14F42), 2, 2, b);
-    patchcodebuf(ptr(editor + $16BA1), 2, 2, b);
-    b[0] := $38;
-    b[1] := $04;
-    patchcodebuf(ptr(editor + $f330), 2, 2, b);
+  if cpetzver = pvpetz4 then begin
+    // update editor scenes to make large srf
+    var editor := LoadLibraryA('Editor.env');
+    if (editor <> 0) then begin
+      var pos := editor + $3990;
+      patchthiscall(ptr(pos), @myhorizoncomputeandset);
+      initareaeditorpatch := patchthiscall(ptr(editor + $BDA0), @myinitareaeditor);
+      var b: array[0..1] of byte;
+      b[0] := $80;
+      b[1] := $07;
+      patchcodebuf(ptr(editor + $f320), 2, 2, b);
+      patchcodebuf(ptr(editor + $3ACD), 2, 2, b);
+      patchcodebuf(ptr(editor + $372e), 2, 2, b);
+      patchcodebuf(ptr(editor + $14F42), 2, 2, b);
+      patchcodebuf(ptr(editor + $16BA1), 2, 2, b);
+      b[0] := $38;
+      b[1] := $04;
+      patchcodebuf(ptr(editor + $f330), 2, 2, b);
 
+    end;
   end;
 
   if instance <> nil then
