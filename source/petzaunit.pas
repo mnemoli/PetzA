@@ -2734,11 +2734,10 @@ begin
   var cymenu := GetSystemMetrics(15);
   var cycaption := GetSystemMetrics(4);
 
-  var maxw := cxframe * 2 + 1024;
-  var maxh := cymenu + 768 + cyframe * 2 + cycaption;
-
   dllname := pansichar(classprop(area, $21c + $4 + $102));
   if dllname.EndsWith('Trn') then begin
+    var maxw := cxframe * 2 + 1024;
+    var maxh := cymenu + 768 + cyframe * 2 + cycaption;
     maxx^ := min(maxw, maxx^);
     maxy^ := min(maxh, maxy^);
     exit;
@@ -2758,11 +2757,14 @@ begin
   var tempx := min(fullscreenrect.width, surfacemapw * surfacemapscale);
   var tempy := min(fullscreenrect.height, surfacemaph * surfacemapscale);
 
+  tempx := min(tempx, maxx^);
+  tempy := min(tempy, maxy^);
+
   tempx := tempx + cxframe*2;
   tempy := tempy + cymenu + cyframe * 2 + cycaption;
 
-  maxx^ := min(tempx, maxx^);
-  maxy^ := min(tempy, maxy^);
+  maxx^ := tempx;
+  maxy^ := tempy;
 
 end;
 
@@ -2775,6 +2777,8 @@ procedure DownloadArea_MoveMyWindow(return, area: pointer; showwindow1: boolean)
 begin
 
   GetWindowPlacement(petzshlglobals.mainwindow, windowplacement);
+  maxx := windowplacement.rcNormalPosition.width;
+  maxy := windowplacement.rcNormalPosition.Height;
 
   var initted := pbool(classprop(petzshlglobals, $2c))^;
 
@@ -2793,16 +2797,22 @@ begin
   // get max window size (either patched or original)
   thiscall(area, ptr($4a8ed0), [cardinal(@maxx), cardinal(@maxy)]);
 
+  var needtoadjust := false;
+
   if (windowplacement.showCmd = 3) or (maxx < windowplacement.rcNormalPosition.Width) then begin
     windowplacement.rcNormalPosition.Width := maxx;
+    needtoadjust := true;
   end;
   if (windowplacement.showCmd = 3) or (maxy < windowplacement.rcNormalPosition.Height) then begin
     windowplacement.rcNormalPosition.height := maxy;
+    needtoadjust := true;
   end;
-  SetWindowPlacement(petzshlglobals.mainwindow, windowplacement);
-  SendMessage(petzshlglobals.mainwindow, WM_SYSCOMMAND, SC_RESTORE, 0);
-  if windowplacement.showCmd = 3 then begin
-    SendMessage(petzshlglobals.mainwindow, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+  if (needtoadjust) then begin
+    SetWindowPlacement(petzshlglobals.mainwindow, windowplacement);
+    SendMessage(petzshlglobals.mainwindow, WM_SYSCOMMAND, SC_RESTORE, 0);
+    if windowplacement.showCmd = 3 then begin
+      SendMessage(petzshlglobals.mainwindow, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+    end;
   end;
 end;
 
@@ -3702,7 +3712,6 @@ begin
           patchcodebuf(ptr(editor + $f330), 2, 2, b);
       end;
     end;
-//  thiscall(surfacemap, ptr($4e5b50), [135, 240, 8, 0, cardinal(@warray), 0]);
 
 end;
 {$POINTERMATH OFF}
