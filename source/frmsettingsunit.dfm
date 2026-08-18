@@ -4,7 +4,7 @@ object frmSettings: TfrmSettings
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'PetzA Settings'
-  ClientHeight = 259
+  ClientHeight = 260
   ClientWidth = 400
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -16,11 +16,11 @@ object frmSettings: TfrmSettings
   OnCreate = FormCreate
   DesignSize = (
     400
-    259)
+    260)
   TextHeight = 13
   object Bevel1: TBevel
     Left = 0
-    Top = 218
+    Top = 219
     Width = 400
     Height = 41
     Align = alBottom
@@ -39,19 +39,19 @@ object frmSettings: TfrmSettings
     Left = 224
     Top = 177
     Width = 69
-    Height = 13
+    Height = 18
     Caption = 'Default palette'
   end
   object lblClosetSpeed: TLabel
     Left = 8
     Top = 177
     Width = 61
-    Height = 13
+    Height = 18
     Caption = 'Closet speed'
   end
   object btnCancel: TButton
     Left = 250
-    Top = 226
+    Top = 227
     Width = 67
     Height = 25
     Anchors = [akRight, akBottom]
@@ -59,11 +59,11 @@ object frmSettings: TfrmSettings
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 6
-    ExplicitTop = 208
+    ExplicitTop = 226
   end
   object btnOk: TButton
     Left = 178
-    Top = 226
+    Top = 227
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
@@ -72,7 +72,7 @@ object frmSettings: TfrmSettings
     ModalResult = 1
     TabOrder = 5
     OnClick = btnOkClick
-    ExplicitTop = 208
+    ExplicitTop = 226
   end
   object chkBrainSliders: TCheckBox
     Left = 8
@@ -86,14 +86,14 @@ object frmSettings: TfrmSettings
   end
   object Button3: TButton
     Left = 2
-    Top = 226
+    Top = 227
     Width = 169
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Reset hidden warning messages'
     TabOrder = 8
     OnClick = Button3Click
-    ExplicitTop = 208
+    ExplicitTop = 226
   end
   object chkNameTags: TCheckBox
     Left = 8
@@ -105,18 +105,18 @@ object frmSettings: TfrmSettings
   end
   object btnHelp: TButton
     Left = 322
-    Top = 226
+    Top = 227
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Help'
     TabOrder = 7
     OnClick = btnHelpClick
-    ExplicitTop = 208
+    ExplicitTop = 226
   end
   object GroupBox1: TGroupBox
     Left = 8
-    Top = 80
+    Top = 90
     Width = 217
     Height = 81
     Caption = 'Mating'
@@ -258,5 +258,13 @@ object frmSettings: TfrmSettings
     Height = 17
     Caption = 'Enable transparency'
     TabOrder = 18
+  end
+  object chkDoorPetz: TCheckBox
+    Left = 8
+    Top = 72
+    Width = 201
+    Height = 17
+    Caption = 'Let Petz come to door'
+    TabOrder = 19
   end
 end

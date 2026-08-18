@@ -133,6 +133,7 @@ type
     fclosetspeed: integer;
     lastadoptpetlnzinfo: pointer;
     fenabletransparency: boolean;
+    fdoorpetz: boolean;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -160,6 +161,8 @@ type
     procedure settweakeyelidcolours(const Value: boolean);
     procedure setclosetspeed(const Value: integer);
     procedure setenabletransparency(const Value: boolean);
+    procedure patchACphotos();
+    procedure setdoorpetz(const Value: boolean);
 
   public
     brains: TObjectList;
@@ -204,6 +207,7 @@ type
     property defaultpalette: string read fdefaultpalette write fdefaultpalette;
     property closetspeed: integer read fclosetspeed write setclosetspeed;
     property enabletransparency: boolean read fenabletransparency write setenabletransparency;
+    property doorpetz: boolean read fdoorpetz write setdoorpetz;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -214,8 +218,8 @@ var petza: tpetza;
   draweyeballpatch, inittoypatch, drawphotopatch, drawspritespatch, initstagepatch,
   loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
   streamoutlnzpatch,
-  normalcirclepatch, clipcirclepatch, paintballspatch,
-  popupwndprocpatch: TPatchThiscall;
+  normalcirclepatch, clipcirclepatch, paintballspatch, initareaeditorpatch,
+  popupwndprocpatch, movemywindowpatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, TPair<byte, boolean>>;
 var texturequadrantscache: TDictionary<pointer, TDictionary<integer, bool>>;
 var  logging: Boolean;
@@ -408,6 +412,27 @@ begin
     FillChar(ptr(cardinal(address) + cardinal(datasize))^, totalsize - datasize, byte(nop));
 end;
 
+procedure TPetza.setdoorpetz(const Value: boolean);
+  var data: array[0..4] of byte;
+begin
+  fdoorpetz := Value;
+  if cpetzver = pvpetz4 then begin
+    if value = false then begin
+      var d := nop;
+      patchcodebuf(ptr($4ed2ad), sizeof(nop), 5, d);
+    end
+    else begin
+      data[0] := $e8;
+      data[1] := $3e;
+      data[2] := $f8;
+      data[3] := $ff;
+      data[4] := $ff;
+      patchcodebuf(ptr($4ed2ad), 5, 5, data);
+    end;
+
+  end;
+end;
+
 procedure tpetza.setnodiaperchanges(value: Boolean);
 begin
   if fnodiaperchanges <> value then begin
@@ -561,6 +586,8 @@ begin
         closetspeed := reg.ReadInteger('ClosetSpeed');
       if reg.ValueExists('EnableTransparency') then
         enabletransparency := reg.ReadBool('EnableTransparency');
+      if reg.ValueExists('DoorPetz') then
+        doorpetz := reg.ReadBool('DoorPetz');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -608,6 +635,7 @@ begin
       reg.WriteString('DefaultPalette', defaultpalette);
       reg.WriteInteger('ClosetSpeed', closetspeed);
       reg.WriteBool('EnableTransparency', enabletransparency);
+      reg.WriteBool('DoorPetz', doorpetz);
     end;
   finally
     reg.free;
@@ -2657,6 +2685,17 @@ begin
     retargetcall(ptr($4d9970), @customadoptpet);
 end;
 
+procedure tpetza.patchACphotos();
+var data: array[0..5] of byte;
+begin
+   data[0] := $E9;
+   data[1] := $44;
+   data[2] := $01;
+   data[3] := $00;
+   data[4] := $00;
+  patchcodebuf(ptr($419C6F), 5, 6, data);
+end;
+
 procedure tpetza.patchreacttocamera(value: bool);
 var data: array[0..6] of byte;
 var data2: array[0..2] of byte;
@@ -2684,6 +2723,97 @@ begin
       patchcodebuf(ptr($4faedc), 2, 2, data2[0]);
   end;
 
+end;
+
+procedure AreaGetMaxWindowSize(return, area: pointer; maxx, maxy: pinteger); stdcall;
+  var dllname, dllpath: string;
+begin
+  var fullscreenrect := petzshlglobals.fullscreenrect;
+  var cxframe := GetSystemMetrics(32);
+  var cyframe := GetSystemMetrics(33);
+  var cymenu := GetSystemMetrics(15);
+  var cycaption := GetSystemMetrics(4);
+
+  dllname := pansichar(classprop(area, $21c + $4 + $102));
+  if dllname.EndsWith('Trn') then begin
+    var maxw := cxframe * 2 + 1024;
+    var maxh := cymenu + 768 + cyframe * 2 + cycaption;
+    maxx^ := min(maxw, maxx^);
+    maxy^ := min(maxh, maxy^);
+    exit;
+  end;
+
+  var surfacemap := ppointer(classprop(area, $7c4 + $104))^;
+  if surfacemap = nil then begin
+    maxx^ := min(maxx^, fullscreenrect.Width);
+    maxy^ := min(maxy^, fullscreenrect.height);
+    exit;
+  end;
+
+  var surfacemaph := pinteger(classprop(surfacemap, $c))^;
+  var surfacemapw := pinteger(classprop(surfacemap, $10))^;
+  var surfacemapscale := pinteger(classprop(surfacemap, $14))^;
+
+  var tempx := min(fullscreenrect.width, surfacemapw * surfacemapscale);
+  var tempy := min(fullscreenrect.height, surfacemaph * surfacemapscale);
+
+  tempx := min(tempx, maxx^);
+  tempy := min(tempy, maxy^);
+
+  tempx := tempx + cxframe*2;
+  tempy := tempy + cymenu + cyframe * 2 + cycaption;
+
+  maxx^ := tempx;
+  maxy^ := tempy;
+
+end;
+
+procedure DownloadArea_MoveMyWindow(return, area: pointer; showwindow1: boolean); stdcall;
+  var maxx, maxy: long;
+  windowplacement: twindowplacement;
+  dllname: string;
+  srect: prect;
+  const rectstr: ansistring = 'DownloadArea''s AreaRect';
+begin
+
+  GetWindowPlacement(petzshlglobals.mainwindow, windowplacement);
+  maxx := windowplacement.rcNormalPosition.width;
+  maxy := windowplacement.rcNormalPosition.Height;
+
+  var initted := pbool(classprop(petzshlglobals, $2c))^;
+
+  if not initted then begin
+    // load area loc
+    thiscall(area, ptr($4a9260), [cardinal(rectstr), cardinal($6387e0)]);
+    movemywindowpatch.callorigproc(area, [cardinal(showwindow1)]);
+    exit;
+  end;
+
+  // Basically, make 'restored' window as big as the new playscene,
+  // then restore and fullscreen again
+  // this means objects still get correctly clipped to playscene size
+  // loses saved window size though
+
+  // get max window size (either patched or original)
+  thiscall(area, ptr($4a8ed0), [cardinal(@maxx), cardinal(@maxy)]);
+
+  var needtoadjust := false;
+
+  if (windowplacement.showCmd = 3) or (maxx < windowplacement.rcNormalPosition.Width) then begin
+    windowplacement.rcNormalPosition.Width := maxx;
+    needtoadjust := true;
+  end;
+  if (windowplacement.showCmd = 3) or (maxy < windowplacement.rcNormalPosition.Height) then begin
+    windowplacement.rcNormalPosition.height := maxy;
+    needtoadjust := true;
+  end;
+  if (needtoadjust) then begin
+    SetWindowPlacement(petzshlglobals.mainwindow, windowplacement);
+    SendMessage(petzshlglobals.mainwindow, WM_SYSCOMMAND, SC_RESTORE, 0);
+    if windowplacement.showCmd = 3 then begin
+      SendMessage(petzshlglobals.mainwindow, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+    end;
+  end;
 end;
 
 constructor tpetza.create;
@@ -2923,6 +3053,7 @@ begin
   fusenewphotonameformat := true;
   neglectdisabled := true;
   ownername := petzshlglobals.adoptername;
+  fdoorpetz := true;
 
   // breeding settings
   fbreedingtimer := 0;
@@ -2930,6 +3061,19 @@ begin
 
   // Closet speed default
   fclosetspeed := 2;
+
+  if cpetzver = pvpetz4 then begin
+    // set up larger playscenes
+    patchthiscall(ptr($4a8ed0), @areagetmaxwindowsize);
+    // disable fixspritesoffscreen - runs too early, will be run by window resize anyway
+    b := nop;
+    patchcodebuf(ptr($4a9742), sizeof(nop), 5, b);
+    // make area resize automatically
+    movemywindowpatch := patchthiscall(ptr($4aadb0), @downloadarea_movemywindow);
+
+    // patch away not being able to take photos in AC
+    patchACphotos();
+  end;
 
   loadsettings; //pretty late in the peace so all objects are created
 
@@ -3491,6 +3635,93 @@ begin
   end;
 end;
 
+{$POINTERMATH ON}
+procedure myhorizoncomputeandset(ret, this: pointer); stdcall;
+  var warray: array[0..1919] of integer;
+  var maxx, maxy: integer;
+begin
+  var numpts := pinteger(classprop(this, $3c70))^ - 1;
+  var pts := pinteger(ppointer(classprop(this, $3c6c))^);
+  var ctr := 0;
+
+  fillchar(warray, 1920*4, 0);
+
+  while (numpts > 0) do begin
+    var x1 := pts[ctr];
+    var y1 := pts[ctr+1];
+    var x2 := pts[ctr+2];
+    var y2 := pts[ctr+3];
+
+    if(x1 < x2) then begin
+      maxx := x2;
+      var ydist := y2 - y1;
+      var xdist := x2 - x1;
+      var val := x1 * ydist;
+      var t := val;
+      for var i := 0 to xdist - 1 do begin
+        warray[x1 + i] := floor(y1 + (t - val) / xdist);
+        t := t + ydist;
+      end;
+    end;
+
+    ctr := ctr + 2;
+    numpts := numpts - 1;
+  end;
+
+  for var i := 0 to 239 do begin
+    warray[i] := warray[i*8];
+  end;
+
+  var surfacemapbit := ppointer(classprop(this, $3cc4))^;
+  var surfacemap := ppointer(classprop(surfacemapbit, 2248))^;
+  var t := [0];
+  if maxx = 1024 then
+    maxy := 768
+  else
+    maxy := 1080;
+  thiscall(surfacemap, ptr($4e5b50), [floor(maxy/8), floor(maxx/8), 8, 0, cardinal(@warray), 0]);
+  thiscall(this, ptr($4aadb0), [cardinal(-1)]);
+
+  // don't like this, but...
+  // patch loadbackground and re-call
+  // to fix problem with misaligned background drawing in smaller playscenes
+  if maxx = 1024 then begin
+
+     var editor := LoadLibraryA('Editor.env');
+     if (editor <> 0) then begin
+        var b: array[0..1] of byte;
+        b[0] := $00;
+        b[1] := $04;
+        patchcodebuf(ptr(editor + $f320), 2, 2, b);
+
+        b[0] := $00;
+        b[1] := $03;
+        patchcodebuf(ptr(editor + $f330), 2, 2, b);
+      end
+    end
+    else begin
+       var editor := LoadLibraryA('Editor.env');
+       if (editor <> 0) then begin
+        var b: array[0..1] of byte;
+          b[0] := $80;
+          b[1] := $07;
+          patchcodebuf(ptr(editor + $f320), 2, 2, b);
+
+          b[0] := $38;
+          b[1] := $04;
+          patchcodebuf(ptr(editor + $f330), 2, 2, b);
+      end;
+    end;
+
+end;
+{$POINTERMATH OFF}
+
+procedure myinitareaeditor(ret, this: pointer; a: pansichar); stdcall;
+begin
+  initareaeditorpatch.callorigproc(this, [cardinal(a)]);
+  var surfacemap := ppointer(classprop(this, $7c4 + $104))^;
+  thiscall(surfacemap, ptr($4e5b50), [135, 240, 8, 0, 0, 0]);
+end;
 
 procedure petzwindowcreate(return, instance: pointer); stdcall;
 var wnd: hwnd;
@@ -3498,6 +3729,28 @@ var wnd: hwnd;
   areamenu: HMENU;
 {$IFDEF ONLINE}onlinemenu: HMENU; {$ENDIF}
 begin
+
+  if cpetzver = pvpetz4 then begin
+    // update editor scenes to make large srf
+    var editor := LoadLibraryA('Editor.env');
+    if (editor <> 0) then begin
+      var pos := editor + $3990;
+      patchthiscall(ptr(pos), @myhorizoncomputeandset);
+      initareaeditorpatch := patchthiscall(ptr(editor + $BDA0), @myinitareaeditor);
+      var b: array[0..1] of byte;
+      b[0] := $80;
+      b[1] := $07;
+      patchcodebuf(ptr(editor + $f320), 2, 2, b);
+      patchcodebuf(ptr(editor + $3ACD), 2, 2, b);
+      patchcodebuf(ptr(editor + $372e), 2, 2, b);
+      patchcodebuf(ptr(editor + $14F42), 2, 2, b);
+      patchcodebuf(ptr(editor + $16BA1), 2, 2, b);
+      b[0] := $38;
+      b[1] := $04;
+      patchcodebuf(ptr(editor + $f330), 2, 2, b);
+
+    end;
+  end;
 
   if instance <> nil then
     hpetzwindowcreate.callorigproc(instance, []);
