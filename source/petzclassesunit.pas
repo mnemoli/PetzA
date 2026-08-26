@@ -1642,7 +1642,7 @@ var height, width, rowbytes: integer;
 var rect: TPetzRect;
 var startpos, startposmask: integer;
 var rawrowbytes, maskrawrowbytes: integer;
-var palar: tgamepalette;
+var palar: tpair<pgamepalette, integer>;
 var outofbounds: boolean;
 begin
   rect := prect^;
@@ -1679,7 +1679,7 @@ begin
             else begin
              var didgetpalette := palettes.TryGetValue(maskcolor, palar);
               if didgetpalette then
-                color := palar[bitsptr^]
+                color := palar.Key[bitsptr^]
               else
                 color := pinteger(cardinal(rgbpalette) + bitsptr^ * 4)^;
             end;

@@ -220,7 +220,7 @@ var petza: tpetza;
   streamoutlnzpatch,
   normalcirclepatch, clipcirclepatch, paintballspatch, initareaeditorpatch,
   popupwndprocpatch, movemywindowpatch: TPatchThiscall;
-var lnzpalettecache: TDictionary<pointer, TPair<byte, boolean>>;
+var lnzpalettecache: TDictionary<pointer, TPair<ansistring, boolean>>;
 var texturequadrantscache: TDictionary<pointer, TDictionary<integer, bool>>;
 var  logging: Boolean;
 procedure dolog(const message: string);
@@ -2201,7 +2201,10 @@ end;
 
 procedure mydesxballz(return, instance: pointer); stdcall;
 begin
-  lnzpalettecache.Remove(instance);
+  if lnzpalettecache.ContainsKey(instance) then begin
+    removepaletteusage(lnzpalettecache[instance].Key);
+    lnzpalettecache.Remove(instance);
+  end;
   texturequadrantscache.Remove(instance);
   desxballzpatch.callorigproc(instance, []);
 end;
@@ -2238,10 +2241,11 @@ begin
       end;
 
       if length(palettename) > 0 then begin
-        var gotpalette := paletteindexes.TryGetValue(palettename, paletteidx);
-        if gotpalette then begin
-          paletteidx := paletteindexes[palettename];
-          lnzpalettecache.AddOrSetValue(xballz, TPair<byte, boolean>.Create(paletteidx, paletteisdefault));
+        paletteidx := getpaletteindexfromfilename(palettename);
+        if paletteidx >= 0 then begin
+          lnzpalettecache.AddOrSetValue(xballz, TPair<ansistring, boolean>.Create(palettename, paletteisdefault));
+        end else begin
+          showmessage('You have too many unique paletted petz out! This pet won''t be palleted.');
         end;
       end;
     end;
@@ -2356,12 +2360,7 @@ begin
         // is default palette - ignore
         break;
       cachehaslnz := true;
-      for var p in paletteindexes do begin
-        if p.Value = item.Value.Key then begin
-          palettename := p.Key;
-          break;
-        end;
-      end;
+      palettename := lnzpalettecache[xballz].Key;
       break;
     end;
   end;
@@ -2381,25 +2380,32 @@ begin
   cachehaslnz := false;
 end;
 
+function getpalettefromxballz(xballz: pointer): pgamepalette;
+begin
+    var idx := getpaletteindexfromfilename(lnzpalettecache[xballz].key);
+    result := palettes[idx].key;
+end;
+
 procedure mysnapshot(ballstate, rect1, rect2: pointer; bgcolor: integer; sprite1, sprite2: pointer); stdcall;
 var xballz: pointer;
-palette: TPair<byte, boolean>;
-originalpalette, newpalette: TGamePalette;
+originalpalette: tGamePalette;
 begin
 asm
   mov xballz, ecx;
 end;
-  var gotpalette := lnzpalettecache.TryGetValue(xballz, palette);
-  if not gotpalette then begin
+   var xballzhaspalette := lnzpalettecache.ContainsKey(xballz);
+  if not xballzhaspalette then begin
     thiscall(xballz, ptr($00452440), [cardinal(ballstate), cardinal(rect1), cardinal(rect2), cardinal(bgcolor), cardinal(sprite1), cardinal(sprite2)]);
     exit;
   end;
-  // crummy code - would be better to swap a ptr here rather than copy vals
-  // but original code looks directly at static address
+
+  // replace static original palette with pet palette
   originalpalette := pgamepalette($631398)^;
-  palettes.TryGetValue(palette.Key, newpalette);
-  pgamepalette($631398)^ := newpalette;
+  var newpalette := getpalettefromxballz(xballz);
+  pgamepalette($631398)^ := newpalette^;
   thiscall(xballz, ptr($00452440), [cardinal(ballstate), cardinal(rect1), cardinal(rect2), cardinal(bgcolor), cardinal(sprite1), cardinal(sprite2)]);
+
+  //restore palette
   pgamepalette($631398)^ := originalpalette;
 end;
 
@@ -2526,8 +2532,7 @@ var xballz: pointer;
 var thisdrawport: TPetzDrawport;
 var localbounds: TPetzRect;
 var inrect: TPetzRect;
-var pair: TPair<byte, boolean>;
-var palette: byte;
+var paletteidx: byte;
 var dd: TDrawData;
 begin
 asm
@@ -2537,10 +2542,10 @@ end;
   localbounds := TPetzRect.Create(inrect.TopLeft, inrect.BottomRight);
   localbounds.NormalizeRect;
 
-  if lnzpalettecache.TryGetValue(xballz, pair) then
-    palette := pair.key
+  if lnzpalettecache.ContainsKey(xballz) then
+      paletteidx := paletteindexes[lnzpalettecache[xballz].Key]
   else
-    palette := 0;
+    paletteidx := 0;
 
   if (localbounds.right <= 0) or (localbounds.bottom <= 0) then
     exit;
@@ -2556,18 +2561,18 @@ end;
   dd.miniport := thisdrawport;
   dd.originalport := port;
   dd.bounds := inrect;
-  dd.palette := palette;
+  dd.palette := paletteidx;
   petza.drawdata.Push(dd);
   // draw onto the small drawport
   thiscall(xballz, ptr($00450bd0), [cardinal(thisdrawport), cardinal(@inrect), cardinal(ballstate)]);
   // copy from small drawport to main drawport with transparency
   thisdrawport.CopyBitsTransparentMask(port, @inrect, @inrect, -1);
   // copy from small drawport to mask drawport
-  thisdrawport.CopyBitsTransparentMask(petza.maskdrawport, @inrect, @inrect, palette);
+  thisdrawport.CopyBitsTransparentMask(petza.maskdrawport, @inrect, @inrect, paletteidx);
   // destruct
   thisdrawport.Destroy;
 
-  petza.lastmaskvalue := palette;
+  petza.lastmaskvalue := paletteidx;
   petza.drawdata.Pop;
 end;
 
@@ -2619,7 +2624,7 @@ begin
   // otherwise use palette.bmp from basegame resources
   var xmemptr: pcardinal;
   var xmem: pointer;
-  var gotcustompetzpalette: boolean;
+  var gotcustompetzpalette: boolean := false;
 
   try
     var custompetzpalette := paletteswapunit.loadpetzpaletteifexists;
@@ -3087,20 +3092,18 @@ begin
     drawstackedpatch := patchthiscall(ptr($00488b60), @mydrawstacked);
     retargetcall(ptr($004365f2), @mycopy8bit);
     // Patch lnz loading and unloading for extra palettes
-    lnzpalettecache := TDictionary<pointer, TPair<byte, boolean>>.Create();
+    lnzpalettecache := TDictionary<pointer, TPair<ansistring, boolean>>.Create();
+    paletteindexes := TDictionary<ansistring, byte>.Create();
+    palettes := TDictionary<byte, TPair<PGamePalette, integer>>.Create();
     loadlnzpatch := patchthiscall(ptr($0046c390), @myloadlnz);
     desxballzpatch := patchthiscall(ptr($0044b6d0), @mydesxballz);
-    // Load palettes
-    loadpalettes;
-    if (defaultpalette.Length > 0) and not paletteswapunit.paletteindexes.ContainsKey(defaultpalette) then
-      defaultpalette := string.Empty;
 
     // Make photos hicolor
     retargetcall(ptr($0048a554), @mymakepicturefrombuffer);
     retargetcall(ptr($0048a4e7), @mymakepicturefrombufferbg);
     // Make headshots palettised
     retargetcall(ptr($004cefc5), @mysnapshot);
-    retargetcall(ptr($004CED8D), @mysnapshot);
+   retargetcall(ptr($004CED8D), @mysnapshot);
 
     // Write palette to lnz when AC pet adopted
     streamoutlnzpatch := patchthiscall(ptr($46b3a0), @mystreamoutlnz)

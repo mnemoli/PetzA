@@ -39,14 +39,14 @@ object frmSettings: TfrmSettings
     Left = 224
     Top = 177
     Width = 69
-    Height = 18
+    Height = 13
     Caption = 'Default palette'
   end
   object lblClosetSpeed: TLabel
     Left = 8
     Top = 177
     Width = 61
-    Height = 18
+    Height = 13
     Caption = 'Closet speed'
   end
   object btnCancel: TButton
@@ -59,7 +59,6 @@ object frmSettings: TfrmSettings
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 6
-    ExplicitTop = 226
   end
   object btnOk: TButton
     Left = 178
@@ -72,7 +71,6 @@ object frmSettings: TfrmSettings
     ModalResult = 1
     TabOrder = 5
     OnClick = btnOkClick
-    ExplicitTop = 226
   end
   object chkBrainSliders: TCheckBox
     Left = 8
@@ -93,7 +91,6 @@ object frmSettings: TfrmSettings
     Caption = 'Reset hidden warning messages'
     TabOrder = 8
     OnClick = Button3Click
-    ExplicitTop = 226
   end
   object chkNameTags: TCheckBox
     Left = 8
@@ -112,7 +109,6 @@ object frmSettings: TfrmSettings
     Caption = 'Help'
     TabOrder = 7
     OnClick = btnHelpClick
-    ExplicitTop = 226
   end
   object GroupBox1: TGroupBox
     Left = 8

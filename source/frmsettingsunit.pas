@@ -4,7 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, registry, mymessageunit, bndpetz, helpunit, UITypes;
+  StdCtrls, ExtCtrls, registry, mymessageunit, bndpetz, helpunit, UITypes,
+  system.IOUtils, generics.collections;
 
 type
   TfrmSettings = class(TForm)
@@ -170,8 +171,17 @@ begin
 
   if petza.enablepalettes and (cpetzver = pvpetz4) then begin
     cmbDefaultPalette.AddItem('', nil);
-    for var k in paletteswapunit.paletteindexes do begin
-      cmbDefaultPalette.AddItem(k.Key, nil);
+    var palettefiles := TDirectory.GetFiles(extractfilepath(ParamStr(0)) + 'resource\palettes', '*.bmp', TSearchOption.soAllDirectories);
+    for var k in palettefiles do begin
+      var palettename := tpath.GetFileNameWithoutExtension(extractfilename(k));
+      if palettename = 'petz' then
+        continue;
+      var path := extractfilename(extractfiledir(k));
+      if path <> 'palettes' then
+        path := path + '/' + palettename
+      else
+        path := palettename;
+      cmbDefaultPalette.AddItem(path, nil);
     end;
     cmbDefaultPalette.ItemIndex := cmbDefaultPalette.items.indexOf(petza.defaultpalette);
   end;
