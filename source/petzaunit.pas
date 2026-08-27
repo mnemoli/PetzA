@@ -220,7 +220,7 @@ var petza: tpetza;
   streamoutlnzpatch,
   normalcirclepatch, clipcirclepatch, paintballspatch, initareaeditorpatch,
   popupwndprocpatch, movemywindowpatch: TPatchThiscall;
-var lnzpalettecache: TDictionary<pointer, TPair<ansistring, boolean>>;
+var lnzpalettecache: TDictionary<pointer, TPair<string, boolean>>;
 var texturequadrantscache: TDictionary<pointer, TDictionary<integer, bool>>;
 var  logging: Boolean;
 procedure dolog(const message: string);
@@ -2233,6 +2233,8 @@ begin
         if petza.defaultpalette.Length > 0 then begin
           palettename := pansichar(ansistring(petza.defaultpalette));
           paletteisdefault := true;
+        end else begin
+          palettename := nil;
         end;
       end else begin
         // get next line
@@ -2240,10 +2242,17 @@ begin
         paletteisdefault := false;
       end;
 
-      if length(palettename) > 0 then begin
-        paletteidx := getpaletteindexfromfilename(palettename);
-        if paletteidx >= 0 then begin
-          lnzpalettecache.AddOrSetValue(xballz, TPair<ansistring, boolean>.Create(palettename, paletteisdefault));
+      if (palettename <> nil) and (length(palettename) > 0) then begin
+        try
+          paletteidx := getpaletteindexfromfilename(palettename);
+        except
+          showmessage('Palette ' + palettename + ' not found!');
+          paletteidx := 0;
+          exit;
+        end;
+        
+        if paletteidx >= 1 then begin
+          lnzpalettecache.AddOrSetValue(xballz, TPair<string, boolean>.Create(palettename, paletteisdefault));
         end else begin
           showmessage('You have too many unique paletted petz out! This pet won''t be palleted.');
         end;
@@ -3092,8 +3101,8 @@ begin
     drawstackedpatch := patchthiscall(ptr($00488b60), @mydrawstacked);
     retargetcall(ptr($004365f2), @mycopy8bit);
     // Patch lnz loading and unloading for extra palettes
-    lnzpalettecache := TDictionary<pointer, TPair<ansistring, boolean>>.Create();
-    paletteindexes := TDictionary<ansistring, byte>.Create();
+    lnzpalettecache := TDictionary<pointer, TPair<string, boolean>>.Create();
+    paletteindexes := TDictionary<string, byte>.Create();
     palettes := TDictionary<byte, TPair<PGamePalette, integer>>.Create();
     loadlnzpatch := patchthiscall(ptr($0046c390), @myloadlnz);
     desxballzpatch := patchthiscall(ptr($0044b6d0), @mydesxballz);

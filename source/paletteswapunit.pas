@@ -6,8 +6,8 @@ uses petzpaletteunit, generics.collections, windows, graphics, math, system.SysU
 // track palette index to actual palette and no. of pets using it
 var palettes: TDictionary<byte, TPair<PGamePalette, integer>>;
 // track palette name to palette index
-var paletteindexes: TDictionary<ansistring, byte>;
-function getpaletteindexfromfilename(filename: string): integer;
+var paletteindexes: TDictionary<string, byte>;
+function getpaletteindexfromfilename(filename: string): byte;
 function loadpetzpaletteifexists: pgamepalette;
 procedure removepaletteusage(filename: string);
 
@@ -40,7 +40,7 @@ begin
   result := getpalettefrombmpinternal(filepath);
 end;
 
-function getpaletteindexfromfilename(filename: string): integer;
+function getpaletteindexfromfilename(filename: string): byte;
 begin
   if paletteindexes.ContainsKey(filename) then begin
     result := paletteindexes[filename];
@@ -49,15 +49,15 @@ begin
     palettes[result] := temp;
     exit;
   end;
-  var freekey := -1;
+  var freekey := 0;
   for var i := 1 to 255 do begin
     if not palettes.ContainsKey(i) then begin
       freekey := i;
       break;
     end;
   end;
-  if freekey = -1 then begin
-    result := -1;
+  if freekey = 0 then begin
+    result := 0;
     exit;
   end;
 
