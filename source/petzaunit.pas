@@ -2562,6 +2562,72 @@ begin
     drawstackedpatch.callorigproc(sprite, [cardinal(drawport), cardinal(stackdraw)]);
 end;
 
+procedure mydrawnose(return, port: pointer; crb: ppetzcirclerenderblock); stdcall;
+begin
+  var localcrb: tpetzcirclerenderblock;
+  fillchar(localcrb, sizeof(tpetzcirclerenderblock), $0);
+  localcrb.outlinetype := -1;
+  localcrb.rect := crb.rect;
+
+  var colors: array[0..6] of integer;
+
+  if (crb.colorindex = 0) or (crb.colorindex > 199) then begin
+
+    localcrb.colorindex := 244;
+    localcrb.outlinecolorindex := 244;
+
+    colors[0] := 27;
+    colors[1] := 20;
+    colors[2] := 19;
+    colors[3] := 17;
+    colors[4] := 14;
+    colors[5] := 12;
+    colors[6] := 10;
+
+  end else begin
+    var base_color := floor(crb.colorindex / 10) * 10;
+    localcrb.colorindex := base_color + 5;
+    localcrb.outlinecolorindex := crb.colorindex;
+
+    colors[0] := base_color + 4;
+    colors[1] := base_color + 3;
+    colors[2] := base_color + 2;
+    colors[3] := base_color + 1;
+    colors[4] := 14;
+    colors[5] := 12;
+    colors[6] := 10;
+  end;
+
+    //draw base nose
+    thiscall(port, ptr($45e750), [cardinal(@localcrb)]);
+
+    var shift10 := trunc(localcrb.rect.width / -10);
+    localcrb.rect.SetLocation(localcrb.rect.left + shift10, localcrb.rect.top + shift10);
+    var shift5 := trunc(localcrb.rect.width / -5);
+    localcrb.rect.left := localcrb.rect.left - shift5;
+    localcrb.rect.right := localcrb.rect.right + shift5;
+    localcrb.rect.top := localcrb.rect.top - shift5;
+    localcrb.rect.bottom := localcrb.rect.bottom + shift5;
+
+    for var i := 0 to 6 do begin
+      shift10 := trunc(localcrb.rect.width / -12);
+      shift5 := trunc(localcrb.rect.width / -6);
+      localcrb.rect.SetLocation(localcrb.rect.left + shift10, localcrb.rect.top + shift10);
+
+      localcrb.rect.left := localcrb.rect.left - shift5;
+      localcrb.rect.right := localcrb.rect.right + shift5;
+      localcrb.rect.top := localcrb.rect.top - shift5;
+      localcrb.rect.bottom := localcrb.rect.bottom + shift5;
+
+      localcrb.colorindex := colors[i];
+      localcrb.outlinecolorindex := colors[i];
+      if localcrb.rect.Width > 0 then begin
+        thiscall(port, ptr($45e750), [cardinal(@localcrb)]);
+      end;
+    end;
+
+end;
+
 procedure mydisplayballzframe(port, bounds, ballstate: pointer); stdcall;
 var xballz: pointer;
 var thisdrawport: TPetzDrawport;
@@ -2794,8 +2860,8 @@ begin
   var surfacemapw := pinteger(classprop(surfacemap, $10))^;
   var surfacemapscale := pinteger(classprop(surfacemap, $14))^;
 
-  var tempx := min(fullscreenrect.width, surfacemapw * surfacemapscale);
-  var tempy := min(fullscreenrect.height, surfacemaph * surfacemapscale);
+  var tempx := surfacemapw * surfacemapscale;
+  var tempy := surfacemaph * surfacemapscale;
 
   tempx := min(tempx, maxx^);
   tempy := min(tempy, maxy^);
@@ -2803,8 +2869,8 @@ begin
   tempx := tempx + cxframe*2;
   tempy := tempy + cymenu + cyframe * 2 + cycaption;
 
-  maxx^ := tempx;
-  maxy^ := tempy;
+  maxx^ := min(fullscreenrect.width, tempx);
+  maxy^ := min(fullscreenrect.height, tempy);
 
 end;
 
@@ -3115,6 +3181,8 @@ begin
     // patch away not being able to take photos in AC
     patchACphotos();
   end;
+
+  patchthiscall(ptr($45e5b0), @mydrawnose);
 
   loadsettings; //pretty late in the peace so all objects are created
 
