@@ -117,7 +117,7 @@ type
     foldwndproc: pointer;
     fgamespeed: integer;
     appliedspeed: boolean;
-    fshowheart, fnavvisible, fshownavigation: boolean;
+    fshowheart, fnavvisible, fshownavigation, fsamesex: boolean;
     fnodiaperchanges, fbrainslidersontop, pendingrefresh, freacttocamera: boolean;
     lastadoptpet, lastadoptpetslot: integer;
     fbatchbreedcountdefault: integer;
@@ -163,6 +163,7 @@ type
     procedure setenabletransparency(const Value: boolean);
     procedure patchACphotos();
     procedure setdoorpetz(const Value: boolean);
+    procedure setsamesex(const Value: boolean);
 
   public
     brains: TObjectList;
@@ -208,6 +209,7 @@ type
     property closetspeed: integer read fclosetspeed write setclosetspeed;
     property enabletransparency: boolean read fenabletransparency write setenabletransparency;
     property doorpetz: boolean read fdoorpetz write setdoorpetz;
+    property samesex: boolean read fsamesex write setsamesex;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -433,6 +435,27 @@ begin
   end;
 end;
 
+procedure TPetza.setsamesex(const Value: boolean);
+  var data: array[0..5] of byte;
+begin
+  fsamesex := value;
+  if cpetzver = pvpetz4 then begin
+    if value = false then begin
+      data[0] := $0f;
+      data[1] := $84;
+      data[2] := $97;
+      data[3] := $01;
+      data[4] := $00;
+      data[5] := $00;
+      patchcodebuf(ptr($5241ba), 6, 6, data);
+    end
+    else begin
+      var d := nop;
+      patchcodebuf(ptr($5241ba), sizeof(nop), 6, d);
+    end;
+  end;
+end;
+
 procedure tpetza.setnodiaperchanges(value: Boolean);
 begin
   if fnodiaperchanges <> value then begin
@@ -588,6 +611,8 @@ begin
         enabletransparency := reg.ReadBool('EnableTransparency');
       if reg.ValueExists('DoorPetz') then
         doorpetz := reg.ReadBool('DoorPetz');
+      if reg.ValueExists('SameSex') then
+        samesex := reg.ReadBool('SameSex');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -636,6 +661,7 @@ begin
       reg.WriteInteger('ClosetSpeed', closetspeed);
       reg.WriteBool('EnableTransparency', enabletransparency);
       reg.WriteBool('DoorPetz', doorpetz);
+      reg.WriteBool('SameSex', samesex);
     end;
   finally
     reg.free;
@@ -3068,6 +3094,7 @@ begin
   neglectdisabled := true;
   ownername := petzshlglobals.adoptername;
   fdoorpetz := true;
+  fsamesex := false;
 
   // breeding settings
   fbreedingtimer := 0;
