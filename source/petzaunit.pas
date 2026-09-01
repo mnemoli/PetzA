@@ -223,9 +223,14 @@ var petza: tpetza;
   loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
   streamoutlnzpatch,
   normalcirclepatch, clipcirclepatch, paintballspatch, initareaeditorpatch,
-  popupwndprocpatch, movemywindowpatch: TPatchThiscall;
+  popupwndprocpatch, movemywindowpatch,
+  addlinespecpatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, TPair<string, boolean>>;
 var texturequadrantscache: TDictionary<pointer, TDictionary<integer, bool>>;
+// array of balls - array of lines per ball
+type linesbyballarray = TObjectList<TList<integer>>;
+type plinesbyballarray = linesbyballarray;
+var lnzlinesbyballcache: TDictionary<pointer, plinesbyballarray>;
 var  logging: Boolean;
 procedure dolog(const message: string);
 var pickapetmenusearchstring: ansistring;
@@ -2237,7 +2242,74 @@ begin
     lnzpalettecache.Remove(instance);
   end;
   texturequadrantscache.Remove(instance);
+  var lnzptr := ppointer(classprop(instance, $178 + $c))^;
+  lnzlinesbyballcache.Remove(instance);
+  lnzlinesbyballcache.remove(lnzptr);
   desxballzpatch.callorigproc(instance, []);
+end;
+
+procedure myaddlinespec(return, instance: pointer; lineno: integer); stdcall;
+begin
+  addlinespecpatch.callorigproc(instance, [lineno]);
+  var key := ppointer(classprop(instance, $8c8))^;
+  if key = nil then
+    key := instance;
+  var startball := pinteger(classprop(instance, $37d4 + ($28 * lineno)))^;
+  var endball := pinteger(classprop(instance, $37d4 + ($28 * lineno) + $4))^;
+  var parray: plinesbyballarray;
+  var gotcache := lnzlinesbyballcache.TryGetValue(key, parray);
+  if not gotcache then begin
+    parray := plinesbyballarray.Create();
+    parray.Count := 512;
+    lnzlinesbyballcache.Add(key, parray);
+  end;
+  if not assigned(parray[startball]) then begin
+    parray[startball] := TList<integer>.Create([lineno]);
+  end else begin
+    parray[startball].add(lineno);
+  end;
+  if not assigned(parray[endball]) then begin
+    parray[endball] := TList<integer>.Create([lineno]);
+  end else begin
+    parray[endball].add(lineno);
+  end;
+end;
+
+procedure mydrawalllines(return, xballz, port, ballstate, bounds, vec: pointer; ballno: integer; center: pointer); stdcall;
+begin
+  var lnzptr := ppointer(classprop(xballz, $178 + $c))^;
+  var key := xballz;
+  if not lnzlinesbyballcache.containskey(key) then
+    if not lnzlinesbyballcache.ContainsKey(lnzptr) then
+      exit
+    else
+      key := lnzptr;
+
+  var cache := lnzlinesbyballcache[key][ballno];
+  if cache = nil then
+    exit;
+
+  if (pbyte(classprop(petzshlglobals, $3))^ = 0) and (pbyte(classprop(xballz, $9c8))^ = 0) then begin
+    for var lineidx in cache do begin
+      // only 512 lines available
+      if lineidx <= 511 then begin
+
+        var alreadydrawn := pbyte(classprop(vec, lineidx));
+        var linearrayitem := classprop(lnzptr, $37d4 + ($28 * lineidx));
+        var opt := pbyte(classprop(linearrayitem, $24))^;
+        var startball := pinteger(linearrayitem)^;
+        var endball := pinteger(classprop(linearrayitem, $4))^;
+        var renderedstartball := pbyte(classprop(xballz, $9014 + startball))^;
+        var renderedendball := pbyte(classprop(xballz, $9014 + endball))^;
+
+        if (alreadydrawn^ = 0) and ((opt = 0) or ((renderedstartball <> 0) and (renderedendball <> 0))) then begin
+          //dodrawline
+          thiscall(xballz, ptr($452040), [cardinal(port), cardinal(ballstate), cardinal(bounds), lineidx, cardinal(center)]);
+          alreadydrawn^ := $1;
+        end;
+      end;
+    end;
+  end;
 end;
 
 procedure myloadlnz(return, instance, path: pointer; param2: cardinal; xballz, cache: pointer); stdcall;
@@ -3184,10 +3256,10 @@ begin
     patchcodebuf(ptr($4a9742), sizeof(nop), 5, b);
     // make area resize automatically
     movemywindowpatch := patchthiscall(ptr($4aadb0), @downloadarea_movemywindow);
-
-    // patch away not being able to take photos in AC
-    patchACphotos();
   end;
+
+  // patch away not being able to take photos in AC
+  patchACphotos();
 
   if (enablepalettes) and (cpetzver = pvpetz4) then begin
     // Patch drawing for extra palettes
@@ -3214,6 +3286,13 @@ begin
 
     // Write palette to lnz when AC pet adopted
     streamoutlnzpatch := patchthiscall(ptr($46b3a0), @mystreamoutlnz)
+  end;
+
+  if (cpetzver = pvpetz4) then begin
+    // Lnz cache for lines limit enlarging
+    lnzlinesbyballcache := TDictionary<pointer, plinesbyballarray>.Create();
+    addlinespecpatch := patchthiscall(ptr($46ebd0), @myaddlinespec);
+    patchthiscall(ptr($4508c0), @mydrawalllines);
   end;
 
   if (unlockpalette) and (cpetzver = pvpetz4) then begin
