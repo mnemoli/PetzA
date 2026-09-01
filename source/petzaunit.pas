@@ -134,6 +134,7 @@ type
     lastadoptpetlnzinfo: pointer;
     fenabletransparency: boolean;
     fdoorpetz: boolean;
+    fbigplayscenes: boolean;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -210,6 +211,7 @@ type
     property enabletransparency: boolean read fenabletransparency write setenabletransparency;
     property doorpetz: boolean read fdoorpetz write setdoorpetz;
     property samesex: boolean read fsamesex write setsamesex;
+    property bigplayscenes: boolean read fbigplayscenes write fbigplayscenes;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -613,6 +615,8 @@ begin
         doorpetz := reg.ReadBool('DoorPetz');
       if reg.ValueExists('SameSex') then
         samesex := reg.ReadBool('SameSex');
+      if reg.ValueExists('BigPlayscenes') then
+        bigplayscenes := reg.ReadBool('BigPlayscenes');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -662,6 +666,7 @@ begin
       reg.WriteBool('EnableTransparency', enabletransparency);
       reg.WriteBool('DoorPetz', doorpetz);
       reg.WriteBool('SameSex', samesex);
+      reg.WriteBool('BigPlayscenes', bigplayscenes);
     end;
   finally
     reg.free;
@@ -2844,8 +2849,8 @@ begin
   if dllname.EndsWith('Trn') then begin
     var maxw := cxframe * 2 + 1024;
     var maxh := cymenu + 768 + cyframe * 2 + cycaption;
-    maxx^ := min(maxw, maxx^);
-    maxy^ := min(maxh, maxy^);
+    maxx^ := min(fullscreenrect.width, min(maxw, maxx^));
+    maxy^ := min(fullscreenrect.height, min(maxh, maxy^));
     exit;
   end;
 
@@ -2863,14 +2868,11 @@ begin
   var tempx := surfacemapw * surfacemapscale;
   var tempy := surfacemaph * surfacemapscale;
 
-  tempx := min(tempx, maxx^);
-  tempy := min(tempy, maxy^);
-
   tempx := tempx + cxframe*2;
   tempy := tempy + cymenu + cyframe * 2 + cycaption;
 
-  maxx^ := min(fullscreenrect.width, tempx);
-  maxy^ := min(fullscreenrect.height, tempy);
+  maxx^ := min(maxx^, min(fullscreenrect.width, tempx));
+  maxy^ := min(maxy^, min(fullscreenrect.height, tempy));
 
 end;
 
@@ -2883,8 +2885,8 @@ procedure DownloadArea_MoveMyWindow(return, area: pointer; showwindow1: boolean)
 begin
 
   GetWindowPlacement(petzshlglobals.mainwindow, windowplacement);
-  maxx := windowplacement.rcNormalPosition.width;
-  maxy := windowplacement.rcNormalPosition.Height;
+  maxx := MAXINT;
+  maxy := MAXINT;
 
   var initted := pbool(classprop(petzshlglobals, $2c))^;
 
@@ -3161,6 +3163,7 @@ begin
   ownername := petzshlglobals.adoptername;
   fdoorpetz := true;
   fsamesex := false;
+  fbigplayscenes := true;
 
   // breeding settings
   fbreedingtimer := 0;
@@ -3169,7 +3172,11 @@ begin
   // Closet speed default
   fclosetspeed := 2;
 
-  if cpetzver = pvpetz4 then begin
+  patchthiscall(ptr($45e5b0), @mydrawnose);
+
+  loadsettings; //pretty late in the peace so all objects are created
+
+  if (cpetzver = pvpetz4) and (bigplayscenes) then begin
     // set up larger playscenes
     patchthiscall(ptr($4a8ed0), @areagetmaxwindowsize);
     // disable fixspritesoffscreen - runs too early, will be run by window resize anyway
@@ -3181,10 +3188,6 @@ begin
     // patch away not being able to take photos in AC
     patchACphotos();
   end;
-
-  patchthiscall(ptr($45e5b0), @mydrawnose);
-
-  loadsettings; //pretty late in the peace so all objects are created
 
   if (enablepalettes) and (cpetzver = pvpetz4) then begin
     // Patch drawing for extra palettes
@@ -3837,7 +3840,7 @@ var wnd: hwnd;
 {$IFDEF ONLINE}onlinemenu: HMENU; {$ENDIF}
 begin
 
-  if cpetzver = pvpetz4 then begin
+  if (cpetzver = pvpetz4) and petza.bigplayscenes then begin
     // update editor scenes to make large srf
     var editor := LoadLibraryA('Editor.env');
     if (editor <> 0) then begin

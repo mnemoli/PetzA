@@ -59,7 +59,6 @@ object frmSettings: TfrmSettings
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 6
-    ExplicitTop = 227
   end
   object btnOk: TButton
     Left = 178
@@ -72,7 +71,6 @@ object frmSettings: TfrmSettings
     ModalResult = 1
     TabOrder = 5
     OnClick = btnOkClick
-    ExplicitTop = 227
   end
   object chkBrainSliders: TCheckBox
     Left = 8
@@ -93,7 +91,6 @@ object frmSettings: TfrmSettings
     Caption = 'Reset hidden warning messages'
     TabOrder = 8
     OnClick = Button3Click
-    ExplicitTop = 227
   end
   object chkNameTags: TCheckBox
     Left = 8
@@ -112,7 +109,6 @@ object frmSettings: TfrmSettings
     Caption = 'Help'
     TabOrder = 7
     OnClick = btnHelpClick
-    ExplicitTop = 227
   end
   object GroupBox1: TGroupBox
     Left = 8
@@ -147,8 +143,8 @@ object frmSettings: TfrmSettings
       OnClick = chkTweakEyelidColoursClick
     end
     object chkSameSex: TCheckBox
-      Left = 13
-      Top = 73
+      Left = 16
+      Top = 64
       Width = 201
       Height = 17
       Caption = 'Allow same sex love'
@@ -275,5 +271,14 @@ object frmSettings: TfrmSettings
     Height = 17
     Caption = 'Let Petz come to door'
     TabOrder = 19
+  end
+  object chkBigPlayscenes: TCheckBox
+    Left = 231
+    Top = 172
+    Width = 130
+    Height = 17
+    Caption = 'Enable big playscenes'
+    TabOrder = 20
+    OnClick = chkBigPlayscenesClick
   end
 end

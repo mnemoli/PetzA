@@ -37,12 +37,14 @@ type
     chkTransparency: TCheckBox;
     chkDoorPetz: TCheckBox;
     chkSameSex: TCheckBox;
+    chkBigPlayscenes: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure chkUnlockPaletteClick(Sender: TObject);
     procedure chkTweakEyelidColoursClick(Sender: TObject);
+    procedure chkBigPlayscenesClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -70,6 +72,14 @@ begin
       reg.free;
     end;
     showmessage('All message boxes have been reset');
+  end;
+end;
+
+procedure TfrmSettings.chkBigPlayscenesClick(Sender: TObject);
+begin
+  if chkBigPlayscenes.Checked = false then begin
+    var result := MessageDlg('Existing large editor playscenes will crash your game. If your game crashes on startup, reset your Petz registry.', mtConfirmation, mbOKCancel, 0);
+    chkBigPlayscenes.Checked := result <> mrOk;
   end;
 end;
 
@@ -112,6 +122,7 @@ begin
   petza.texturedirises := chktexturedirises.Checked;
   if (petza.unlockpalette <> chkunlockpalette.Checked) or
   (petza.enablepalettes <> chkEnablePalettes.Checked) or
+  (petza.bigplayscenes <> chkBigPlayscenes.Checked) or
   (petza.defaultpalette <> cmbDefaultPalette.items[cmbdefaultpalette.ItemIndex]) then
     showmessage('Please restart Petz to apply your changes!');
   petza.unlockpalette := chkunlockpalette.Checked;
@@ -122,6 +133,7 @@ begin
   petza.enabletransparency := chkTransparency.Checked;
   petza.doorpetz := chkDoorPetz.Checked;
   petza.samesex := chkSameSex.Checked;
+  petza.bigplayscenes := chkBigPlayscenes.Checked;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -154,6 +166,7 @@ begin
   chkTransparency.checked := petza.enabletransparency;
   chkDoorPetz.checked := petza.doorpetz;
   chkSameSex.Checked := petza.samesex;
+  chkBigPlayscenes.Checked := petza.bigplayscenes;
 
   chkshowheart.enabled := cpetzver in verBreeding;
   chkNameTags.Enabled := cpetzver in verNametags;
@@ -172,6 +185,7 @@ begin
   chkTransparency.Enabled := cpetzver = pvpetz4;
   chkDoorPetz.Enabled := cpetzver = pvpetz4;
   chkSameSex.Enabled := cpetzver = pvpetz4;
+  chkBigPlayscenes.Enabled := cpetzver = pvpetz4;
 
   if petza.enablepalettes and (cpetzver = pvpetz4) then begin
     cmbDefaultPalette.AddItem('', nil);
