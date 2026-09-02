@@ -135,6 +135,7 @@ type
     fenabletransparency: boolean;
     fdoorpetz: boolean;
     fbigplayscenes: boolean;
+    fdisablebreeding: boolean;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -165,6 +166,7 @@ type
     procedure patchACphotos();
     procedure setdoorpetz(const Value: boolean);
     procedure setsamesex(const Value: boolean);
+    procedure setdisablebreeding(const Value: boolean);
 
   public
     brains: TObjectList;
@@ -211,6 +213,7 @@ type
     property enabletransparency: boolean read fenabletransparency write setenabletransparency;
     property doorpetz: boolean read fdoorpetz write setdoorpetz;
     property samesex: boolean read fsamesex write setsamesex;
+    property disablebreeding: boolean read fdisablebreeding write setdisablebreeding;
     property bigplayscenes: boolean read fbigplayscenes write fbigplayscenes;
   end;
 
@@ -421,6 +424,33 @@ begin
     FillChar(ptr(cardinal(address) + cardinal(datasize))^, totalsize - datasize, byte(nop));
 end;
 
+procedure TPetza.setdisablebreeding(const Value: boolean);
+begin
+  fdisablebreeding := Value;
+  if cpetzver = pvpetz4 then begin
+    var d: array[0..5] of byte;
+    if value = false then begin
+      d[0] := $0f;
+      d[1] := $85;
+      d[2] := $3f;
+      d[3] := $04;
+      d[4] := $00;
+      d[5] := $00;
+      patchcodebuf(ptr($5768e7), 6, 6, d);
+    end else begin
+      d[0] := $e9;
+      d[1] := $40;
+      d[2] := $04;
+      d[3] := $00;
+      d[4] := $00;
+      d[5] := $90;
+      patchcodebuf(ptr($5768e7), 5, 6, d);
+    end;
+
+  end;
+
+end;
+
 procedure TPetza.setdoorpetz(const Value: boolean);
   var data: array[0..4] of byte;
 begin
@@ -622,6 +652,8 @@ begin
         samesex := reg.ReadBool('SameSex');
       if reg.ValueExists('BigPlayscenes') then
         bigplayscenes := reg.ReadBool('BigPlayscenes');
+      if reg.ValueExists('DisableBreeding') then
+        bigplayscenes := reg.ReadBool('DisableBreeding');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -672,6 +704,7 @@ begin
       reg.WriteBool('DoorPetz', doorpetz);
       reg.WriteBool('SameSex', samesex);
       reg.WriteBool('BigPlayscenes', bigplayscenes);
+      reg.WriteBool('DisableBreeding', disablebreeding);
     end;
   finally
     reg.free;
@@ -3236,6 +3269,7 @@ begin
   fdoorpetz := true;
   fsamesex := false;
   fbigplayscenes := true;
+  fdisablebreeding := false;
 
   // breeding settings
   fbreedingtimer := 0;
@@ -3297,7 +3331,7 @@ begin
     // make nuke toys menu option always on
     var d: array[0..1] of byte;
     d[0] := $b1;
-    d[1] := $01;
+    d[1] := $00;
     patchcodebuf(ptr($406418), 2, 3, d);
   end;
 

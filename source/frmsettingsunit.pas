@@ -38,6 +38,7 @@ type
     chkDoorPetz: TCheckBox;
     chkSameSex: TCheckBox;
     chkBigPlayscenes: TCheckBox;
+    chkDisableBreeding: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -134,6 +135,7 @@ begin
   petza.doorpetz := chkDoorPetz.Checked;
   petza.samesex := chkSameSex.Checked;
   petza.bigplayscenes := chkBigPlayscenes.Checked;
+  petza.disablebreeding := chkDisableBreeding.Checked;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -156,17 +158,20 @@ begin
   chktexturedirises.Checked := petza.texturedirises;
   chkEnablePalettes.Checked := petza.enablepalettes;
   chkClosetSpeed.itemindex := petza.closetspeed;
-  // stupid workaround
+  // stupid workarounds
   chkunlockpalette.OnClick := nil;
   chkunlockpalette.checked := petza.unlockpalette;
   chkunlockpalette.OnClick := chkUnlockPaletteClick;
   chkTweakEyelidColours.onClick := nil;
   chkTweakEyelidColours.checked := petza.tweakeyelidcolours;
   chkTweakEyelidColours.onClick := chkTweakEyelidColoursClick;
+
+
   chkTransparency.checked := petza.enabletransparency;
   chkDoorPetz.checked := petza.doorpetz;
   chkSameSex.Checked := petza.samesex;
   chkBigPlayscenes.Checked := petza.bigplayscenes;
+  chkDisableBreeding.Checked := petza.disablebreeding;
 
   chkshowheart.enabled := cpetzver in verBreeding;
   chkNameTags.Enabled := cpetzver in verNametags;
@@ -186,6 +191,7 @@ begin
   chkDoorPetz.Enabled := cpetzver = pvpetz4;
   chkSameSex.Enabled := cpetzver = pvpetz4;
   chkBigPlayscenes.Enabled := cpetzver = pvpetz4;
+  chkDisableBreeding.Enabled := cpetzver = pvpetz4;
 
   if petza.enablepalettes and (cpetzver = pvpetz4) then begin
     cmbDefaultPalette.AddItem('', nil);

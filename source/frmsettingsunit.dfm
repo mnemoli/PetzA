@@ -4,8 +4,8 @@ object frmSettings: TfrmSettings
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'PetzA Settings'
-  ClientHeight = 277
-  ClientWidth = 400
+  ClientHeight = 293
+  ClientWidth = 401
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,13 +15,13 @@ object frmSettings: TfrmSettings
   Position = poScreenCenter
   OnCreate = FormCreate
   DesignSize = (
-    400
-    277)
+    401
+    293)
   TextHeight = 13
   object Bevel1: TBevel
     Left = 0
-    Top = 236
-    Width = 400
+    Top = 252
+    Width = 401
     Height = 41
     Align = alBottom
     Shape = bsTopLine
@@ -37,21 +37,21 @@ object frmSettings: TfrmSettings
   end
   object lblDefaultPalette: TLabel
     Left = 224
-    Top = 195
+    Top = 211
     Width = 69
     Height = 13
     Caption = 'Default palette'
   end
   object lblClosetSpeed: TLabel
     Left = 8
-    Top = 195
+    Top = 211
     Width = 61
     Height = 13
     Caption = 'Closet speed'
   end
   object btnCancel: TButton
-    Left = 250
-    Top = 244
+    Left = 251
+    Top = 260
     Width = 67
     Height = 25
     Anchors = [akRight, akBottom]
@@ -61,8 +61,8 @@ object frmSettings: TfrmSettings
     TabOrder = 6
   end
   object btnOk: TButton
-    Left = 178
-    Top = 244
+    Left = 179
+    Top = 260
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
@@ -83,8 +83,8 @@ object frmSettings: TfrmSettings
     TabOrder = 0
   end
   object Button3: TButton
-    Left = 2
-    Top = 244
+    Left = 3
+    Top = 260
     Width = 169
     Height = 25
     Anchors = [akRight, akBottom]
@@ -101,8 +101,8 @@ object frmSettings: TfrmSettings
     TabOrder = 1
   end
   object btnHelp: TButton
-    Left = 322
-    Top = 244
+    Left = 323
+    Top = 260
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
@@ -114,7 +114,7 @@ object frmSettings: TfrmSettings
     Left = 8
     Top = 90
     Width = 217
-    Height = 99
+    Height = 115
     Caption = 'Mating'
     TabOrder = 4
     object chkShowHeart: TCheckBox
@@ -143,12 +143,21 @@ object frmSettings: TfrmSettings
       OnClick = chkTweakEyelidColoursClick
     end
     object chkSameSex: TCheckBox
-      Left = 16
-      Top = 64
+      Left = 8
+      Top = 67
       Width = 201
       Height = 17
       Caption = 'Allow same sex love'
       TabOrder = 3
+      OnClick = chkTweakEyelidColoursClick
+    end
+    object chkDisableBreeding: TCheckBox
+      Left = 8
+      Top = 85
+      Width = 201
+      Height = 17
+      Caption = 'Disable breeding'
+      TabOrder = 4
       OnClick = chkTweakEyelidColoursClick
     end
   end
@@ -238,7 +247,7 @@ object frmSettings: TfrmSettings
   end
   object cmbDefaultPalette: TComboBox
     Left = 232
-    Top = 209
+    Top = 225
     Width = 145
     Height = 21
     Style = csDropDownList
@@ -246,7 +255,7 @@ object frmSettings: TfrmSettings
   end
   object chkClosetSpeed: TComboBox
     Left = 16
-    Top = 209
+    Top = 225
     Width = 145
     Height = 21
     Style = csDropDownList
