@@ -3293,6 +3293,12 @@ begin
     lnzlinesbyballcache := TDictionary<pointer, plinesbyballarray>.Create();
     addlinespecpatch := patchthiscall(ptr($46ebd0), @myaddlinespec);
     patchthiscall(ptr($4508c0), @mydrawalllines);
+
+    // make nuke toys menu option always on
+    var d: array[0..1] of byte;
+    d[0] := $b1;
+    d[1] := $01;
+    patchcodebuf(ptr($406418), 2, 3, d);
   end;
 
   if (unlockpalette) and (cpetzver = pvpetz4) then begin
