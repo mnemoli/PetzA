@@ -149,7 +149,6 @@ object frmSettings: TfrmSettings
       Height = 17
       Caption = 'Allow same sex love'
       TabOrder = 3
-      OnClick = chkTweakEyelidColoursClick
     end
     object chkDisableBreeding: TCheckBox
       Left = 8
@@ -158,7 +157,6 @@ object frmSettings: TfrmSettings
       Height = 17
       Caption = 'Disable breeding'
       TabOrder = 4
-      OnClick = chkTweakEyelidColoursClick
     end
   end
   object cmbCameraFormat: TComboBox

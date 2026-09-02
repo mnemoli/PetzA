@@ -232,8 +232,7 @@ var lnzpalettecache: TDictionary<pointer, TPair<string, boolean>>;
 var texturequadrantscache: TDictionary<pointer, TDictionary<integer, bool>>;
 // array of balls - array of lines per ball
 type linesbyballarray = TObjectList<TList<integer>>;
-type plinesbyballarray = linesbyballarray;
-var lnzlinesbyballcache: TDictionary<pointer, plinesbyballarray>;
+var lnzlinesbyballcache: TObjectDictionary<pointer, linesbyballarray>;
 var  logging: Boolean;
 procedure dolog(const message: string);
 var pickapetmenusearchstring: ansistring;
@@ -653,7 +652,7 @@ begin
       if reg.ValueExists('BigPlayscenes') then
         bigplayscenes := reg.ReadBool('BigPlayscenes');
       if reg.ValueExists('DisableBreeding') then
-        bigplayscenes := reg.ReadBool('DisableBreeding');
+        disablebreeding := reg.ReadBool('DisableBreeding');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -2289,10 +2288,10 @@ begin
     key := instance;
   var startball := pinteger(classprop(instance, $37d4 + ($28 * lineno)))^;
   var endball := pinteger(classprop(instance, $37d4 + ($28 * lineno) + $4))^;
-  var parray: plinesbyballarray;
+  var parray: linesbyballarray;
   var gotcache := lnzlinesbyballcache.TryGetValue(key, parray);
   if not gotcache then begin
-    parray := plinesbyballarray.Create();
+    parray := linesbyballarray.Create(true);
     parray.Count := 512;
     lnzlinesbyballcache.Add(key, parray);
   end;
@@ -2681,7 +2680,7 @@ begin
 
   var colors: array[0..6] of integer;
 
-  if (crb.colorindex = 0) or (crb.colorindex > 199) then begin
+  if (crb.colorindex = 0) or (crb.colorindex < 10) or (crb.colorindex > 199) then begin
 
     localcrb.colorindex := 244;
     localcrb.outlinecolorindex := 244;
@@ -3278,8 +3277,6 @@ begin
   // Closet speed default
   fclosetspeed := 2;
 
-  patchthiscall(ptr($45e5b0), @mydrawnose);
-
   loadsettings; //pretty late in the peace so all objects are created
 
   if (cpetzver = pvpetz4) and (bigplayscenes) then begin
@@ -3323,8 +3320,10 @@ begin
   end;
 
   if (cpetzver = pvpetz4) then begin
+    patchthiscall(ptr($45e5b0), @mydrawnose);
+
     // Lnz cache for lines limit enlarging
-    lnzlinesbyballcache := TDictionary<pointer, plinesbyballarray>.Create();
+    lnzlinesbyballcache := TObjectDictionary<pointer, linesbyballarray>.Create([doOwnsValues]);
     addlinespecpatch := patchthiscall(ptr($46ebd0), @myaddlinespec);
     patchthiscall(ptr($4508c0), @mydrawalllines);
 
