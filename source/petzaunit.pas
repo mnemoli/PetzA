@@ -2832,13 +2832,13 @@ begin
   // load the palette bmp
   // load petz.bmp if exists in palettes
   // otherwise use palette.bmp from basegame resources
-  var xmemptr: pcardinal;
+  var xmemptr: pgamepalette;
   var xmem: pointer;
   var gotcustompetzpalette: boolean := false;
 
   try
     var custompetzpalette := paletteswapunit.loadpetzpaletteifexists;
-    xmemptr := @custompetzpalette;
+    xmemptr := pgamepalette(custompetzpalette);
     gotcustompetzpalette := true;
   except
   end;
@@ -2848,31 +2848,35 @@ begin
     var read: ansistring := 'rb';
     xmem := rimports.petzallocmem($20);
     thiscall(xmem, ptr($439590), [cardinal(0)]);
+    //xloadfromfile
     var palettefile := thiscall(xmem, ptr($4398d0), [cardinal(path), cardinal(read), cardinal(0), cardinal(false)]);
 
     if palettefile <> 0 then
       raise Exception.Create('Petz palette BMP not found');
 
+      //xlock
     thiscall(xmem, ptr($043a250), [cardinal(false), cardinal(false)]);
-    xmemptr := pcardinal(pcardinal(cardinal(xmem) + 4)^ + 54);
+    xmemptr := pgamepalette(pcardinal(cardinal(xmem) + 4)^ + 54);
   end;
 
-  var paletteptr: pcardinal := pcardinal($631398);
+  //bmicolors
+  var paletteptr := pgamepalette($631398);
+  //theiridealbitmap
   var paletteptr2 := pbitmapinfo($631370);
 
+
   // fill colours in two places... thanks petz...
+  paletteptr^ := xmemptr^;
   for var i := 0 to 255 do begin
-    paletteptr^ := xmemptr^;
     var color := paletteptr2.bmiColors[i];
     logpalette.palPalEntry[i].peRed := color.rgbRed;
     logpalette.palPalEntry[i].peGreen := color.rgbGreen;
     logpalette.palPalEntry[i].peBlue := color.rgbRed;
-    paletteptr := pcardinal(cardinal(paletteptr) + 4);
-    xmemptr := pcardinal(cardinal(xmemptr) + 4);
   end;
 
   // force some colours to be correct
   for var p in forcedcolours do begin
+    paletteptr[p.key] := p.value;
     paletteptr2.bmiColors[p.key].rgbRed := p.value;
     paletteptr2.bmiColors[p.key].rgbGreen := p.Value shr 8;
     paletteptr2.bmiColors[p.key].rgbBlue := p.Value shr 16;
@@ -2888,9 +2892,10 @@ begin
     if (xmem <> nil) then
       thiscall(xmem, ppointer(pcardinal(xmem)^)^, [cardinal(1)]);
   end;
-  freemem(logpalette, sz);
-
   result := createpalette(logpalette);
+  freemem(logpalette, sz);
+  if gotcustompetzpalette then
+    dispose(xmemptr);
 end;
 
 procedure tpetza.patchcustomuserprofile;
