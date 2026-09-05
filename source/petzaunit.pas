@@ -2282,12 +2282,37 @@ end;
 
 procedure myaddlinespec(return, instance: pointer; lineno: integer); stdcall;
 begin
-  addlinespecpatch.callorigproc(instance, [lineno]);
+  if lineno > 511 then begin
+    showmessage('This pet has reached the line limit of 512!');
+    exit;
+  end;
+
+  //xballz
   var key := ppointer(classprop(instance, $8c8))^;
-  if key = nil then
+  if key = nil then begin
+    //lnz toys/clothes don't have xballz at this point, so use lnz as the key
+    //for pets it's the opposite, can't use lnz here as the xballz lnz will later be different
     key := instance;
+  end;
+
   var startball := pinteger(classprop(instance, $37d4 + ($28 * lineno)))^;
   var endball := pinteger(classprop(instance, $37d4 + ($28 * lineno) + $4))^;
+  if (startball > 511) or (endball > 511) then begin
+    showmessage('This pet has reached the ball limit of 512!');
+    exit;
+  end;
+
+  //   increase the by-ball counts
+  // and set draw before option - if not done then the draw will never be called
+  var originalbyballarraycount := pinteger(classprop(instance, $87d4 + $28 * startball));
+  originalbyballarraycount^ := originalbyballarraycount^ + 1;
+  originalbyballarraycount := pinteger(classprop(instance, $87d4 + $28 * endball));
+  originalbyballarraycount^ := originalbyballarraycount^ + 1;
+  if pbyte(classprop(instance, $37d4 + ($28 * lineno) + $24))^ <> 0 then begin
+    pbyte(classprop(instance, $87d4 + $28 * startball + $24))^ := 1;
+    pbyte(classprop(instance, $87d4 + $28 * endball + $24))^ := 1;
+  end;
+
   var parray: linesbyballarray;
   var gotcache := lnzlinesbyballcache.TryGetValue(key, parray);
   if not gotcache then begin
