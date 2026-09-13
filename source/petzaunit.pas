@@ -443,7 +443,7 @@ begin
       d[3] := $00;
       d[4] := $00;
       d[5] := $90;
-      patchcodebuf(ptr($5768e7), 5, 6, d);
+      patchcodebuf(ptr($5768e7), 6, 6, d);
     end;
 
   end;
@@ -2302,16 +2302,6 @@ begin
     exit;
   end;
 
-  //   increase the by-ball counts
-  // and set draw before option - if not done then the draw will never be called
-  var originalbyballarraycount := pinteger(classprop(instance, $87d4 + $28 * startball));
-  originalbyballarraycount^ := originalbyballarraycount^ + 1;
-  originalbyballarraycount := pinteger(classprop(instance, $87d4 + $28 * endball));
-  originalbyballarraycount^ := originalbyballarraycount^ + 1;
-  if pbyte(classprop(instance, $37d4 + ($28 * lineno) + $24))^ <> 0 then begin
-    pbyte(classprop(instance, $87d4 + $28 * startball + $24))^ := 1;
-    pbyte(classprop(instance, $87d4 + $28 * endball + $24))^ := 1;
-  end;
 
   var parray: linesbyballarray;
   var gotcache := lnzlinesbyballcache.TryGetValue(key, parray);
@@ -2320,6 +2310,33 @@ begin
     parray.Count := 512;
     lnzlinesbyballcache.Add(key, parray);
   end;
+
+
+  //   increase the by-ball counts
+  // and set draw before option - if not done then the draw will never be called
+  var originalbyballarraycount := pinteger(classprop(instance, $87d4 + $28 * startball));
+
+  // if this has gone to 0, fixupaddballz has reset the array
+  if (originalbyballarraycount^ = 0) and assigned(parray[startball]) then begin
+    parray[startball].Clear;
+  end;
+
+  originalbyballarraycount^ := originalbyballarraycount^ + 1;
+  originalbyballarraycount := pinteger(classprop(instance, $87d4 + $28 * endball));
+
+   // if this has gone to 0, fixupaddballz has reset the array
+  if (originalbyballarraycount^ = 0) and assigned(parray[endball]) then begin
+    parray[endball].Clear;
+  end;
+
+  originalbyballarraycount^ := originalbyballarraycount^ + 1;
+  if pbyte(classprop(instance, $37d4 + ($28 * lineno) + $24))^ <> 0 then begin
+    pbyte(classprop(instance, $87d4 + $28 * startball + $24))^ := 1;
+    pbyte(classprop(instance, $87d4 + $28 * endball + $24))^ := 1;
+  end;
+  pbyte(classprop(instance, $87d4 + $28 * startball + $25))^ := 0;
+  pbyte(classprop(instance, $87d4 + $28 * endball + $25))^ := 0;
+
   if not assigned(parray[startball]) then begin
     parray[startball] := TList<integer>.Create([lineno]);
   end else begin
@@ -2330,6 +2347,7 @@ begin
   end else begin
     parray[endball].add(lineno);
   end;
+
 end;
 
 procedure mydrawalllines(return, xballz, port, ballstate, bounds, vec: pointer; ballno: integer; center: pointer); stdcall;
@@ -3704,6 +3722,7 @@ begin
                 lastfather := nil;
                 petmate(nil);
                 petza.showheart	:= oldshowheart;
+                petza.disablebreeding := olddisablebreeding;
                 unpatchbreedingcalls;
              end;
             end

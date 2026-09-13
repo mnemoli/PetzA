@@ -40,7 +40,7 @@ var batchbreedcount: integer;
 var waitingforpettocomeout: boolean;
 var lastmotherid: uint;
 var lastfather: TPetzPetSprite;
-var oldshowheart: boolean;
+var oldshowheart, olddisablebreeding: boolean;
 
 function matebystateconceive(female, male: TPetzPetSprite): boolean;
 procedure deliveroffspring(female: TPetzPetSprite);
@@ -176,9 +176,12 @@ procedure TfrmMate.btnMateClick(Sender: TObject);
 begin
     petza.ownername := OwnerNameEdit.Text;
     if validate(female, male) then begin
+      var temp := petza.disablebreeding;
+      petza.disablebreeding := false;
       if matebystateconceive(female, male) then
         nonmodalmessage('Success!','MateSuccess') else
         nonmodalmessage('Couldn''t mate. Perhaps one pet is too young, or another problem occured');
+      petza.disablebreeding := temp;
     end;
 end;
 
@@ -208,6 +211,8 @@ begin
     // Make sure that the breeding heart won't be shown while batching
     oldshowheart := petza.showheart;
     petza.showheart := false;
+    olddisablebreeding := petza.disablebreeding;
+    petza.disablebreeding := false;
 
     // Mate n times. The actual looping has to take place in petza unit message handling
     if matebystateconceive(female, male) then begin
