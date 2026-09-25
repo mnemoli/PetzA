@@ -220,7 +220,8 @@ type
     function getbuttonindex: integer;
     procedure setbuttonindex(const Value: integer);
     public
-      procedure loadpetz(sessionid: ushort; buttonidx: integer);
+      function loadpetz(sessionid: ushort; buttonidx: integer; blowup: integer = 1): boolean;
+      function getpetatbuttonindex(buttonidx: integer): TPetzPetSprite;
       property buttonindex: integer read getbuttonindex write setbuttonindex;
   end;
 
@@ -1171,7 +1172,7 @@ function tpetzpetinfo.pregnant: boolean;
 begin
   case cpetzver of
     pvpetz5: result := pbyte(integer(self) + $5BB90)^ > 0;
-    pvpetz4, pvpetz3, pvpetz3german: result := pbyte(integer(self) + $5BB8C)^ > 0;
+    pvpetz4, pvpetz3, pvpetz3german: result := ppointer(integer(self) + $5BB8C)^ <> nil;
   else begin
       showmessage('Pregnant: Unsupported!');
       result := false;
@@ -1608,10 +1609,16 @@ begin
   result := pinteger(classprop(petzcase, $3d2c))^;
 end;
 
-procedure TPetzCase.loadpetz(sessionid: ushort; buttonidx: integer);
+function TPetzCase.loadpetz(sessionid: ushort; buttonidx: integer; blowup: integer): boolean;
 begin
   self.buttonindex := buttonidx;
-  thiscall(self, rimports.case_loadpetz, [sessionid, 1, 1, 1]);
+  result := boolean(thiscall(self, rimports.case_loadpetz, [sessionid, 1, blowup, 1]));
+end;
+
+function TPetzCase.getpetatbuttonindex(buttonidx: Integer): TPetzPetSprite;
+begin
+  var loc := $3d18 + (buttonidx * 16);
+  result := TPetzPetSprite(classprop(petzcase, loc)^);
 end;
 
 procedure TPetzAlposprite.setadjvalue(attr, val: integer);

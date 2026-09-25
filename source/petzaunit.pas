@@ -136,6 +136,9 @@ type
     fdoorpetz: boolean;
     fbigplayscenes: boolean;
     fdisablebreeding: boolean;
+    fusefasterbatchbreeding: boolean;
+    funlinkscalescp: boolean;
+    fexpandlinelimit: boolean;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -167,6 +170,7 @@ type
     procedure setdoorpetz(const Value: boolean);
     procedure setsamesex(const Value: boolean);
     procedure setdisablebreeding(const Value: boolean);
+    procedure setunlinkscalescp(const Value: boolean);
 
   public
     brains: TObjectList;
@@ -214,7 +218,10 @@ type
     property doorpetz: boolean read fdoorpetz write setdoorpetz;
     property samesex: boolean read fsamesex write setsamesex;
     property disablebreeding: boolean read fdisablebreeding write setdisablebreeding;
+    property usefasterbatchbreeding: boolean read fusefasterbatchbreeding write fusefasterbatchbreeding;
     property bigplayscenes: boolean read fbigplayscenes write fbigplayscenes;
+    property unlinkscalescp: boolean read funlinkscalescp write setunlinkscalescp;
+    property expandlinelimit: boolean read fexpandlinelimit write fexpandlinelimit;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -223,11 +230,11 @@ var petza: tpetza;
   hpetzwindowcreate, hloadpetz, hpushscript, htransneu, hsettargetlocation,
   hresetstack, reacttocamerapatch, deliveroffspringpatch,
   draweyeballpatch, inittoypatch, drawphotopatch, drawspritespatch, initstagepatch,
-  loadlnzpatch, desxballzpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
+  loadlnzpatch, desxballzpatch, deslinezpatch, drawfilmstrippatch, drawstackedpatch, createheadshotpatch,
   streamoutlnzpatch,
   normalcirclepatch, clipcirclepatch, paintballspatch, initareaeditorpatch,
   popupwndprocpatch, movemywindowpatch,
-  addlinespecpatch: TPatchThiscall;
+  addlinespecpatch, copylnzpatch, unlinkscalescppatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, TPair<string, boolean>>;
 var texturequadrantscache: TDictionary<pointer, TDictionary<integer, bool>>;
 // array of balls - array of lines per ball
@@ -561,6 +568,27 @@ begin
   end;
 end;
 
+function mycalculateprimarybreed(return, instance: pointer): integer; stdcall;
+begin
+  var randomprimary := Math.RandomRange(3, 10);
+  var idx := pinteger(classprop(instance, randomprimary * 4))^;
+  pinteger(classprop(instance, 4))^ := idx;
+  result := idx;
+end;
+
+procedure TPetza.setunlinkscalescp(const Value: boolean);
+begin
+  if funlinkscalescp <> value then begin
+    funlinkscalescp := Value;
+
+    if value = true then begin
+      unlinkscalescppatch := patchthiscall(ptr($473140), @mycalculateprimarybreed);
+    end;
+    if value = false then begin
+      unlinkscalescppatch.restore;
+    end;
+  end;
+end;
 
 procedure TPetza.setusenewphotonameformat(const Value: boolean);
 begin
@@ -653,6 +681,12 @@ begin
         bigplayscenes := reg.ReadBool('BigPlayscenes');
       if reg.ValueExists('DisableBreeding') then
         disablebreeding := reg.ReadBool('DisableBreeding');
+      if reg.ValueExists('UseFasterBatchBreeding') then
+        usefasterbatchbreeding := reg.ReadBool('UseFasterBatchBreeding');
+      if reg.ValueExists('UnlinkScaleScp') then
+        unlinkscalescp := reg.ReadBool('UnlinkScaleScp');
+      if reg.ValueExists('ExpandLineLimit') then
+        expandlinelimit := reg.ReadBool('ExpandLineLimit');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -704,6 +738,9 @@ begin
       reg.WriteBool('SameSex', samesex);
       reg.WriteBool('BigPlayscenes', bigplayscenes);
       reg.WriteBool('DisableBreeding', disablebreeding);
+      reg.WriteBool('UseFasterBatchBreeding', usefasterbatchbreeding);
+      reg.WriteBool('UnlinkScaleScp', unlinkscalescp);
+      reg.WriteBool('ExpandLineLimit', expandlinelimit);
     end;
   finally
     reg.free;
@@ -2267,6 +2304,12 @@ end;
   port.Copy8BitCustom(prect, prect, petza.maskdrawport);
 end;
 
+procedure mydeslinez(return, instance: pointer); stdcall;
+begin
+  lnzlinesbyballcache.remove(instance);
+  deslinezpatch.callorigproc(instance, []);
+end;
+
 procedure mydesxballz(return, instance: pointer); stdcall;
 begin
   if lnzpalettecache.ContainsKey(instance) then begin
@@ -2274,9 +2317,9 @@ begin
     lnzpalettecache.Remove(instance);
   end;
   texturequadrantscache.Remove(instance);
-  var lnzptr := ppointer(classprop(instance, $178 + $c))^;
-  lnzlinesbyballcache.Remove(instance);
-  lnzlinesbyballcache.remove(lnzptr);
+//  var lnzptr := ppointer(classprop(instance, $178 + $c))^;
+//  lnzlinesbyballcache.Remove(instance);
+//  lnzlinesbyballcache.remove(lnzptr);
   desxballzpatch.callorigproc(instance, []);
 end;
 
@@ -2287,13 +2330,7 @@ begin
     exit;
   end;
 
-  //xballz
-  var key := ppointer(classprop(instance, $8c8))^;
-  if key = nil then begin
-    //lnz toys/clothes don't have xballz at this point, so use lnz as the key
-    //for pets it's the opposite, can't use lnz here as the xballz lnz will later be different
-    key := instance;
-  end;
+  var key := instance;
 
   var startball := pinteger(classprop(instance, $37d4 + ($28 * lineno)))^;
   var endball := pinteger(classprop(instance, $37d4 + ($28 * lineno) + $4))^;
@@ -2311,6 +2348,9 @@ begin
     lnzlinesbyballcache.Add(key, parray);
   end;
 
+//  addlinespecpatch.callorigproc(instance, [lineno]);
+//  exit;
+
 
   //   increase the by-ball counts
   // and set draw before option - if not done then the draw will never be called
@@ -2321,21 +2361,28 @@ begin
     parray[startball].Clear;
   end;
 
+  //TEMP
+//  pbyte(classprop(instance, $87d4 + ($28 * startball) + $4 + originalbyballarraycount^))^ := lineno;
+
   originalbyballarraycount^ := originalbyballarraycount^ + 1;
+
   originalbyballarraycount := pinteger(classprop(instance, $87d4 + $28 * endball));
+
+  //TEMP
+//  pbyte(classprop(instance, $87d4 + ($28 * endball) + $4 + originalbyballarraycount^))^ := lineno;
 
    // if this has gone to 0, fixupaddballz has reset the array
   if (originalbyballarraycount^ = 0) and assigned(parray[endball]) then begin
     parray[endball].Clear;
   end;
-
   originalbyballarraycount^ := originalbyballarraycount^ + 1;
+
   if pbyte(classprop(instance, $37d4 + ($28 * lineno) + $24))^ <> 0 then begin
-    pbyte(classprop(instance, $87d4 + $28 * startball + $24))^ := 1;
-    pbyte(classprop(instance, $87d4 + $28 * endball + $24))^ := 1;
+    pbyte(classprop(instance, $87d4 + ($28 * startball) + $24))^ := 1;
+    pbyte(classprop(instance, $87d4 + ($28 * endball) + $24))^ := 1;
   end;
-  pbyte(classprop(instance, $87d4 + $28 * startball + $25))^ := 0;
-  pbyte(classprop(instance, $87d4 + $28 * endball + $25))^ := 0;
+  pbyte(classprop(instance, $87d4 + ($28 * startball) + $25))^ := 0;
+  pbyte(classprop(instance, $87d4 + ($28 * endball) + $25))^ := 0;
 
   if not assigned(parray[startball]) then begin
     parray[startball] := TList<integer>.Create([lineno]);
@@ -2348,6 +2395,81 @@ begin
     parray[endball].add(lineno);
   end;
 
+end;
+
+function mycopylnz(return, instance, src: pointer; opt: byte): pointer; stdcall;
+begin
+  if lnzlinesbyballcache.ContainsKey(src) and not(lnzlinesbyballcache.ContainsKey(instance)) then begin
+    var cache := lnzlinesbyballcache[src];
+    var parray := linesbyballarray.Create(true);
+    parray.Count := 512;
+    for var i := 0 to 511 do begin
+      if assigned(cache[i]) then
+        parray[i] := tlist<integer>.Create(cache[i]);
+    end;
+    lnzlinesbyballcache.Add(instance, parray);
+  end;
+  result := pointer(copylnzpatch.callorigproc(instance, [cardinal(src), cardinal(opt)]));
+end;
+
+procedure mybodyareadefaults(return, instance: pointer); stdcall;
+begin
+  thiscall(instance, ptr($486980), []);
+
+  //For each addball,
+  // Set bodyarea of base ball or set to 0 if omitted
+  var addballct := pinteger(classprop(instance, $c))^;
+  for var i := 0 to addballct-1 do begin
+    var addballbodyarea := pinteger(classprop(instance, $15110 + (i * $38) + $28));
+    var newbodyarea := addballbodyarea^;
+    if addballbodyarea^ = 0 then begin
+      var baseball := pinteger(classprop(instance, $15110 + (i * $38)))^;
+      newbodyarea := pinteger(classprop(instance, $74 + (baseball * 4)))^; //base ball area
+    end;
+    var addballno := pinteger(classprop(instance, $8))^ + i;
+    if pbyte(classprop(instance, $35cc + addballno))^ <> 0  then begin
+      newbodyarea := 0;
+    end;
+    addballbodyarea^ := newbodyarea;
+    pinteger(classprop(instance, $74 + (addballno*4)))^ := newbodyarea;
+  end;
+
+  var cache: linesbyballarray := nil;
+  if lnzlinesbyballcache.ContainsKey(instance) then
+    cache := lnzlinesbyballcache[instance];
+
+  if cache <> nil then begin
+
+  //For each head addball,
+  //Work out real bodyarea based on lines
+  for var i := 0 to addballct-1 do begin
+    var pos := $15110 + (i * $38) + $28;
+    var addballbodyarea := pinteger(classprop(instance, pos));
+    if addballbodyarea^ = 8 then begin
+      var addballno := pinteger(classprop(instance, $8))^ + i;
+      var newbodyarea := 8;
+      var cacheball := cache[addballno];
+      if (assigned(cacheball)) and (cacheball.count > 0) then begin
+        for var j := 0 to cacheball.count -1 do begin
+          var lineno := cacheball[j];
+          var startball := pinteger(classprop(instance, $37d4 + (lineno * $28)))^;
+          var endball := pinteger(classprop(instance, $37d4 + (lineno * $28) + $4))^;
+          var ball := startball;
+          if ball = addballno then
+            ball := endball;
+          var basebodyarea := pinteger(classprop(instance, $74 + (ball * 4)))^;
+          if (basebodyarea <> 8) and (basebodyarea <> 1) then begin
+            newbodyarea := basebodyarea;
+          end;
+        end;
+      end;
+      addballbodyarea^ := newbodyarea;
+      pinteger(classprop(instance, $74 + (addballno*4)))^ := newbodyarea;
+    end;
+  end;
+  end;
+
+  thiscall(instance, ptr($46a640), []);
 end;
 
 procedure mydrawalllines(return, xballz, port, ballstate, bounds, vec: pointer; ballno: integer; center: pointer); stdcall;
@@ -2428,7 +2550,7 @@ begin
           paletteidx := 0;
           exit;
         end;
-        
+
         if paletteidx >= 1 then begin
           lnzpalettecache.AddOrSetValue(xballz, TPair<string, boolean>.Create(palettename, paletteisdefault));
         end else begin
@@ -2741,10 +2863,10 @@ begin
     localcrb.colorindex := base_color + 5;
     localcrb.outlinecolorindex := crb.colorindex;
 
-    colors[0] := base_color + 4;
-    colors[1] := base_color + 3;
-    colors[2] := base_color + 2;
-    colors[3] := base_color + 1;
+    colors[0] := base_color;
+    colors[1] := base_color;
+    colors[2] := base_color;
+    colors[3] := base_color;
     colors[4] := 14;
     colors[5] := 12;
     colors[6] := 10;
@@ -3370,10 +3492,15 @@ begin
   if (cpetzver = pvpetz4) then begin
     patchthiscall(ptr($45e5b0), @mydrawnose);
 
-    // Lnz cache for lines limit enlarging
-    lnzlinesbyballcache := TObjectDictionary<pointer, linesbyballarray>.Create([doOwnsValues]);
-    addlinespecpatch := patchthiscall(ptr($46ebd0), @myaddlinespec);
-    patchthiscall(ptr($4508c0), @mydrawalllines);
+    if expandlinelimit then begin
+      // Lnz cache for lines limit enlarging
+      lnzlinesbyballcache := TObjectDictionary<pointer, linesbyballarray>.Create([doOwnsValues]);
+      addlinespecpatch := patchthiscall(ptr($46ebd0), @myaddlinespec);
+      patchthiscall(ptr($046a540), @mybodyareadefaults);
+      patchthiscall(ptr($4508c0), @mydrawalllines);
+      copylnzpatch := patchthiscall(ptr($46ef00), @mycopylnz);
+      deslinezpatch := patchthiscall(ptr($469a50), @mydeslinez);
+    end;
 
     // make nuke toys menu option always on
     var d: array[0..1] of byte;
@@ -3504,38 +3631,6 @@ end;
 procedure ageall12(sender: TMyMenuItem);
 begin
   ageallinternal(12);
-end;
-
-procedure petmate(sender: tmymenuitem);
-var list: tobjectlist;
-  male, female: boolean;
-  t1: integer;
-  petsprite: tpetzpetsprite;
-begin
-  male := false;
-  female := false;
-  list := tobjectlist.create(false);
-  try
-    petzclassesman.findclassinstances(cnpetsprite, list);
-    for t1 := 0 to list.count - 1 do begin
-      petsprite := TPetzPetSprite(TPetzClassInstance(list[t1]).instance);
-      female := female or (petsprite.petinfo.isfemale { and (not petsprite.isdependent)});
-      male := male or ((not petsprite.petinfo.isfemale) {and (not petsprite.isdependent)});
-    end;
-
-    if (not female) or (not male) then showmessage('You don''t have both a female and a male pet out!') else begin
-      frmmate := tfrmmate.create(application);
-
-      for t1 := 0 to list.count - 1 do
-        if TPetzPetSprite(TPetzClassInstance(list[t1]).instance).petinfo.isfemale then
-          frmmate.lstFemales.items.AddObject(TPetzPetSprite(TPetzClassInstance(list[t1]).instance).name, pointer(TPetzPetSprite(TPetzClassInstance(list[t1]).instance).id)) else
-          frmmate.lstMales.items.AddObject(TPetzPetSprite(TPetzClassInstance(list[t1]).instance).name, pointer(TPetzPetSprite(TPetzClassInstance(list[t1]).instance).id));
-
-      frmmate.show;
-    end;
-  finally
-    list.free;
-  end;
 end;
 
 procedure petoptionshandler(sender: tmymenuitem);
@@ -3690,8 +3785,13 @@ begin
             petza.gamespeed := petza.fgamespeed;
           end;
 
+          if (petza.usefasterbatchbreeding) and (waitingforpettocomeout) then begin
+            unpatchbreedingcalls;
+            waitingforpettocomeout := false;
+          end;
+
           // Handle async batch breeding
-          if waitingforpettocomeout = true then begin
+          if (petza.usefasterbatchbreeding = false) and (waitingforpettocomeout = true) then begin
             if petza.fbreedingtimer = 10 then begin
              // We've waited long enough for the last offspring to come out, so
              // call the next one out
@@ -3710,7 +3810,6 @@ begin
              else begin
                 // If we have no more offspring to make,
                 // find the breeding popup and close it
-                var popupform: TForm;
                 for var I := 0 to Screen.FormCount-1 do begin
                   var frm := screen.Forms[i];
                   if fsModal in Frm.FormState then begin
@@ -3720,7 +3819,7 @@ begin
                 end;
                 lastmotherid := 0;
                 lastfather := nil;
-                petmate(nil);
+                petmate();
                 petza.showheart	:= oldshowheart;
                 petza.disablebreeding := olddisablebreeding;
                 unpatchbreedingcalls;

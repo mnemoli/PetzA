@@ -129,4 +129,12 @@ object frmMate: TfrmMate
     TabOrder = 7
     Text = 'OwnerNameEdit'
   end
+  object chkFasterBatching: TCheckBox
+    Left = 206
+    Top = 256
+    Width = 97
+    Height = 17
+    Caption = 'Faster batching'
+    TabOrder = 8
+  end
 end

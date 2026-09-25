@@ -4,7 +4,7 @@ object frmSettings: TfrmSettings
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsDialog
   Caption = 'PetzA Settings'
-  ClientHeight = 293
+  ClientHeight = 337
   ClientWidth = 401
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -16,11 +16,11 @@ object frmSettings: TfrmSettings
   OnCreate = FormCreate
   DesignSize = (
     401
-    293)
+    337)
   TextHeight = 13
   object Bevel1: TBevel
     Left = 0
-    Top = 252
+    Top = 296
     Width = 401
     Height = 41
     Align = alBottom
@@ -36,22 +36,22 @@ object frmSettings: TfrmSettings
     Caption = 'Camera picture format:'
   end
   object lblDefaultPalette: TLabel
-    Left = 224
-    Top = 211
+    Left = 231
+    Top = 243
     Width = 69
     Height = 13
     Caption = 'Default palette'
   end
   object lblClosetSpeed: TLabel
-    Left = 8
-    Top = 211
+    Left = 15
+    Top = 246
     Width = 61
     Height = 13
     Caption = 'Closet speed'
   end
   object btnCancel: TButton
     Left = 251
-    Top = 260
+    Top = 304
     Width = 67
     Height = 25
     Anchors = [akRight, akBottom]
@@ -59,10 +59,11 @@ object frmSettings: TfrmSettings
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 6
+    ExplicitTop = 278
   end
   object btnOk: TButton
     Left = 179
-    Top = 260
+    Top = 304
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
@@ -71,6 +72,7 @@ object frmSettings: TfrmSettings
     ModalResult = 1
     TabOrder = 5
     OnClick = btnOkClick
+    ExplicitTop = 278
   end
   object chkBrainSliders: TCheckBox
     Left = 8
@@ -84,13 +86,14 @@ object frmSettings: TfrmSettings
   end
   object Button3: TButton
     Left = 3
-    Top = 260
+    Top = 304
     Width = 169
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Reset hidden warning messages'
     TabOrder = 8
     OnClick = Button3Click
+    ExplicitTop = 278
   end
   object chkNameTags: TCheckBox
     Left = 8
@@ -102,19 +105,20 @@ object frmSettings: TfrmSettings
   end
   object btnHelp: TButton
     Left = 323
-    Top = 260
+    Top = 304
     Width = 68
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'Help'
     TabOrder = 7
     OnClick = btnHelpClick
+    ExplicitTop = 278
   end
   object GroupBox1: TGroupBox
     Left = 8
     Top = 90
     Width = 217
-    Height = 115
+    Height = 151
     Caption = 'Mating'
     TabOrder = 4
     object chkShowHeart: TCheckBox
@@ -155,8 +159,24 @@ object frmSettings: TfrmSettings
       Top = 85
       Width = 201
       Height = 17
-      Caption = 'Disable breeding'
+      Caption = 'Disable natural breeding'
       TabOrder = 4
+    end
+    object chkUseFasterBatching: TCheckBox
+      Left = 8
+      Top = 103
+      Width = 201
+      Height = 17
+      Caption = 'Faster batch breeding'
+      TabOrder = 5
+    end
+    object chkUnlinkScaleSCP: TCheckBox
+      Left = 8
+      Top = 122
+      Width = 145
+      Height = 17
+      Caption = 'Unlink scales and SCP'
+      TabOrder = 6
     end
   end
   object cmbCameraFormat: TComboBox
@@ -244,16 +264,16 @@ object frmSettings: TfrmSettings
     TabOrder = 15
   end
   object cmbDefaultPalette: TComboBox
-    Left = 232
-    Top = 225
+    Left = 231
+    Top = 260
     Width = 145
     Height = 21
     Style = csDropDownList
     TabOrder = 16
   end
   object chkClosetSpeed: TComboBox
-    Left = 16
-    Top = 225
+    Left = 15
+    Top = 260
     Width = 145
     Height = 21
     Style = csDropDownList
@@ -287,5 +307,13 @@ object frmSettings: TfrmSettings
     Caption = 'Enable big playscenes'
     TabOrder = 20
     OnClick = chkBigPlayscenesClick
+  end
+  object chkExpandLineLimit: TCheckBox
+    Left = 231
+    Top = 193
+    Width = 97
+    Height = 17
+    Caption = 'Expand line limit'
+    TabOrder = 21
   end
 end

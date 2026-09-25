@@ -39,6 +39,9 @@ type
     chkSameSex: TCheckBox;
     chkBigPlayscenes: TCheckBox;
     chkDisableBreeding: TCheckBox;
+    chkUseFasterBatching: TCheckBox;
+    chkUnlinkScaleSCP: TCheckBox;
+    chkExpandLineLimit: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -124,6 +127,7 @@ begin
   if (petza.unlockpalette <> chkunlockpalette.Checked) or
   (petza.enablepalettes <> chkEnablePalettes.Checked) or
   (petza.bigplayscenes <> chkBigPlayscenes.Checked) or
+  (petza.expandlinelimit <> chkExpandLineLimit.Checked) or
   (petza.defaultpalette <> cmbDefaultPalette.items[cmbdefaultpalette.ItemIndex]) then
     showmessage('Please restart Petz to apply your changes!');
   petza.unlockpalette := chkunlockpalette.Checked;
@@ -136,6 +140,8 @@ begin
   petza.samesex := chkSameSex.Checked;
   petza.bigplayscenes := chkBigPlayscenes.Checked;
   petza.disablebreeding := chkDisableBreeding.Checked;
+  petza.usefasterbatchbreeding := chkUseFasterBatching.Checked;
+  petza.expandlinelimit := chkExpandLineLimit.Checked;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -172,6 +178,9 @@ begin
   chkSameSex.Checked := petza.samesex;
   chkBigPlayscenes.Checked := petza.bigplayscenes;
   chkDisableBreeding.Checked := petza.disablebreeding;
+  chkUseFasterBatching.checked := petza.usefasterbatchbreeding;
+  chkUnlinkScaleScp.Checked := petza.unlinkscalescp;
+  chkExpandLineLimit.Checked := petza.expandlinelimit;
 
   chkshowheart.enabled := cpetzver in verBreeding;
   chkNameTags.Enabled := cpetzver in verNametags;
@@ -192,6 +201,9 @@ begin
   chkSameSex.Enabled := cpetzver = pvpetz4;
   chkBigPlayscenes.Enabled := cpetzver = pvpetz4;
   chkDisableBreeding.Enabled := cpetzver = pvpetz4;
+  chkUseFasterBatching.Enabled := cpetzver = pvpetz4;
+  chkUnlinkScaleScp.Enabled := cpetzver = pvpetz4;
+  chkExpandLineLimit.Enabled := cpetzver = pvpetz4;
 
   if petza.enablepalettes and (cpetzver = pvpetz4) then begin
     cmbDefaultPalette.AddItem('', nil);
