@@ -29,12 +29,11 @@
   SUPPORTS_COMPILETIME_MESSAGES    Compiler supports the MESSAGE directive
   SUPPORTS_DEFAULTPARAMS           Compiler supports default parameters (D4+/BCB4+)
   SUPPORTS_DEPRECATED              Compiler supports the deprecated directive (D6+/BCB6+)
-  SUPPORTS_DEPRECATED_DETAILS      Compiler supports additional text for the deprecated directive (D12+)
+  SUPPORTS_DEPRECATED_DETAILS      Compiler supports additional text for the deprecated directive (D2009+)
   SUPPORTS_DEPRECATED_WARNINGS     Compiler supports deprecated warnings (D6+/BCB6+)
-  SUPPORTS_DEPRECATED_TYPES        Compiler supports deprecated warnings following type declarations (??? TODO ???)
+  SUPPORTS_DEPRECATED_TYPES        Compiler supports deprecated warnings following type declarations (D2005+)
   SUPPORTS_ENUMVALUE               Compiler supports assigning ordinalities to values of enums (D6+/BCB6+)
   SUPPORTS_FOR_IN                  Compiler supports for in loops (D9+)
-  SUPPORTS_GENERICS                Compiler supports generic implementations (D11.NET, D12+)
   SUPPORTS_INLINE                  Compiler supports the inline directive (D9+/FPC)
   SUPPORTS_INT64                   Compiler supports the Int64 type (D4+/BCB4+)
   SUPPORTS_LONGWORD                Compiler supports the LongWord type (unsigned 32 bit) (D4+/BCB4+)
@@ -171,7 +170,7 @@
         {$DEFINE DELPHI_11}
       {$ENDIF}
       {$DEFINE COMPILER_11}
-    {$ELSE VER180} // RAD Studio 4, Delphi 2006
+    {$ELSE VER185} // RAD Studio 4, Delphi 2006
       {$IFDEF BCB}
         {$DEFINE BCB_10}
       {$ELSE}
@@ -340,7 +339,7 @@
       {$DEFINE DELPHI_28}
     {$ENDIF BCB}
     {$DEFINE COMPILER_28}
-  {$ENDIF VER340}
+  {$ENDIF VER350}
 
   {$IFDEF VER360} // RAD Studio 12 Athens
     {$IFDEF BCB}
@@ -350,7 +349,17 @@
       {$DEFINE DELPHI_29}
     {$ENDIF BCB}
     {$DEFINE COMPILER_29}
-  {$ENDIF VER340}
+  {$ENDIF VER360}
+
+  {$IFDEF VER370} // RAD Studio 13 Florence
+    {$IFDEF BCB}
+      {$DEFINE BCB_30}
+    {$ELSE}
+      {$DEFINE DELPHI}
+      {$DEFINE DELPHI_30}
+    {$ENDIF BCB}
+    {$DEFINE COMPILER_30}
+  {$ENDIF VER370}
 
   // CLR - DotNet
 
@@ -395,6 +404,7 @@
 
   // DELPHI_X_UP from DELPHI_X mappings
 
+  {$IFDEF DELPHI_30} {$DEFINE DELPHI_30_UP} {$ENDIF}
   {$IFDEF DELPHI_29} {$DEFINE DELPHI_29_UP} {$ENDIF}
   {$IFDEF DELPHI_28} {$DEFINE DELPHI_28_UP} {$ENDIF}
   {$IFDEF DELPHI_27} {$DEFINE DELPHI_27_UP} {$ENDIF}
@@ -426,6 +436,7 @@
 
   // DELPHI_X_UP from DELPHI_X_UP mappings
 
+  {$IFDEF DELPHI_30_UP} {$DEFINE DELPHI_29_UP} {$ENDIF}
   {$IFDEF DELPHI_29_UP} {$DEFINE DELPHI_28_UP} {$ENDIF}
   {$IFDEF DELPHI_28_UP} {$DEFINE DELPHI_27_UP} {$ENDIF}
   {$IFDEF DELPHI_27_UP} {$DEFINE DELPHI_26_UP} {$ENDIF}
@@ -456,6 +467,7 @@
 
   // BCB_X_UP from BCB_X mappings
 
+  {$IFDEF BCB_30} {$DEFINE BCB_30_UP} {$ENDIF}
   {$IFDEF BCB_29} {$DEFINE BCB_29_UP} {$ENDIF}
   {$IFDEF BCB_28} {$DEFINE BCB_28_UP} {$ENDIF}
   {$IFDEF BCB_27} {$DEFINE BCB_27_UP} {$ENDIF}
@@ -483,6 +495,7 @@
 
   // BCBX_UP from BCBX_UP mappings
 
+  {$IFDEF BCB_30_UP} {$DEFINE BCB_29_UP} {$ENDIF}
   {$IFDEF BCB_29_UP} {$DEFINE BCB_28_UP} {$ENDIF}
   {$IFDEF BCB_28_UP} {$DEFINE BCB_27_UP} {$ENDIF}
   {$IFDEF BCB_27_UP} {$DEFINE BCB_26_UP} {$ENDIF}
@@ -509,6 +522,7 @@
 
   // COMPILER_X_UP from COMPILER_X mappings
 
+  {$IFDEF COMPILER_30} {$DEFINE COMPILER_30_UP} {$ENDIF}
   {$IFDEF COMPILER_29} {$DEFINE COMPILER_29_UP} {$ENDIF}
   {$IFDEF COMPILER_28} {$DEFINE COMPILER_28_UP} {$ENDIF}
   {$IFDEF COMPILER_27} {$DEFINE COMPILER_27_UP} {$ENDIF}
@@ -541,6 +555,7 @@
 
   // COMPIlER_X_UP from COMPILER_X_UP mappings
 
+  {$IFDEF COMPILER_30_UP} {$DEFINE COMPILER_29_UP} {$ENDIF}
   {$IFDEF COMPILER_29_UP} {$DEFINE COMPILER_28_UP} {$ENDIF}
   {$IFDEF COMPILER_28_UP} {$DEFINE COMPILER_27_UP} {$ENDIF}
   {$IFDEF COMPILER_27_UP} {$DEFINE COMPILER_26_UP} {$ENDIF}
@@ -572,17 +587,17 @@
 
   // Map COMPILER_X_UP to friendly feature names
 
-  {$IFDEF COMPILER_4_UP}
+  {$IFDEF COMPILER_4_UP} // Delphi 4.
     {$DEFINE SUPPORTS_DEFAULTPARAMS}
     {$DEFINE SUPPORTS_INT64}
     {$DEFINE SUPPORTS_LONGWORD}
     {$DEFINE SUPPORTS_OVERLOAD}
   {$ENDIF COMPILER_4_UP}
 
-  {$IFDEF COMPILER_5_UP}
+  {$IFDEF COMPILER_5_UP} // Delphi 5.
   {$ENDIF COMPILER_5_UP}
 
-  {$IFDEF COMPILER_6_UP}
+  {$IFDEF COMPILER_6_UP} // Delphi 6.
     {$DEFINE HAS_UNIT_RTLCONSTS}
     {$DEFINE HAS_UNIT_TYPES}
     {$DEFINE HAS_UNIT_VARIANTS}
@@ -594,60 +609,85 @@
     {$DEFINE SUPPORTS_VARARGS}
   {$ENDIF COMPILER_6_UP}
 
-  {$IFDEF COMPILER_7_UP}
+  {$IFDEF COMPILER_7_UP} // Delphi 7.
   {$ENDIF COMPILER_7_UP}
 
-  {$IFDEF COMPILER_9_UP}
+  {$IFDEF COMPILER_9_UP} // Delphi 2005.
+    {$DEFINE CLASS_HELPER}
     {$DEFINE EXPERIMENTAL_HINTS}
     {$DEFINE SUPPORTS_DEPRECATED_TYPES}
     {$DEFINE SUPPORTS_FOR_IN}
     {$DEFINE SUPPORTS_INLINE}
     {$DEFINE SUPPORTS_UINT64}
+    {$DEFINE TStrings_LineBreak} // TStrings.LineBreak property available?
   {$ENDIF COMPILER_9_UP}
 
-  {$IFDEF COMPILER_10_UP}
+  {$IFDEF COMPILER_10_UP} // Delphi 2006.
+    {$DEFINE ADVANCED_RECORD}
   {$ENDIF COMPILER_10_UP}
 
-  {$IFDEF COMPILER_11_UP}
+  {$IFDEF COMPILER_11_UP} // Delphi 2007.
   {$ENDIF COMPILER_11_UP}
 
-  {$IFDEF COMPILER_12_UP}
+  {$IFDEF COMPILER_12_UP} // Delphi 2009 and later.
+    {$DEFINE GENERICS}
     {$DEFINE HAS_UNIT_ANSISTRINGS}
     {$DEFINE HAS_UNIT_PNGIMAGE}
     {$DEFINE SUPPORTS_DEPRECATED_DETAILS}
-    {$DEFINE SUPPORTS_GENERICS}
     {$IFNDEF CLR}
       {$DEFINE SUPPORTS_UNICODE_STRING}
     {$ENDIF CLR}
+    {$DEFINE TBitmap_AlphaFormat}
+    {$DEFINE TBitmap_SetSize}
   {$ENDIF COMPILER_12_UP}
 
-  {$IFDEF COMPILER_15_UP}
+  {$IFDEF COMPILER_15_UP} // Delphi XE and later.
+    {$DEFINE REGULAREXPRESSIONS_PAS}
+    {$DEFINE TTHREADID} // System.TThreadID type available?
+    {$DEFINE WINSOCK2_UNIT}
   {$ENDIF COMPILER_15_UP}
 
-  {$IFDEF COMPILER_16_UP}
+  {$IFDEF COMPILER_16_UP} // Delphi XE2 and later.
     {$DEFINE HAS_UNITSCOPE}
     {$DEFINE HAS_UNIT_SYSTEM_UITYPES}
     {$DEFINE SUPPORT_COFF}
+    {$DEFINE TRect_Height}
+    {$DEFINE TRect_Width}
   {$ENDIF COMPILER_16_UP}
 
-  {$IFDEF COMPILER_17_UP}
+  {$IFDEF COMPILER_17_UP} // Delphi XE3 and later.
     {$DEFINE HAS_UNIT_SYSTEM_ACTIONS}
   {$ENDIF COMPILER_17_UP}
 
-  {$IFDEF COMPILER_18_UP}
+  {$IFDEF COMPILER_18_UP} // Delphi XE4 and later
+    {$DEFINE ANSISTRINGS_STRLCOMP} // AnsiStrings.StrLComp() available?
+    {$DEFINE ANSISTRINGS_STRSCAN} //  AnsiStrings.StrScan()  available?
     {$DEFINE DEPRECATED_SYSUTILS_ANSISTRINGS}
   {$ENDIF COMPILER_18_UP}
 
-  { Test for 64 bit compiler. }
-  {$IFDEF CPUX64}
-    {$DEFINE CPU64} // Compiler target is 64 bit, rather than 32 bit.
-  {$ELSE CPUX64}
-    { Assume 32-bit compiler by default. }
-    {$DEFINE CPUX86} // CPU is an Intel 386 or later on any platform.
-    {$DEFINE CPU32} // Compiler target is 32 bit, rather than 64 bit.
-  {$ENDIF CPUX64}
+  {$IFNDEF CPUX86} // New in Delphi XE2.
+    {$IFDEF CPU386}
+      {$IFNDEF CPUX64}
+        {$IFNDEF CPU64BITS}
+          {$DEFINE CPUX86} // Define for older Delphis.
+        {$ENDIF}
+      {$ENDIF}
+    {$ENDIF}
+  {$ENDIF}
 
-{$ENDIF FPC}
+  {$IFNDEF CPU32BITS} // New in XE8.
+    {$IFDEF CPUX86}
+      {$DEFINE CPU32BITS} // Define for older Delphis.
+    {$ENDIF}
+  {$ENDIF}
+
+  {$IFNDEF CPU64BITS} // New in XE8.
+    {$IFDEF CPUX64}
+      {$DEFINE CPU64BITS} // Define for older Delphis.
+    {$ENDIF}
+  {$ENDIF}
+
+{$ENDIF ~FPC}
 
 //------------------------------------------------------------------------------
 // General Compiler Settings

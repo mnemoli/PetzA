@@ -139,6 +139,7 @@ type
     fusefasterbatchbreeding: boolean;
     funlinkscalescp: boolean;
     fexpandlinelimit: boolean;
+    fdrawnosecolours: boolean;
 
     procedure patchnodiaper;
     procedure patchreacttocamera(value: bool);
@@ -171,6 +172,7 @@ type
     procedure setsamesex(const Value: boolean);
     procedure setdisablebreeding(const Value: boolean);
     procedure setunlinkscalescp(const Value: boolean);
+    procedure setdrawnosecolours(const Value: boolean);
 
   public
     brains: TObjectList;
@@ -222,6 +224,7 @@ type
     property bigplayscenes: boolean read fbigplayscenes write fbigplayscenes;
     property unlinkscalescp: boolean read funlinkscalescp write setunlinkscalescp;
     property expandlinelimit: boolean read fexpandlinelimit write fexpandlinelimit;
+    property drawnosecolours: boolean read fdrawnosecolours write setdrawnosecolours;
   end;
 
 procedure petz2windowcreate(injectpoint: pointer; eax, ecx, edx, esi: longword);
@@ -234,7 +237,7 @@ var petza: tpetza;
   streamoutlnzpatch,
   normalcirclepatch, clipcirclepatch, paintballspatch, initareaeditorpatch,
   popupwndprocpatch, movemywindowpatch,
-  addlinespecpatch, copylnzpatch, unlinkscalescppatch: TPatchThiscall;
+  addlinespecpatch, copylnzpatch, unlinkscalescppatch, drawnosepatch: TPatchThiscall;
 var lnzpalettecache: TDictionary<pointer, TPair<string, boolean>>;
 var texturequadrantscache: TDictionary<pointer, TDictionary<integer, bool>>;
 // array of balls - array of lines per ball
@@ -478,6 +481,98 @@ begin
   end;
 end;
 
+procedure mydrawnose(return, port: pointer; crb: ppetzcirclerenderblock); stdcall;
+begin
+  var localcrb: tpetzcirclerenderblock;
+  fillchar(localcrb, sizeof(tpetzcirclerenderblock), $0);
+  localcrb.outlinetype := -1;
+  localcrb.rect := crb.rect;
+
+  var colors: array[0..6] of integer;
+
+  if (crb.colorindex = 0) or (crb.colorindex < 10) or (crb.colorindex > 199) then begin
+
+    localcrb.colorindex := 244;
+    localcrb.outlinecolorindex := 244;
+
+    colors[0] := 27;
+    colors[1] := 20;
+    colors[2] := 19;
+    colors[3] := 17;
+    colors[4] := 14;
+    colors[5] := 12;
+    colors[6] := 10;
+
+  end else begin
+    var base_color: integer;
+
+
+    if (crb.colorindex < 180) or (crb.colorindex > 189) then begin
+      base_color := floor(crb.colorindex / 10) * 10;
+      localcrb.colorindex := base_color + 5;
+    end else begin
+      case crb.colorindex of
+      180: base_color := 181;
+      183: base_color := 181;
+      185: base_color := 181;
+      187: base_color := 182;
+      188: base_color := 185;
+      end;
+      localcrb.colorindex := base_color;
+    end;
+    localcrb.outlinecolorindex := crb.colorindex;
+
+    colors[0] := base_color;
+    colors[1] := base_color;
+    colors[2] := base_color;
+    colors[3] := base_color;
+    colors[4] := 14;
+    colors[5] := 12;
+    colors[6] := 10;
+  end;
+
+    //draw base nose
+    thiscall(port, ptr($45e750), [cardinal(@localcrb)]);
+
+    var shift10 := trunc(localcrb.rect.width / -10);
+    localcrb.rect.SetLocation(localcrb.rect.left + shift10, localcrb.rect.top + shift10);
+    var shift5 := trunc(localcrb.rect.width / -5);
+    localcrb.rect.left := localcrb.rect.left - shift5;
+    localcrb.rect.right := localcrb.rect.right + shift5;
+    localcrb.rect.top := localcrb.rect.top - shift5;
+    localcrb.rect.bottom := localcrb.rect.bottom + shift5;
+
+    for var i := 0 to 6 do begin
+      shift10 := trunc(localcrb.rect.width / -12);
+      shift5 := trunc(localcrb.rect.width / -6);
+      localcrb.rect.SetLocation(localcrb.rect.left + shift10, localcrb.rect.top + shift10);
+
+      localcrb.rect.left := localcrb.rect.left - shift5;
+      localcrb.rect.right := localcrb.rect.right + shift5;
+      localcrb.rect.top := localcrb.rect.top - shift5;
+      localcrb.rect.bottom := localcrb.rect.bottom + shift5;
+
+      localcrb.colorindex := colors[i];
+      localcrb.outlinecolorindex := colors[i];
+      if localcrb.rect.Width > 0 then begin
+        thiscall(port, ptr($45e750), [cardinal(@localcrb)]);
+      end;
+    end;
+
+end;
+
+procedure TPetza.setdrawnosecolours(const Value: boolean);
+begin
+if fdrawnosecolours <> value then begin
+  if value then begin
+    drawnosepatch := patchthiscall(ptr($45e5b0), @mydrawnose);
+  end else begin
+    drawnosepatch.restore;
+  end;
+end;
+  fdrawnosecolours := Value;
+end;
+
 procedure TPetza.setsamesex(const Value: boolean);
   var data: array[0..5] of byte;
 begin
@@ -687,6 +782,8 @@ begin
         unlinkscalescp := reg.ReadBool('UnlinkScaleScp');
       if reg.ValueExists('ExpandLineLimit') then
         expandlinelimit := reg.ReadBool('ExpandLineLimit');
+      if reg.ValueExists('DrawNoseColours') then
+        drawnosecolours := reg.ReadBool('DrawNoseColours');
 
       pre := uppercase(GetEnumName(TypeInfo(tpetzvername), integer(cpetzver)));
 
@@ -741,6 +838,7 @@ begin
       reg.WriteBool('UseFasterBatchBreeding', usefasterbatchbreeding);
       reg.WriteBool('UnlinkScaleScp', unlinkscalescp);
       reg.WriteBool('ExpandLineLimit', expandlinelimit);
+      reg.WriteBool('DrawNoseColours', drawnosecolours);
     end;
   finally
     reg.free;
@@ -2836,72 +2934,6 @@ begin
     drawstackedpatch.callorigproc(sprite, [cardinal(drawport), cardinal(stackdraw)]);
 end;
 
-procedure mydrawnose(return, port: pointer; crb: ppetzcirclerenderblock); stdcall;
-begin
-  var localcrb: tpetzcirclerenderblock;
-  fillchar(localcrb, sizeof(tpetzcirclerenderblock), $0);
-  localcrb.outlinetype := -1;
-  localcrb.rect := crb.rect;
-
-  var colors: array[0..6] of integer;
-
-  if (crb.colorindex = 0) or (crb.colorindex < 10) or (crb.colorindex > 199) then begin
-
-    localcrb.colorindex := 244;
-    localcrb.outlinecolorindex := 244;
-
-    colors[0] := 27;
-    colors[1] := 20;
-    colors[2] := 19;
-    colors[3] := 17;
-    colors[4] := 14;
-    colors[5] := 12;
-    colors[6] := 10;
-
-  end else begin
-    var base_color := floor(crb.colorindex / 10) * 10;
-    localcrb.colorindex := base_color + 5;
-    localcrb.outlinecolorindex := crb.colorindex;
-
-    colors[0] := base_color;
-    colors[1] := base_color;
-    colors[2] := base_color;
-    colors[3] := base_color;
-    colors[4] := 14;
-    colors[5] := 12;
-    colors[6] := 10;
-  end;
-
-    //draw base nose
-    thiscall(port, ptr($45e750), [cardinal(@localcrb)]);
-
-    var shift10 := trunc(localcrb.rect.width / -10);
-    localcrb.rect.SetLocation(localcrb.rect.left + shift10, localcrb.rect.top + shift10);
-    var shift5 := trunc(localcrb.rect.width / -5);
-    localcrb.rect.left := localcrb.rect.left - shift5;
-    localcrb.rect.right := localcrb.rect.right + shift5;
-    localcrb.rect.top := localcrb.rect.top - shift5;
-    localcrb.rect.bottom := localcrb.rect.bottom + shift5;
-
-    for var i := 0 to 6 do begin
-      shift10 := trunc(localcrb.rect.width / -12);
-      shift5 := trunc(localcrb.rect.width / -6);
-      localcrb.rect.SetLocation(localcrb.rect.left + shift10, localcrb.rect.top + shift10);
-
-      localcrb.rect.left := localcrb.rect.left - shift5;
-      localcrb.rect.right := localcrb.rect.right + shift5;
-      localcrb.rect.top := localcrb.rect.top - shift5;
-      localcrb.rect.bottom := localcrb.rect.bottom + shift5;
-
-      localcrb.colorindex := colors[i];
-      localcrb.outlinecolorindex := colors[i];
-      if localcrb.rect.Width > 0 then begin
-        thiscall(port, ptr($45e750), [cardinal(@localcrb)]);
-      end;
-    end;
-
-end;
-
 procedure mydisplayballzframe(port, bounds, ballstate: pointer); stdcall;
 var xballz: pointer;
 var thisdrawport: TPetzDrawport;
@@ -3490,7 +3522,6 @@ begin
   end;
 
   if (cpetzver = pvpetz4) then begin
-    patchthiscall(ptr($45e5b0), @mydrawnose);
 
     if expandlinelimit then begin
       // Lnz cache for lines limit enlarging

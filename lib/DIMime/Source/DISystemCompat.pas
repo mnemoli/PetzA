@@ -1,16 +1,15 @@
 {-------------------------------------------------------------------------------
  
- Copyright (c) 1999-2023 Ralf Junker, Yunqa
+ Copyright (c) 1999-2025 Ralf Junker, Yunqa
  Internet: https://www.yunqa.de
  E-Mail:   delphi@yunqa.de
 
 -------------------------------------------------------------------------------}
+{$I DICompilers.inc}
 
 unit DISystemCompat;
 
 interface
-
-{$I DICompilers.inc}
 
 {$IFDEF FPC}
 
@@ -77,33 +76,15 @@ type
   PUCS4Char = ^UCS4Char;
   UCS4String = array of UCS4Char;
 
-function UnicodeToUtf8(
-  Dest: PAnsiChar;
-  Source: PWideChar;
-  MaxBytes: Integer): Integer; overload; {$IFDEF SUPPORTS_DEPRECATED}deprecated; {$ENDIF}
+function UnicodeToUtf8(Dest: PAnsiChar; Source: PWideChar; MaxBytes: Integer): Integer; overload; {$IFDEF SUPPORTS_DEPRECATED}deprecated; {$ENDIF}
+function UnicodeToUtf8(Dest: PAnsiChar; MaxDestBytes: Cardinal; Source: PWideChar; SourceChars: Cardinal): Cardinal; overload;
 
-function UnicodeToUtf8(
-  Dest: PAnsiChar;
-  MaxDestBytes: Cardinal;
-  Source: PWideChar;
-  SourceChars: Cardinal): Cardinal; overload;
+function Utf8Decode(const s: Utf8String): WideString; {$IFDEF SUPPORTS_DEPRECATED}deprecated; {$ENDIF}
 
-function Utf8Decode(
-  const s: Utf8String): WideString; {$IFDEF SUPPORTS_DEPRECATED}deprecated; {$ENDIF}
+function Utf8Encode(const Ws: WideString): Utf8String;
 
-function Utf8Encode(
-  const WS: WideString): Utf8String;
-
-function Utf8ToUnicode(
-  Dest: PWideChar;
-  Source: PChar;
-  MaxChars: Integer): Integer; overload; {$IFDEF SUPPORTS_DEPRECATED}deprecated; {$ENDIF}
-
-function Utf8ToUnicode(
-  Dest: PWideChar;
-  MaxDestChars: Cardinal;
-  Source: PChar;
-  SourceBytes: Cardinal): Cardinal; overload;
+function Utf8ToUnicode(Dest: PWideChar; Source: PChar; MaxChars: Integer): Integer; overload; {$IFDEF SUPPORTS_DEPRECATED}deprecated; {$ENDIF}
+function Utf8ToUnicode(Dest: PWideChar; MaxDestChars: Cardinal; Source: PChar; SourceBytes: Cardinal): Cardinal; overload;
 
 {$ENDIF ~COMPILER_6_UP}
 
@@ -167,22 +148,16 @@ type
 
   NativeUInt = Cardinal;
 
+  {$IFDEF GENERICS}
+  TArray<t> = array of t;
+  {$ENDIF GENERICS}
+
   {$IFDEF MSWINDOWS}
 const
-
   INVALID_FILE_ATTRIBUTES = Cardinal($FFFFFFFF);
-  {$ENDIF MSWINDOWS]
+  {$ENDIF MSWINDOWS}
 
-    { Converts a UCS-4 encoded string to a Unicode string.
-
-      Call UCS4StringToUnicodeString to convert a UCS-4 encoded string to Unicode.
-      S is a string that contains UCS-4 encoded characters. The result of the
-      function is the corresponding Unicode (UTF-16) string value.
-
-      <<name>> assumes that s contains a terminating null character and
-      converts ##Length(s) - 1## characters. }
-function UCS4StringToUnicodeString(
-  const s: UCS4String): UnicodeString;
+function UCS4StringToUnicodeString(const s: UCS4String): UnicodeString;
 
 {$ENDIF ~COMPILER_14_UP}
 
@@ -194,14 +169,11 @@ type
 
   PNativeUInt = ^NativeUInt;
 
-function IsRelativePath(
-  const Path: string): Boolean; {$IFDEF SUPPORTS_INLINE}inline; {$ENDIF}
+function IsRelativePath(const Path: string): Boolean; {$IFDEF SUPPORTS_INLINE}inline; {$ENDIF}
 
-function IsRelativePathA(
-  const Path: RawByteString): Boolean;
+function IsRelativePathA(const Path: RawByteString): Boolean;
 
-function IsRelativePathW(
-  const Path: UnicodeString): Boolean;
+function IsRelativePathW(const Path: UnicodeString): Boolean;
 
 {$ENDIF ~COMPILER_15_UP}
 
@@ -214,55 +186,44 @@ type
 
   MarshaledAString = PAnsiChar;
 
-function AtomicIncrement(
-  var Target: Cardinal): Cardinal; overload;
+function AtomicIncrement(var Target: Cardinal): Cardinal; overload;
+function AtomicIncrement(var Target: Cardinal; const Increment: Cardinal): Cardinal; overload;
 
-function AtomicIncrement(
-  var Target: Cardinal;
-  const Increment: Cardinal): Cardinal; overload;
-
-function AtomicIncrement(
-  var Target: Integer): Integer; overload;
-
-function AtomicIncrement(
-  var Target: Integer;
-  const Increment: Integer): Integer; overload;
+function AtomicIncrement(var Target: Integer): Integer; overload;
+function AtomicIncrement(var Target: Integer; const Increment: Integer): Integer; overload;
 
 {$IFDEF AtomicNativeInt}
-
-function AtomicIncrement(
-  var Target: NativeInt): NativeInt; overload;
+function AtomicIncrement(var Target: NativeInt): NativeInt; overload;
+function AtomicIncrement(var Target: NativeInt; const Increment: NativeInt): NativeInt; overload;
 {$ENDIF AtomicNativeInt}
 
-function AtomicDecrement(
-  var Target: Integer): Integer; overload;
+function AtomicDecrement(var Target: Integer): Integer; overload;
+function AtomicDecrement(var Target: Integer; const Decrement: Integer): Integer; overload;
 
-function AtomicDecrement(
-  var Target: Integer;
-  Decrement: Integer): Integer; overload;
-
-function AtomicDecrement(
-  var Target: Cardinal): Cardinal; overload;
-
-function AtomicDecrement(
-  var Target: Cardinal;
-  Decrement: Cardinal): Cardinal; overload;
+function AtomicDecrement(var Target: Cardinal): Cardinal; overload;
+function AtomicDecrement(var Target: Cardinal; const Decrement: Cardinal): Cardinal; overload;
 
 {$IFDEF AtomicNativeInt}
+function AtomicDecrement(var Target: NativeInt): NativeInt; overload;
+function AtomicDecrement(var Target: NativeInt; const Decrement: NativeInt): NativeInt; overload;
+{$ENDIF AtomicNativeInt}
 
-function AtomicDecrement(
-  var Target: NativeInt): NativeInt; overload;
+function AtomicCmpExchange(var Target: Cardinal; const NewValue, Comparand: Cardinal): Cardinal; overload;
+function AtomicCmpExchange(var Target: Integer; const NewValue, Comparand: Integer): Integer; overload;
+
+{$IFDEF AtomicNativeInt}
+function AtomicCmpExchange(var Target: NativeInt; const NewValue, Comparand: NativeInt): NativeInt; overload;
 {$ENDIF AtomicNativeInt}
 
 {$ENDIF ~COMPILER_17_UP}
 
-{$IFNDEF COMPILER_24}
+{$IFNDEF COMPILER_24_UP}
 
 type
   Utf8Char = AnsiChar;
   PUtf8Char = PAnsiChar;
 
-  {$ENDIF ~COMPILER_24}
+  {$ENDIF ~COMPILER_24_UP}
 
   {$ENDIF FPC}
 
@@ -622,13 +583,18 @@ asm
   MOV EAX, 1
   LOCK XADD [ECX], EAX
   INC EAX
-  {$ENDIF CPUX86}
+  {$ELSE CPUX86}
 
   {$IFDEF CPUX64}
   MOV EAX, 1
   LOCK XADD [RCX], EAX
   INC EAX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
   {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
 end;
 
 function AtomicIncrement(var Target: Cardinal; const Increment: Cardinal): Cardinal; overload;
@@ -638,13 +604,18 @@ asm
   MOV EAX, EDX
   LOCK XADD [ECX], EAX
   ADD EAX, EDX
-  {$ENDIF CPUX86}
+  {$ELSE CPUX86}
 
   {$IFDEF CPUX64}
   MOV EAX, EDX
   LOCK XADD [RCX], EAX
   ADD EAX, EDX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
   {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
 end;
 
 function AtomicIncrement(var Target: Integer): Integer; overload;
@@ -654,13 +625,18 @@ asm
   MOV EAX, 1
   LOCK XADD [ECX], EAX
   INC EAX
-  {$ENDIF CPUX86}
+  {$ELSE CPUX86}
 
   {$IFDEF CPUX64}
   MOV  EAX, 1
   LOCK XADD [RCX], EAX
   INC EAX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
   {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
 end;
 
 function AtomicIncrement(var Target: Integer; const Increment: Integer): Integer; overload;
@@ -670,13 +646,18 @@ asm
   MOV EAX, EDX
   LOCK XADD [ECX], EAX
   ADD EAX, EDX
-  {$ENDIF CPUX86}
+  {$ELSE CPUX86}
 
   {$IFDEF CPUX64}
   MOV EAX, EDX
   LOCK XADD [RCX], EAX
   ADD EAX, EDX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
   {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
 end;
 
 {$IFDEF AtomicNativeInt}
@@ -687,14 +668,40 @@ asm
   MOV ECX, EAX
   MOV EAX, 1
   LOCK XADD [ECX], EAX
-  ADD EAX, EDX
-  {$ENDIF CPUX86}
+  INC EAX
+  {$ELSE CPUX86}
 
   {$IFDEF CPUX64}
   MOV RAX, 1
   LOCK XADD [RCX], RAX
   INC RAX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
   {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
+end;
+
+function AtomicIncrement(var Target: NativeInt; const Increment: NativeInt): NativeInt;
+asm
+  {$IFDEF CPUX86}
+  MOV ECX, EAX
+  MOV EAX, EDX
+  LOCK XADD [ECX], EAX
+  ADD EAX, EDX
+  {$ELSE CPUX86}
+
+  {$IFDEF CPUX64}
+  MOV RAX, RDX
+  LOCK XADD [RCX], RAX
+  ADD RAX, RDX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
+  {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
 end;
 
 {$ENDIF AtomicNativeInt}
@@ -706,16 +713,21 @@ asm
   MOV EAX, -1
   LOCK XADD [ECX], EAX
   DEC EAX
-  {$ENDIF CPUX86}
+  {$ELSE CPUX86}
 
   {$IFDEF CPUX64}
   MOV EAX, -1
   LOCK XADD [RCX], EAX
   DEC EAX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
   {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
 end;
 
-function AtomicDecrement(var Target: Integer; Decrement: Integer): Integer; overload;
+function AtomicDecrement(var Target: Integer; const Decrement: Integer): Integer; overload;
 asm
   {$IFDEF CPUX86}
   MOV ECX, EAX
@@ -723,14 +735,19 @@ asm
   MOV EAX, EDX
   LOCK XADD [ECX], EAX
   ADD EAX, EDX
-  {$ENDIF CPUX86}
+  {$ELSE CPUX86}
 
   {$IFDEF CPUX64}
   NEG EDX
   MOV EAX, EDX
   LOCK XADD [RCX], EAX
   ADD EAX, EDX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
   {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
 end;
 
 function AtomicDecrement(var Target: Cardinal): Cardinal; overload;
@@ -740,16 +757,21 @@ asm
   MOV EAX, -1
   LOCK XADD [ECX], EAX
   DEC EAX
-  {$ENDIF CPUX86}
+  {$ELSE CPUX86}
 
   {$IFDEF CPUX64}
   MOV EAX, -1
   LOCK XADD [RCX], EAX
   DEC EAX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
   {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
 end;
 
-function AtomicDecrement(var Target: Cardinal; Decrement: Cardinal): Cardinal; overload;
+function AtomicDecrement(var Target: Cardinal; const Decrement: Cardinal): Cardinal; overload;
 asm
   {$IFDEF CPUX86}
   MOV ECX, EAX
@@ -757,14 +779,19 @@ asm
   MOV EAX, EDX
   LOCK XADD [ECX], EAX
   ADD EAX, EDX
-  {$ENDIF CPUX86}
+  {$ELSE CPUX86}
 
   {$IFDEF CPUX64}
   NEG EDX
   MOV EAX, EDX
   LOCK XADD [RCX], EAX
   ADD EAX, EDX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
   {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
 end;
 
 {$IFDEF AtomicNativeInt}
@@ -775,17 +802,103 @@ asm
   MOV ECX, EAX
   MOV EAX, -1
   LOCK XADD [ECX], EAX
-  ADD EAX, EDX
-  {$ENDIF CPUX86}
+  DEC EAX
+  {$ELSE CPUX86}
 
   {$IFDEF CPUX64}
   MOV RAX, -1
   LOCK XADD [RCX], RAX
-  INC RAX
+  DEC RAX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
   {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
+end;
+
+function AtomicDecrement(var Target: NativeInt; const Decrement: NativeInt): NativeInt;
+asm
+  {$IFDEF CPUX86}
+  MOV ECX, EAX
+  NEG EDX
+  MOV EAX, EDX
+  LOCK XADD [ECX], EAX
+  ADD EAX, EDX
+  {$ELSE CPUX86}
+
+  {$IFDEF CPUX64}
+  NEG RDX
+  MOV RAX, RDX
+  LOCK XADD [RCX], RAX
+  ADD RAX, RDX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
+  {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
 end;
 
 {$ENDIF AtomicNativeInt}
+
+function AtomicCmpExchange(var Target: Cardinal; const NewValue, Comparand: Cardinal): Cardinal;
+asm
+  {$IFDEF CPUX86}
+  XCHG EAX, ECX
+  LOCK CMPXCHG [ECX], EDX
+  {$ELSE CPUX86}
+
+  {$IFDEF CPUX64}
+  MOV  RAX, R8
+  LOCK CMPXCHG [RCX], EDX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
+  {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
+end;
+
+function AtomicCmpExchange(var Target: Integer; const NewValue, Comparand: Integer): Integer;
+asm
+  {$IFDEF CPUX86}
+  XCHG EAX, ECX
+  LOCK CMPXCHG [ECX], EDX
+  {$ELSE CPUX86}
+
+  {$IFDEF CPUX64}
+  MOV  RAX, R8
+  LOCK CMPXCHG [RCX], EDX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
+  {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
+end;
+
+{$IFDEF AtomicNativeInt}
+
+function AtomicCmpExchange(var Target: NativeInt; const NewValue, Comparand: NativeInt): NativeInt;
+asm
+  {$IFDEF CPUX86}
+  XCHG EAX, ECX
+  LOCK CMPXCHG [ECX], EDX
+  {$ELSE CPUX86}
+
+  {$IFDEF CPUX64}
+  MOV  RAX, R8
+  LOCK CMPXCHG [RCX], RDX
+  {$ELSE CPUX64}
+
+  {$Message Fatal 'CPU not supported'};
+
+  {$ENDIF CPUX64}
+  {$ENDIF CPUX86}
+end;
+
+{$ENDIF AtomitNativeInt}
 
 {$ENDIF ~COMPILER_17_UP}
 
