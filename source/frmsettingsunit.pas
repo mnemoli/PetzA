@@ -42,6 +42,7 @@ type
     chkUseFasterBatching: TCheckBox;
     chkUnlinkScaleSCP: TCheckBox;
     chkExpandLineLimit: TCheckBox;
+    chkDrawNoseColours: TCheckBox;
     procedure Button3Click(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure btnHelpClick(Sender: TObject);
@@ -142,6 +143,8 @@ begin
   petza.disablebreeding := chkDisableBreeding.Checked;
   petza.usefasterbatchbreeding := chkUseFasterBatching.Checked;
   petza.expandlinelimit := chkExpandLineLimit.Checked;
+  petza.drawnosecolours := chkDrawNoseColours.Checked;
+  petza.unlinkscalescp := chkUnlinkScalescp.Checked;
 end;
 
 procedure TfrmSettings.btnHelpClick(Sender: TObject);
@@ -181,6 +184,7 @@ begin
   chkUseFasterBatching.checked := petza.usefasterbatchbreeding;
   chkUnlinkScaleScp.Checked := petza.unlinkscalescp;
   chkExpandLineLimit.Checked := petza.expandlinelimit;
+  chkDrawNoseColours.Checked := petza.drawnosecolours;
 
   chkshowheart.enabled := cpetzver in verBreeding;
   chkNameTags.Enabled := cpetzver in verNametags;
@@ -204,6 +208,7 @@ begin
   chkUseFasterBatching.Enabled := cpetzver = pvpetz4;
   chkUnlinkScaleScp.Enabled := cpetzver = pvpetz4;
   chkExpandLineLimit.Enabled := cpetzver = pvpetz4;
+  chkdrawnosecolours.Enabled := cpetzver = pvpetz4;
 
   if petza.enablepalettes and (cpetzver = pvpetz4) then begin
     cmbDefaultPalette.AddItem('', nil);

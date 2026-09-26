@@ -506,19 +506,19 @@ begin
   end else begin
     var base_color: integer;
 
-
     if (crb.colorindex < 180) or (crb.colorindex > 189) then begin
       base_color := floor(crb.colorindex / 10) * 10;
       localcrb.colorindex := base_color + 5;
     end else begin
+      localcrb.colorindex := crb.colorindex;
       case crb.colorindex of
       180: base_color := 181;
       183: base_color := 181;
       185: base_color := 181;
       187: base_color := 182;
       188: base_color := 185;
+      else base_color := 180;
       end;
-      localcrb.colorindex := base_color;
     end;
     localcrb.outlinecolorindex := crb.colorindex;
 
