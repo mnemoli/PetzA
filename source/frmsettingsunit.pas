@@ -212,19 +212,31 @@ begin
 
   if petza.enablepalettes and (cpetzver = pvpetz4) then begin
     cmbDefaultPalette.AddItem('', nil);
-    var palettefiles := TDirectory.GetFiles(extractfilepath(ParamStr(0)) + 'resource\palettes', '*.bmp', TSearchOption.soAllDirectories);
-    for var k in palettefiles do begin
-      var palettename := tpath.GetFileNameWithoutExtension(extractfilename(k));
-      if palettename = 'petz' then
-        continue;
-      var path := extractfilename(extractfiledir(k));
-      if path <> 'palettes' then
-        path := path + '/' + palettename
-      else
-        path := palettename;
-      cmbDefaultPalette.AddItem(path, nil);
+    try
+      var palettefiles := TDirectory.GetFiles(extractfilepath(ParamStr(0)) + 'resource\palettes', '*.bmp', TSearchOption.soAllDirectories);
+
+      for var k in palettefiles do begin
+        var palettename := tpath.GetFileNameWithoutExtension(extractfilename(k));
+        if palettename = 'petz' then
+          continue;
+        var path := extractfilename(extractfiledir(k));
+        if path <> 'palettes' then
+          path := path + '/' + palettename
+        else
+          path := palettename;
+        cmbDefaultPalette.AddItem(path, nil);
+      end;
+      cmbDefaultPalette.ItemIndex := cmbDefaultPalette.items.indexOf(petza.defaultpalette);
+
+      except
+      on e: EDirectoryNotFoundException do begin
+        cmbDefaultPalette.Enabled := false;
+        cmbDefaultPalette.ItemIndex := 0;
+        exit;
+      end;
     end;
-    cmbDefaultPalette.ItemIndex := cmbDefaultPalette.items.indexOf(petza.defaultpalette);
+
+
   end;
   cmbDefaultPalette.Enabled := petza.enablepalettes and (cpetzver = pvpetz4);
 

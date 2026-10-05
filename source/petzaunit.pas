@@ -2446,10 +2446,6 @@ begin
     lnzlinesbyballcache.Add(key, parray);
   end;
 
-//  addlinespecpatch.callorigproc(instance, [lineno]);
-//  exit;
-
-
   //   increase the by-ball counts
   // and set draw before option - if not done then the draw will never be called
   var originalbyballarraycount := pinteger(classprop(instance, $87d4 + $28 * startball));
@@ -3481,6 +3477,10 @@ begin
 
   loadsettings; //pretty late in the peace so all objects are created
 
+  // Allow take out pet message through elevated petz game
+  // Needed for petz menu shell extension or other external programs
+  windows.ChangeWindowMessageFilter($222, MSGFLT_ADD);
+
   if (cpetzver = pvpetz4) and (bigplayscenes) then begin
     // set up larger playscenes
     patchthiscall(ptr($4a8ed0), @areagetmaxwindowsize);
@@ -3886,6 +3886,15 @@ begin
         end;
         result := 1;
       end;
+    $222: begin
+      const ac: pansichar = 'Adoption Center';
+      var adoptioncenter := pointer(thiscall(petzoberon, ptr($4cab10), [cardinal(ac)]));
+      if petzcurrentarea <> adoptioncenter then begin
+        petzcase.buttonindex := 0;
+        petzcase.loadpetz(wparam, 1, 1);
+      end;
+
+    end
   else
     result := inheritedwnd;
   end;
